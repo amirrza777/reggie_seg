@@ -454,7 +454,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
                     </div>
                     <div className="staff-projects__member-stat-column">
                       <Link
-                        href={`/staff/projects/${projectId}/teams/${teamId}/peer-assessment/${allocation.userId}`}
+                        href={`/staff/peer-assessments/module/${encodeURIComponent(String(data.project.moduleId))}/team/${encodeURIComponent(String(teamId))}/student/${encodeURIComponent(String(allocation.userId))}`}
                         className="staff-projects__member-metric-link"
                       >
                         Final mark <strong>{finalMark == null ? "--" : String(finalMark)}</strong>

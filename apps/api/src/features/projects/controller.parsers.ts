@@ -11,7 +11,11 @@ import {
   parseTrimmedString,
   type ParseResult,
 } from "../../shared/parse.js";
-import { parseProjectDeadline, parseStudentDeadlineOverridePayload, type ParsedProjectDeadline } from "./controller.deadline-parsers.js";
+import {
+  parseProjectDeadline,
+  parseStudentDeadlineOverridePayload,
+  type ParsedProjectDeadline,
+} from "./deadlines/controller.deadline-parsers.js";
 
 export function parseAuthenticatedUserId(req: AuthRequest): ParseResult<number> {
   const authUserId = req.user?.sub;

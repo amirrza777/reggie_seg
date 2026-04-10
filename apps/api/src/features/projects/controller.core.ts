@@ -26,7 +26,7 @@ import {
   isTeamLifecycleMigrationError,
   TEAM_LIFECYCLE_MIGRATION_ERROR,
 } from "./controller.shared.js";
-import { parseProjectDeadline } from "./controller.deadline-parsers.js";
+import { parseProjectDeadline } from "./deadlines/controller.deadline-parsers.js";
 import { parsePositiveIntArray } from "../../shared/parse.js";
 import { AssessmentAnswerValidationError } from "../peerAssessment/answers.js";
 

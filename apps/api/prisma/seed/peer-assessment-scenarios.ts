@@ -1,4 +1,5 @@
 import { withSeedLogging } from "./logging";
+import { seedCompletedUnmarkedStudentViewScenario } from "./peer-assessment-completed-unmarked-scenario";
 import { prisma } from "./prismaClient";
 import type { SeedContext } from "./types";
 import {
@@ -85,14 +86,23 @@ export async function seedPeerAssessmentProgressScenarios(context: SeedContext) 
       target.memberIds,
       questionLabels,
     );
+    const completedUnmarked = await seedCompletedUnmarkedStudentViewScenario(
+      context,
+      target.module.id,
+      target.template.id,
+      questionLabels,
+    );
 
     return {
       value: {
         assessmentOpenProjectId: assessmentOpen.projectId,
         feedbackPendingProjectId: feedbackPending.projectId,
+        completedUnmarkedProjectId: completedUnmarked?.projectId ?? null,
       },
-      rows: 2,
-      details: `projects=2, teams=2, assessments=${feedbackPending.assessmentCount}, allocations=${assessmentOpen.createdAllocations + feedbackPending.createdAllocations}`,
+      rows: completedUnmarked ? 3 : 2,
+      details: completedUnmarked
+        ? `projects=3, teams=3, assessments=${feedbackPending.assessmentCount + completedUnmarked.assessmentCount}, feedbacks=${completedUnmarked.feedbackCount}, allocations=${assessmentOpen.createdAllocations + feedbackPending.createdAllocations + completedUnmarked.createdAllocations}, clearedMarkings=${completedUnmarked.clearedMarkings}`
+        : `projects=2, teams=2, assessments=${feedbackPending.assessmentCount}, allocations=${assessmentOpen.createdAllocations + feedbackPending.createdAllocations}`,
     };
   });
 }

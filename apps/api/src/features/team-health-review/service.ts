@@ -1,14 +1,16 @@
 import {
+  createTeamHealthMessage,
   canStaffAccessTeamInProject,
-  type DeadlineInputMode,
-  getTeamById,
   getTeamDeadlineDetailsInProject,
+  getTeamHealthMessagesForTeamInProject,
   getTeamCurrentDeadlineInProject,
   hasAnotherResolvedTeamHealthMessage,
   resolveTeamHealthMessageWithDeadlineOverride,
   reviewTeamHealthMessage,
-} from "../repo.js";
-import { addNotification } from "../../notifications/service.js";
+  type DeadlineInputMode,
+} from "./repo.js";
+import { getModuleLeadsForProject, getTeamById, getTeamByUserAndProject } from "../projects/repo.js";
+import { addNotification } from "../notifications/service.js";
 
 export type DeadlineOverrideInput = {
   taskOpenDate?: Date | null;
@@ -77,6 +79,48 @@ async function notifyTeamStudentsAboutStaffResponse(
       }),
     ),
   );
+}
+
+async function notifyModuleLeadsAboutTeamHealthMessage(projectId: number, teamId: number) {
+  const leads = await getModuleLeadsForProject(projectId);
+  await Promise.all(
+    leads.map((lead) =>
+      addNotification({
+        userId: lead.userId,
+        type: "TEAM_HEALTH_SUBMITTED",
+        message: "A team health message has been submitted",
+        link: `/staff/projects/${projectId}/teams/${teamId}/teamhealth`,
+      }),
+    ),
+  );
+}
+
+export async function submitTeamHealthMessage(
+  userId: number,
+  projectId: number,
+  subject: string,
+  details: string,
+) {
+  const team = await getTeamByUserAndProject(userId, projectId);
+  if (!team) return null;
+
+  const message = await createTeamHealthMessage(projectId, team.id, userId, subject, details);
+  await notifyModuleLeadsAboutTeamHealthMessage(projectId, team.id);
+  return message;
+}
+
+export async function fetchMyTeamHealthMessages(userId: number, projectId: number) {
+  const team = await getTeamByUserAndProject(userId, projectId);
+  if (!team) return null;
+
+  return getTeamHealthMessagesForTeamInProject(projectId, team.id);
+}
+
+export async function fetchTeamHealthMessagesForStaff(userId: number, projectId: number, teamId: number) {
+  const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
+  if (!canAccess) return null;
+
+  return getTeamHealthMessagesForTeamInProject(projectId, teamId);
 }
 
 export async function fetchTeamDeadlineForStaff(userId: number, projectId: number, teamId: number) {

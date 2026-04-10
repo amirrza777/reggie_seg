@@ -202,6 +202,10 @@ describe("StaffProjectTeamTabsPage", () => {
     expect(screen.getByText("unknown@example.com")).toBeInTheDocument();
     expect(screen.getByText("AR")).toBeInTheDocument();
     expect(screen.getByText("?")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Final mark/i })[0]).toHaveAttribute(
+      "href",
+      "/staff/peer-assessments/module/2/team/6/student/101",
+    );
   });
 
   it("renders singular summaries and no latest meeting label when only invalid dates exist", async () => {

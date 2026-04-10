@@ -1,6 +1,6 @@
 import { TrelloRepo } from "./repo.js"
 import { matchesFuzzySearchCandidate } from "../../shared/fuzzySearch.js"
-import { canStaffAccessTeamInProject } from "../projects/team-health-review/repo.js"
+import { canStaffAccessTeamInProject } from "../team-health-review/repo.js"
 
 type TrelloBoard = Record<string, unknown> & {
   id?: unknown

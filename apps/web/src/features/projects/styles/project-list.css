@@ -40,6 +40,16 @@
   background: color-mix(in srgb, var(--status-success-soft, var(--color-fixed-dcfce7)) 52%, var(--surface));
 }
 
+.project-card--awaiting-mark {
+  border-color: var(--status-warning-border, var(--color-fixed-fbbf24));
+  background: color-mix(in srgb, var(--status-warning-soft, var(--color-fixed-fef3c7)) 30%, var(--surface));
+}
+
+.project-card--awaiting-mark:hover {
+  border-color: var(--status-warning-text, var(--color-fixed-b45309));
+  background: color-mix(in srgb, var(--status-warning-soft, var(--color-fixed-fef3c7)) 42%, var(--surface));
+}
+
 .project-card:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
@@ -71,6 +81,27 @@
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-semibold);
   color: var(--status-success-text, var(--color-fixed-15803d));
+}
+
+.project-card__mark--awaiting {
+  color: var(--status-warning-text, var(--color-fixed-b45309));
+}
+
+.project-card__status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-fixed-0-7rem);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.project-card__status-badge--awaiting {
+  border: 1px solid var(--status-warning-border, var(--color-fixed-fbbf24));
+  color: var(--status-warning-text, var(--color-fixed-b45309));
+  background: color-mix(in srgb, var(--status-warning-soft, var(--color-fixed-fef3c7)) 70%, transparent);
 }
 
 .project-card__summary {

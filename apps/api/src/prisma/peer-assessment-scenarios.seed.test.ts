@@ -6,12 +6,14 @@ const { prismaMock } = vi.hoisted(() => ({
     question: { findMany: vi.fn() },
     project: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
     team: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
-    teamAllocation: { findMany: vi.fn(), createMany: vi.fn() },
+    teamAllocation: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
     projectDeadline: { upsert: vi.fn(), findUnique: vi.fn() },
     teamDeadlineOverride: { deleteMany: vi.fn() },
     studentDeadlineOverride: { deleteMany: vi.fn() },
-    peerFeedback: { deleteMany: vi.fn() },
+    peerFeedback: { deleteMany: vi.fn(), upsert: vi.fn() },
     peerAssessment: { deleteMany: vi.fn(), upsert: vi.fn() },
+    staffTeamMarking: { deleteMany: vi.fn() },
+    staffStudentMarking: { deleteMany: vi.fn() },
   },
 }));
 
@@ -43,13 +45,17 @@ describe("seedPeerAssessmentProgressScenarios", () => {
     prismaMock.team.update.mockImplementation(async ({ where }: any) => ({ id: where.id }));
     prismaMock.teamAllocation.findMany.mockResolvedValue([]);
     prismaMock.teamAllocation.createMany.mockResolvedValue({ count: 2 });
+    prismaMock.teamAllocation.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.projectDeadline.upsert.mockResolvedValue({});
     prismaMock.projectDeadline.findUnique.mockResolvedValue({ id: 1 });
     prismaMock.teamDeadlineOverride.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.studentDeadlineOverride.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.peerFeedback.deleteMany.mockResolvedValue({ count: 0 });
+    prismaMock.peerFeedback.upsert.mockResolvedValue({ id: 1 });
     prismaMock.peerAssessment.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.peerAssessment.upsert.mockResolvedValue({ id: 1 });
+    prismaMock.staffTeamMarking.deleteMany.mockResolvedValue({ count: 0 });
+    prismaMock.staffStudentMarking.deleteMany.mockResolvedValue({ count: 0 });
   });
 
   it("skips when module or template is missing", async () => {
@@ -77,6 +83,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
     expect(result).toEqual({
       assessmentOpenProjectId: expect.any(Number),
       feedbackPendingProjectId: expect.any(Number),
+      completedUnmarkedProjectId: expect.any(Number),
     });
     expect(prismaMock.project.create).toHaveBeenCalled();
   });
@@ -118,15 +125,19 @@ describe("seedPeerAssessmentProgressScenarios", () => {
     expect(result).toEqual({
       assessmentOpenProjectId: 1000,
       feedbackPendingProjectId: expect.any(Number),
+      completedUnmarkedProjectId: expect.any(Number),
     });
     expect(prismaMock.project.update).toHaveBeenCalledTimes(1);
-    expect(prismaMock.project.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.project.create).toHaveBeenCalledTimes(2);
     expect(prismaMock.team.update).toHaveBeenCalledTimes(1);
-    expect(prismaMock.team.create).toHaveBeenCalledTimes(1);
-    expect(prismaMock.projectDeadline.upsert).toHaveBeenCalledTimes(2);
-    expect(prismaMock.peerFeedback.deleteMany).toHaveBeenCalledTimes(2);
-    expect(prismaMock.peerAssessment.deleteMany).toHaveBeenCalledTimes(1);
+    expect(prismaMock.team.create).toHaveBeenCalledTimes(2);
+    expect(prismaMock.projectDeadline.upsert).toHaveBeenCalledTimes(3);
+    expect(prismaMock.peerFeedback.deleteMany).toHaveBeenCalledTimes(3);
+    expect(prismaMock.peerAssessment.deleteMany).toHaveBeenCalledTimes(2);
     expect(prismaMock.peerAssessment.upsert).toHaveBeenCalled();
+    expect(prismaMock.peerFeedback.upsert).toHaveBeenCalled();
+    expect(prismaMock.staffTeamMarking.deleteMany).toHaveBeenCalled();
+    expect(prismaMock.staffStudentMarking.deleteMany).toHaveBeenCalled();
   });
 
   it("uses template fallback labels and skips falsy scenario member ids", async () => {

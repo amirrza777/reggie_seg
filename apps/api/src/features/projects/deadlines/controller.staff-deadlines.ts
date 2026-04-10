@@ -1,6 +1,6 @@
 import type { Response } from "express";
-import type { AuthRequest } from "../../auth/middleware.js";
-import { sendProjectOrModuleArchivedConflict } from "../../shared/projectWriteGuard.js";
+import type { AuthRequest } from "../../../auth/middleware.js";
+import { sendProjectOrModuleArchivedConflict } from "../../../shared/projectWriteGuard.js";
 import {
   clearStaffStudentDeadlineOverride,
   fetchStaffStudentDeadlineOverrides,
@@ -14,7 +14,7 @@ import {
   parseProjectIdParam,
   parseStaffStudentOverrideRoute,
   parseTeamIdParam,
-} from "./controller.parsers.js";
+} from "../controller.parsers.js";
 
 export async function updateTeamDeadlineProfileHandler(req: AuthRequest, res: Response) {
   const actorUserId = parseAuthenticatedUserId(req);

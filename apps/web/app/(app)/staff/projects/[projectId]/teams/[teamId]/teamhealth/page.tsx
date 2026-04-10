@@ -1,12 +1,12 @@
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
-import { StaffTeamHealthMessageReviewPanel } from "@/features/staff/projects/components/StaffTeamHealthMessageReviewPanel";
-import { StaffTeamWarningReviewPanel } from "@/features/staff/projects/components/StaffTeamWarningReviewPanel";
+import { StaffTeamHealthMessageReviewPanel } from "@/features/staff/projects/team-health/components/StaffTeamHealthMessageReviewPanel";
+import { StaffTeamWarningReviewPanel } from "@/features/staff/projects/team-health/components/StaffTeamWarningReviewPanel";
 import { listMeetings } from "@/features/meetings/api/client";
 import { getLatestProjectGithubSnapshot, listProjectGithubRepoLinks } from "@/features/github/api/client";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
-import { StaffSignalLookbackSelect } from "@/features/staff/projects/components/StaffSignalLookbackSelect";
+import { StaffSignalLookbackSelect } from "@/features/staff/projects/team-health/components/StaffSignalLookbackSelect";
 import "@/features/staff/projects/styles/staff-projects.css";
 import type { TeamHealthMessage, TeamWarning } from "@/features/projects/types";
 import type { GithubLatestSnapshot } from "@/features/github/types";

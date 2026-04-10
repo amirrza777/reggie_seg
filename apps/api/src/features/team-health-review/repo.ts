@@ -1,4 +1,4 @@
-import { prisma } from "../../../shared/db.js";
+import { prisma } from "../../shared/db.js";
 
 async function getScopedStaffUser(userId: number) {
   return prisma.user.findUnique({

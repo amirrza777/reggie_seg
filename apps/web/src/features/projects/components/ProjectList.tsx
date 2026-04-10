@@ -5,7 +5,7 @@ import "@/features/projects/styles/project-list.css";
 
 type ProjectListProps = {
   projects: Project[];
-  projectMetaById?: Record<string, { completed: boolean; mark: number | null }>;
+  projectMetaById?: Record<string, { completed: boolean; finishedUnmarked: boolean; mark: number | null }>;
 };
 
 function formatMark(mark: number): string {
@@ -28,18 +28,32 @@ export function ProjectList({ projects, projectMetaById = {} }: ProjectListProps
         {projects.map((project) => {
           const meta = projectMetaById[String(project.id)];
           const isCompleted = meta?.completed === true;
+          const isFinishedUnmarked = meta?.finishedUnmarked === true;
           const mark = typeof meta?.mark === "number" && Number.isFinite(meta.mark) ? meta.mark : null;
           const summary = (project as Project & { summary?: string | null }).summary;
+          const markClass = `project-card__mark${isFinishedUnmarked ? " project-card__mark--awaiting" : ""}`;
+          const cardClass = [
+            "project-card card",
+            isCompleted ? "project-card--completed" : "",
+            isFinishedUnmarked ? "project-card--awaiting-mark" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
 
           return (
             <Link
               key={project.id}
               href={`/projects/${project.id}`}
-              className={`project-card card${isCompleted ? " project-card--completed" : ""}`}
+              className={cardClass}
             >
               <div className="project-card__header">
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <h2 className="project-card__title">{project.name}</h2>
+                  {isFinishedUnmarked ? (
+                    <span className="project-card__status-badge project-card__status-badge--awaiting">
+                      Awaiting mark
+                    </span>
+                  ) : null}
                   {project.archivedAt && (
                     <span style={{
                       fontSize: "var(--fs-fixed-0-7rem)",
@@ -58,9 +72,13 @@ export function ProjectList({ projects, projectMetaById = {} }: ProjectListProps
                 <p className="project-card__module">
                   Module: {project.moduleName || "Module not assigned"}
                 </p>
-                {isCompleted ? (
-                  <p className="project-card__mark">
-                    {mark == null ? "Final mark pending" : `Final mark: ${formatMark(mark)}`}
+                {isCompleted || isFinishedUnmarked ? (
+                  <p className={markClass}>
+                    {isFinishedUnmarked
+                      ? ""
+                      : mark == null
+                        ? "Final mark pending"
+                        : `Final mark: ${formatMark(mark)}`}
                   </p>
                 ) : null}
               </div>

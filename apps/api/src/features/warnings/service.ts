@@ -1,9 +1,7 @@
-import { prisma } from "../../../shared/db.js";
-import { assertProjectMutableForWritesByProjectId } from "../../../shared/projectWriteGuard.js";
-import { addNotification } from "../../notifications/service.js";
+import { prisma } from "../../shared/db.js";
+import { assertProjectMutableForWritesByProjectId } from "../../shared/projectWriteGuard.js";
+import { addNotification } from "../notifications/service.js";
 import {
-  getTeamByUserAndProject,
-  getTeamById,
   getStaffProjectWarningsConfig as getStaffProjectWarningsConfigInDb,
   getProjectWarningsSettings as getProjectWarningsSettingsInDb,
   getProjectTeamWarningSignals as getProjectTeamWarningSignalsInDb,
@@ -12,10 +10,11 @@ import {
   updateAutoTeamWarningById as updateAutoTeamWarningByIdInDb,
   createTeamWarning,
   getTeamWarningsForTeamInProject,
-  canStaffAccessTeamInProject,
   updateStaffProjectWarningsConfig as updateStaffProjectWarningsConfigInDb,
   type TeamWarningCreateInput,
-} from "../repo.js";
+} from "./repo.js";
+import { getTeamByUserAndProject, getTeamById } from "../projects/repo.js";
+import { canStaffAccessTeamInProject } from "../team-health-review/repo.js";
 import { evaluateWarningsForTeams, getMaxLookbackDays } from "./evaluator.js";
 
 export type WarningRuleSeverity = "LOW" | "MEDIUM" | "HIGH";
