@@ -56,8 +56,8 @@ export async function buildSeedContext(enterprise: SeedEnterprise, passwordHash:
 }
 
 function splitSeedUsersByParticipation(users: SeedContext["users"]) {
-  const standardUsers = users.filter((user) => !seedAssessmentAccountEmailSet.has((user.email ?? "").toLowerCase()));
-  const assessmentAccounts = users.filter((user) => seedAssessmentAccountEmailSet.has((user.email ?? "").toLowerCase()));
+  const standardUsers = users.filter((user) => !seedAssessmentAccountEmailSet.has(user.email.toLowerCase()));
+  const assessmentAccounts = users.filter((user) => seedAssessmentAccountEmailSet.has(user.email.toLowerCase()));
   return { standardUsers, assessmentAccounts };
 }
 
