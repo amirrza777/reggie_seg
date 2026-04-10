@@ -1,6 +1,10 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ForumConversationTree, type ForumConversationTreePost } from "./ForumConversationTree";
+
+vi.mock("./RichTextViewer", () => ({
+  RichTextViewer: ({ content }: { content: string }) => <div data-testid="rich-text-viewer">{content}</div>,
+}));
 
 const post: ForumConversationTreePost = {
   id: 1,
@@ -32,5 +36,13 @@ describe("ForumConversationTree", () => {
     const cards = container.querySelectorAll(".card");
     expect(cards.length).toBeGreaterThanOrEqual(2);
     expect(cards[1]).toHaveStyle({ border: "1px solid var(--primary)" });
+  });
+
+  it("renders bodies through the rich text viewer", () => {
+    render(<ForumConversationTree post={post} focusPostId={1} />);
+
+    expect(screen.getAllByTestId("rich-text-viewer")).toHaveLength(2);
+    expect(screen.getByText("Root body")).toBeInTheDocument();
+    expect(screen.getByText("Reply body")).toBeInTheDocument();
   });
 });
