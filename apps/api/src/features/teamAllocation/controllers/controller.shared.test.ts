@@ -14,22 +14,55 @@ function createResponse() {
 
 describe("controller.shared", () => {
   it.each([
+    ["INVALID_PROJECT_ID", "Invalid project ID"],
+    ["INVALID_TEMPLATE_ID", "questionnaireTemplateId must be a positive integer"],
+    ["INVALID_TEAM_COUNT", "teamCount must be a positive integer"],
+    ["INVALID_MIN_TEAM_SIZE", "minTeamSize must be a positive integer when provided"],
+    ["INVALID_MAX_TEAM_SIZE", "maxTeamSize must be a positive integer when provided"],
+    ["INVALID_TEAM_SIZE_RANGE", "minTeamSize cannot be greater than maxTeamSize"],
+    ["INVALID_NON_RESPONDENT_STRATEGY", "nonRespondentStrategy must be either 'distribute_randomly' or 'exclude'"],
+    ["INVALID_CRITERIA", "Each criterion must include a valid questionId, strategy, and weight between 1 and 5"],
+    ["INVALID_PREVIEW_ID", "previewId is required"],
+    ["INVALID_TEAM_NAMES", "teamNames must be an array of strings when provided"],
+  ])("maps %s to 400 response", (code, message) => {
+    const res = createResponse();
+    respondCustomAllocationValidationError(res, code as any);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: message });
+  });
+
+  it.each([
     [undefined, null],
+    [null, null],
     ["", null],
     ["2", 2],
+    [2, 2],
+    ["0", "invalid"],
     ["2.5", "invalid"],
+    ["x", "invalid"],
   ])("parses optional positive integer %p", (input, expected) => {
     expect(parseOptionalPositiveInteger(input)).toBe(expected);
   });
 
-  it("normalizes manual allocation search query", () => {
-    expect(parseManualAllocationSearchQuery("  abc  ")).toBe("abc");
-    expect(parseManualAllocationSearchQuery("  ")).toBeNull();
-    expect(parseManualAllocationSearchQuery({})).toBe("invalid");
-    expect(parseManualAllocationSearchQuery("x".repeat(121))).toBe("invalid");
+  it.each([
+    [undefined, null],
+    [null, null],
+    ["", null],
+    ["   ", null],
+    [{}, "invalid"],
+    ["x".repeat(121), "invalid"],
+    ["  abc  ", "abc"],
+  ])("normalizes manual allocation search query %p", (input, expected) => {
+    expect(parseManualAllocationSearchQuery(input)).toBe(expected);
   });
 
-  it("formats stale student names with remainder suffix", () => {
+  it("returns null when stale student list is empty or unusable", () => {
+    expect(formatCustomAllocationStaleStudentNames(null)).toBeNull();
+    expect(formatCustomAllocationStaleStudentNames([])).toBeNull();
+    expect(formatCustomAllocationStaleStudentNames([null, { id: 1 }])).toBeNull();
+  });
+
+  it("formats stale student names and adds overflow suffix", () => {
     const stale = [
       { firstName: "Sam", lastName: "Ng" },
       { email: "jin@example.com" },
@@ -38,15 +71,8 @@ describe("controller.shared", () => {
       { firstName: "E", lastName: "F" },
       { firstName: "G", lastName: "H" },
     ];
-    expect(formatCustomAllocationStaleStudentNames(stale)).toBe("Sam Ng, jin@example.com, A B, C D, E F (+1 more)");
-  });
-
-  it("maps validation codes to 400 responses", () => {
-    const res = createResponse();
-    respondCustomAllocationValidationError(res, "INVALID_CRITERIA");
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({
-      error: "Each criterion must include a valid questionId, strategy, and weight between 1 and 5",
-    });
+    expect(formatCustomAllocationStaleStudentNames(stale)).toBe(
+      "Sam Ng, jin@example.com, A B, C D, E F (+1 more)",
+    );
   });
 });

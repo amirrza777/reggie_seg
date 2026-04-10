@@ -18,6 +18,26 @@ vi.mock("@/features/projects/api/teamAllocation", () => ({
 }));
 
 describe("StaffRandomAllocationPreview", () => {
+  const basePreview = {
+    project: { id: 4, name: "Project A", moduleId: 2, moduleName: "Module A" },
+    studentCount: 4,
+    teamCount: 2,
+    existingTeams: [],
+    previewTeams: [
+      {
+        index: 0,
+        suggestedName: "Random Team 1",
+        members: [{ id: 11, firstName: "Jin", lastName: "Johannesdottir", email: "jin@example.com" }],
+      },
+      {
+        index: 1,
+        suggestedName: "Random Team 2",
+        members: [{ id: 12, firstName: "Sunil", lastName: "Stefansdottir", email: "sunil@example.com" }],
+      },
+    ],
+    unassignedStudents: [],
+  };
+
   async function waitForPreviewReady() {
     await waitFor(
       () => {
@@ -240,5 +260,63 @@ describe("StaffRandomAllocationPreview", () => {
 
     expect(screen.getByText("Team count must be a positive integer.")).toBeInTheDocument();
     expect(getRandomAllocationPreviewMock).not.toHaveBeenCalled();
+  });
+
+  it("renders embedded mode without standalone heading copy", () => {
+    render(<StaffRandomAllocationPreview projectId={4} initialTeamCount={2} embedded />);
+    expect(screen.queryByText("Random allocation preview")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Only vacant students are included here/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Random allocation preview")).toHaveClass("staff-projects__allocation-content--embedded");
+  });
+
+  it("shows unassigned students in preview results", async () => {
+    getRandomAllocationPreviewMock.mockResolvedValue({
+      ...basePreview,
+      unassignedStudents: [{ id: 99, firstName: "", lastName: "", email: "unassigned@example.com" }],
+    });
+    render(<StaffRandomAllocationPreview projectId={4} initialTeamCount={2} />);
+    fireEvent.click(screen.getByRole("button", { name: /preview random teams/i }));
+    await waitFor(() => expect(getRandomAllocationPreviewMock).toHaveBeenCalledWith(4, 2));
+    expect(await screen.findByText(/could not be assigned with the current team size limits/i)).toBeInTheDocument();
+    expect(screen.getByText("unassigned@example.com")).toBeInTheDocument();
+  });
+
+  it("validates minimum and maximum team size inputs", async () => {
+    render(<StaffRandomAllocationPreview projectId={4} initialTeamCount={2} />);
+    fireEvent.change(screen.getByLabelText("Minimum students per team"), { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: /preview random teams/i }));
+    expect(await screen.findByText("Minimum students per team must be a positive integer when provided.")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Minimum students per team"), { target: { value: "1" } });
+    fireEvent.change(screen.getByLabelText("Maximum students per team"), { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: /preview random teams/i }));
+    expect(await screen.findByText("Maximum students per team must be a positive integer when provided.")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Minimum students per team"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("Maximum students per team"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: /preview random teams/i }));
+    expect(await screen.findByText("Minimum students per team cannot be greater than maximum students per team.")).toBeInTheDocument();
+  });
+
+  it("handles preview failures with a fallback error message", async () => {
+    getRandomAllocationPreviewMock.mockRejectedValue("bad");
+    render(<StaffRandomAllocationPreview projectId={4} initialTeamCount={2} />);
+    fireEvent.click(screen.getByRole("button", { name: /preview random teams/i }));
+    expect(await screen.findByText("Failed to preview random allocation.")).toBeInTheDocument();
+  });
+
+  it("applies with size options and resets preview on vacancy conflicts", async () => {
+    getRandomAllocationPreviewMock.mockResolvedValue(basePreview);
+    applyRandomAllocationMock.mockRejectedValue(new Error("Some students are no longer vacant"));
+    render(<StaffRandomAllocationPreview projectId={4} initialTeamCount={2} />);
+    fireEvent.change(screen.getByLabelText("Minimum students per team"), { target: { value: "1" } });
+    fireEvent.change(screen.getByLabelText("Maximum students per team"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: /preview random teams/i }));
+    await waitFor(() => expect(getRandomAllocationPreviewMock).toHaveBeenCalledWith(4, 2, { minTeamSize: 1, maxTeamSize: 2 }));
+    await screen.findByText("Random Team 1");
+    fireEvent.click(screen.getByRole("button", { name: /confirm allocation/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /save draft allocation/i })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: /save draft allocation/i }));
+    await waitFor(() => expect(applyRandomAllocationMock).toHaveBeenCalledWith(4, 2, ["Random Team 1", "Random Team 2"], { minTeamSize: 1, maxTeamSize: 2 }));
+    expect(await screen.findByText("Some students are no longer vacant")).toBeInTheDocument();
+    expect(screen.queryByText("Random Team 1")).not.toBeInTheDocument();
   });
 });
