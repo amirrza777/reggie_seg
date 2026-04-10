@@ -4,7 +4,7 @@ import * as service from "../service/service.js";
 import { applyManualAllocationHandler, getManualAllocationWorkspaceHandler } from "./controller.manual.js";
 import { applyRandomAllocationHandler, previewRandomAllocationHandler } from "./controller.random.js";
 
-vi.mock("./service.js", () => ({
+vi.mock("../service/service.js", () => ({
   applyManualAllocationForProject: vi.fn(),
   applyRandomAllocationForProject: vi.fn(),
   getManualAllocationWorkspaceForProject: vi.fn(),
