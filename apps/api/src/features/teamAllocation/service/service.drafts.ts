@@ -1,4 +1,5 @@
 import { assertProjectMutableForWrites } from "../../../shared/projectWriteGuard.js";
+import { addNotification } from "../../notifications/service.js";
 import {
   approveDraftTeam,
   deleteDraftTeam,
@@ -246,6 +247,17 @@ export async function approveAllocationDraftForProject(
       firstName: member.firstName,
       email: member.email,
     })),
+  );
+
+  await Promise.allSettled(
+    approvedTeam.members.map((member) =>
+      addNotification({
+        userId: member.id,
+        type: "TEAM_ALLOCATED",
+        message: `You have been allocated to "${approvedTeam.teamName}"`,
+        link: `/projects/${project.id}/team`,
+      })
+    )
   );
 
   return {
