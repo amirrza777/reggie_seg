@@ -20,7 +20,7 @@ describe("outcomes seeder deadlines and feature flags", () => {
     await seedProjectDeadlines([
       { id: 1, moduleId: 1, templateId: 1 },
       { id: 2, moduleId: 1, templateId: 1 },
-    ] as any);
+    ] as never);
 
     expect(prismaMock.projectDeadline.upsert).toHaveBeenCalledTimes(2);
     expect(prismaMock.projectDeadline.upsert).toHaveBeenCalledWith(

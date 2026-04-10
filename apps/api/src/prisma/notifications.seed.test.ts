@@ -34,7 +34,7 @@ describe("seedNotifications", () => {
       seedNotifications({
         teams: [],
         usersByRole: { students: [{ id: 1 }, { id: 2 }], adminOrStaff: [{ id: 3 }] },
-      } as any),
+      } as never),
     ).resolves.toBeUndefined();
 
     expect(mockState.prisma.notification.findFirst).not.toHaveBeenCalled();
@@ -45,7 +45,7 @@ describe("seedNotifications", () => {
       seedNotifications({
         teams: [{ id: 5, projectId: 9 }],
         usersByRole: { students: [{ id: 1 }], adminOrStaff: [{ id: 3 }] },
-      } as any),
+      } as never),
     ).resolves.toBeUndefined();
 
     expect(mockState.prisma.notification.findFirst).not.toHaveBeenCalled();
@@ -57,7 +57,7 @@ describe("seedNotifications", () => {
       seedNotifications({
         teams: [{ id: 5, projectId: 9 }],
         usersByRole: { students: [{ id: 1 }, { id: 2 }], adminOrStaff: [{ id: 3 }] },
-      } as any),
+      } as never),
     ).resolves.toBeUndefined();
 
     expect(mockState.prisma.notification.createMany).not.toHaveBeenCalled();
@@ -75,7 +75,7 @@ describe("seedNotifications", () => {
         students: [{ id: 1 }, { id: 2 }],
         adminOrStaff: [{ id: 3 }],
       },
-    } as any;
+    } as never;
 
     await expect(seedNotifications(context)).resolves.toBeUndefined();
 
@@ -95,7 +95,7 @@ describe("seedNotifications", () => {
       seedNotifications({
         teams: [{ id: 5, projectId: 9 }],
         usersByRole: { students: [{ id: 1 }, { id: 2 }], adminOrStaff: [] },
-      } as any),
+      } as never),
     ).resolves.toBeUndefined();
 
     expect(mockState.prisma.notification.createMany).toHaveBeenCalledTimes(1);
@@ -118,7 +118,7 @@ describe("seedNotifications", () => {
           students: [{ id: 1 }, { id: 2 }],
           adminOrStaff: [{ id: 3 }],
         },
-      } as any),
+      } as never),
     ).rejects.toThrow("connection lost");
   });
 
@@ -132,7 +132,7 @@ describe("seedNotifications", () => {
           students: [{ id: 1 }, { id: 2 }],
           adminOrStaff: [{ id: 3 }],
         },
-      } as any),
+      } as never),
     ).rejects.toEqual(expect.objectContaining({ code: "BROKEN" }));
   });
 });

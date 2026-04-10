@@ -40,14 +40,28 @@ describe("forum planners", () => {
         { id: 3, projectId: 20, authorId: 102 },
         { id: 4, projectId: 20, authorId: 103 },
       ],
-      [{ id: 200 } as any],
-      [{ id: 100 } as any, { id: 101 } as any],
+      [{ id: 200 } as never],
+      [{ id: 100 } as never, { id: 101 } as never],
     );
 
     expect(rows.length).toBeGreaterThan(0);
     const keys = rows.map((row) => `${row.postId}:${row.userId}`);
     expect(new Set(keys).size).toBe(keys.length);
     expect(rows.some((row) => row.type === "DISLIKE") || rows.some((row) => row.type === "LIKE")).toBe(true);
+  });
+
+  it("drops duplicate post-reactor pairs when rotation revisits the same key", () => {
+    const rows = planForumReactionSeedData(
+      [
+        { id: 1, projectId: 10, authorId: 100 },
+        { id: 2, projectId: 10, authorId: 101 },
+      ],
+      [{ id: 900 } as never],
+      [],
+    );
+
+    const keys = rows.map((row) => `${row.postId}:${row.userId}`);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   it("generates DISLIKE for odd-index projects on final reaction slot", () => {
@@ -60,8 +74,8 @@ describe("forum planners", () => {
         { id: 5, projectId: 11, authorId: 104 },
         { id: 6, projectId: 11, authorId: 105 },
       ],
-      [{ id: 900 } as any],
-      [{ id: 100 } as any, { id: 101 } as any, { id: 102 } as any, { id: 103 } as any, { id: 104 } as any, { id: 105 } as any],
+      [{ id: 900 } as never],
+      [{ id: 100 } as never, { id: 101 } as never, { id: 102 } as never, { id: 103 } as never, { id: 104 } as never, { id: 105 } as never],
     );
 
     expect(rows.some((row) => row.type === "DISLIKE")).toBe(true);
@@ -74,8 +88,8 @@ describe("forum planners", () => {
         { id: 2, projectId: 10, authorId: 301 },
         { id: 3, projectId: 20, authorId: 301 },
       ],
-      [{ id: 900 } as any],
-      [{ id: 300 } as any, { id: 301 } as any, { id: 302 } as any],
+      [{ id: 900 } as never],
+      [{ id: 300 } as never, { id: 301 } as never, { id: 302 } as never],
     );
 
     expect(rows.length).toBeGreaterThan(0);
@@ -86,7 +100,7 @@ describe("forum planners", () => {
   it("skips reaction/report rows when no valid reactor or reporter exists", () => {
     const reactionRows = planForumReactionSeedData(
       [{ id: 1, projectId: 10, authorId: 100 }],
-      [{ id: 100 } as any],
+      [{ id: 100 } as never],
       [],
     );
     expect(reactionRows).toHaveLength(0);
@@ -94,7 +108,7 @@ describe("forum planners", () => {
     const reportRows = planForumStudentReportSeedData(
       [{ id: 2, projectId: 20, authorId: 300 }],
       [],
-      [{ id: 300 } as any],
+      [{ id: 300 } as never],
     );
     expect(reportRows).toHaveLength(0);
   });
@@ -105,8 +119,8 @@ describe("forum planners", () => {
         { id: 1, projectId: 10, authorId: 300 },
         { id: 2, projectId: 10, authorId: 301 },
       ],
-      [{ id: 900 } as any],
-      [{ id: 300 } as any, { id: 301 } as any, { id: 302 } as any],
+      [{ id: 900 } as never],
+      [{ id: 300 } as never, { id: 301 } as never, { id: 302 } as never],
     );
 
     expect(rows.some((row) => row.status === "APPROVED" && row.reviewedById === 900)).toBe(true);
@@ -129,24 +143,24 @@ describe("seedForumPosts", () => {
   });
 
   it("skips when no projects", async () => {
-    await expect(seedForumPosts([], [{ id: 1 } as any], [{ id: 2 } as any])).resolves.toBeUndefined();
+    await expect(seedForumPosts([], [{ id: 1 } as never], [{ id: 2 } as never])).resolves.toBeUndefined();
     expect(prismaMock.discussionPost.deleteMany).not.toHaveBeenCalled();
   });
 
   it("skips when missing staff or students", async () => {
-    await expect(seedForumPosts([{ id: 1 } as any], [], [{ id: 2 } as any])).resolves.toBeUndefined();
-    await expect(seedForumPosts([{ id: 1 } as any], [{ id: 1 } as any], [])).resolves.toBeUndefined();
+    await expect(seedForumPosts([{ id: 1 } as never], [], [{ id: 2 } as never])).resolves.toBeUndefined();
+    await expect(seedForumPosts([{ id: 1 } as never], [{ id: 1 } as never], [])).resolves.toBeUndefined();
   });
 
   it("creates forum roots/replies/reactions/reports", async () => {
-    falsoMock.randParagraph.mockReturnValueOnce(["para a", "para b"] as any).mockReturnValue(["reply a", "reply b"] as any);
-    falsoMock.randSentence.mockReturnValue(["forum sentence"] as any);
+    falsoMock.randParagraph.mockReturnValueOnce(["para a", "para b"] as never).mockReturnValue(["reply a", "reply b"] as never);
+    falsoMock.randSentence.mockReturnValue(["forum sentence"] as never);
 
     await expect(
       seedForumPosts(
         [{ id: 1, moduleId: 1, templateId: 1 }],
-        [{ id: 11 } as any],
-        [{ id: 22 } as any, { id: 23 } as any],
+        [{ id: 11 } as never],
+        [{ id: 22 } as never, { id: 23 } as never],
       ),
     ).resolves.toBeUndefined();
 
@@ -154,6 +168,34 @@ describe("seedForumPosts", () => {
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(2);
     expect(prismaMock.forumReaction.createMany).toHaveBeenCalled();
     expect(prismaMock.forumStudentReport.createMany).toHaveBeenCalled();
+  });
+
+  it("joins array paragraphs into body text for roots and replies", async () => {
+    falsoMock.randParagraph.mockReturnValue(["alpha", "beta"] as never);
+    falsoMock.randSentence.mockReturnValue("Scenario sentence");
+
+    await seedForumPosts(
+      [{ id: 1, moduleId: 1, templateId: 1 }],
+      [{ id: 11 } as never],
+      [{ id: 22 } as never, { id: 23 } as never],
+    );
+
+    const bodies = prismaMock.discussionPost.create.mock.calls.map((call) => String(call[0]?.data?.body ?? ""));
+    expect(bodies.some((body) => body.includes("alpha\n\nbeta"))).toBe(true);
+  });
+
+  it("supports non-array paragraph values for roots and replies", async () => {
+    falsoMock.randParagraph.mockReturnValue("single paragraph");
+    falsoMock.randSentence.mockReturnValue("Single sentence");
+
+    await seedForumPosts(
+      [{ id: 1, moduleId: 1, templateId: 1 }],
+      [{ id: 11 } as never],
+      [{ id: 22 } as never, { id: 23 } as never],
+    );
+
+    const bodies = prismaMock.discussionPost.create.mock.calls.map((call) => String(call[0]?.data?.body ?? ""));
+    expect(bodies.some((body) => body.includes("single paragraph"))).toBe(true);
   });
 
   it("uses fallback reply titles/author ids when transaction returns extra roots", async () => {
@@ -166,7 +208,7 @@ describe("seedForumPosts", () => {
       ])
       .mockImplementationOnce(async (ops: any[]) => Promise.all(ops));
 
-    await seedForumPosts([{ id: 1, moduleId: 1, templateId: 1 }], [{ id: 11 } as any], [{ id: 22 } as any, { id: 23 } as any]);
+    await seedForumPosts([{ id: 1, moduleId: 1, templateId: 1 }], [{ id: 11 } as never], [{ id: 22 } as never, { id: 23 } as never]);
 
     const replyTitles = prismaMock.discussionPost.create.mock.calls
       .map((call) => call[0]?.data?.title)
@@ -177,8 +219,8 @@ describe("seedForumPosts", () => {
   it("skips reaction/report writes when planners return empty rows", async () => {
     await seedForumPosts(
       [{ id: 1, moduleId: 1, templateId: 1 }],
-      [{ id: 11 } as any],
-      [{ id: 11 } as any],
+      [{ id: 11 } as never],
+      [{ id: 11 } as never],
     );
 
     expect(prismaMock.forumReaction.createMany).not.toHaveBeenCalled();

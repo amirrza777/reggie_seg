@@ -1,7 +1,6 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
 import { setSensitiveNoStore } from "../../shared/httpCache.js";
-import { findJoinActor } from "./repo.js";
 import { parseModuleIdParam, parseModuleJoinCodeBody, parseNormalizedModuleJoinCode } from "./controller.parsers.js";
 import { getModuleJoinCode, joinModuleByCode, rotateModuleJoinCode } from "./service.js";
 
@@ -46,12 +45,7 @@ export async function getModuleJoinCodeHandler(req: AuthRequest, res: Response) 
     return res.status(400).json({ code: "INVALID_REQUEST", error: parsedModuleId.error });
   }
 
-  const actor = await findJoinActor(actorUserId);
-  if (!actor) {
-    return res.status(401).json({ code: "UNAUTHORIZED", error: "Unauthorized" });
-  }
-
-  const result = await getModuleJoinCode(actor, parsedModuleId.value);
+  const result = await getModuleJoinCode(actorUserId, parsedModuleId.value);
   if (!result.ok) {
     return sendModuleJoinError(res, result);
   }
@@ -71,12 +65,7 @@ export async function rotateModuleJoinCodeHandler(req: AuthRequest, res: Respons
     return res.status(400).json({ code: "INVALID_REQUEST", error: parsedModuleId.error });
   }
 
-  const actor = await findJoinActor(actorUserId);
-  if (!actor) {
-    return res.status(401).json({ code: "UNAUTHORIZED", error: "Unauthorized" });
-  }
-
-  const result = await rotateModuleJoinCode(actor, parsedModuleId.value);
+  const result = await rotateModuleJoinCode(actorUserId, parsedModuleId.value);
   if (!result.ok) {
     return sendModuleJoinError(res, result);
   }

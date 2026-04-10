@@ -170,7 +170,7 @@ describe("catalog seeders", () => {
   it("seedProjects handles skip branches and normal creation", async () => {
     expect(await seedProjects([], [{ id: 1, questionLabels: [] }])).toEqual([]);
     expect(await seedProjects([{ id: 1 }], [])).toEqual([]);
-    expect(await seedProjects([undefined as unknown as { id: number }], [{ id: 1, questionLabels: [] } as any])).toEqual(
+    expect(await seedProjects([undefined as unknown as { id: number }], [{ id: 1, questionLabels: [] } as never])).toEqual(
       [],
     );
 

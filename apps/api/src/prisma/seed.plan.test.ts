@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildDemoSeedPlan,
-  buildDevSeedPlan,
-  buildE2ESeedPlan,
   buildSeedStepPlan,
-  buildTrelloE2ESeedPlan,
 } from "../../prisma/seed/plan";
 import type { SeedProfileConfig } from "../../prisma/seed/config";
 import type { SeedContext } from "../../prisma/seed/types";
@@ -13,6 +9,8 @@ const context: SeedContext = {
   enterprise: { id: "ent-1", code: "ENT", name: "Enterprise" },
   passwordHash: "hashed",
   users: [],
+  standardUsers: [],
+  assessmentAccounts: [],
   usersByRole: {
     adminOrStaff: [],
     students: [],
@@ -46,7 +44,6 @@ describe("seed plan", () => {
       "seedStaffStudentMarks",
       "seedTeamInvites",
       "seedGithubE2EUsers",
-      "seedGithubDemoPath",
       "seedCompletedProjectScenario",
       "seedProjectDeadlines",
       "seedPeerAssessments",
@@ -72,7 +69,7 @@ describe("seed plan", () => {
     const steps = buildSeedStepPlan(context, config);
 
     expect(steps.map((step) => step.name)).not.toContain("seedCompletedProjectScenario");
-    expect(steps.map((step) => step.name)).toContain("seedGithubDemoPath");
+    expect(steps.map((step) => step.name)).not.toContain("seedGithubDemoPath");
     expect(steps.map((step) => step.name)).toContain("seedStaffStudentMarks");
   });
 
@@ -93,21 +90,16 @@ describe("seed plan", () => {
     expect(steps.map((step) => step.name)).not.toContain("seedCompletedProjectScenario");
   });
 
-  it("exports concrete profile builders with consistent step counts", () => {
-    const dev = buildDevSeedPlan(context, buildConfig("dev", new Set(["githubDemo", "staffStudentMarks"])));
-    const demo = buildDemoSeedPlan(
-      context,
-      buildConfig("demo", new Set(["adminTeamAllocation", "completedProject", "githubDemo", "staffStudentMarks"])),
-    );
-    const e2e = buildE2ESeedPlan(context, buildConfig("e2e", new Set(["githubDemo", "staffStudentMarks"])));
-    const trello = buildTrelloE2ESeedPlan(
-      context,
-      buildConfig("trello-e2e", new Set(["adminTeamAllocation", "githubDemo", "staffStudentMarks"])),
-    );
+  it("keeps profile name independent from step list when scenario config is identical", () => {
+    const scenarios = new Set(["adminTeamAllocation", "completedProject", "githubDemo", "staffStudentMarks"]);
+    const dev = buildSeedStepPlan(context, buildConfig("dev", scenarios));
+    const demo = buildSeedStepPlan(context, buildConfig("demo", scenarios));
+    const e2e = buildSeedStepPlan(context, buildConfig("e2e", scenarios));
+    const trello = buildSeedStepPlan(context, buildConfig("trello-e2e", scenarios));
+    const toNames = (steps: typeof dev) => steps.map((step) => step.name);
 
-    expect(dev.length).toBeGreaterThan(0);
-    expect(demo.length).toBeGreaterThan(dev.length);
-    expect(e2e.length).toBeGreaterThan(0);
-    expect(trello.length).toBeGreaterThan(0);
+    expect(toNames(dev)).toEqual(toNames(demo));
+    expect(toNames(dev)).toEqual(toNames(e2e));
+    expect(toNames(dev)).toEqual(toNames(trello));
   });
 });
