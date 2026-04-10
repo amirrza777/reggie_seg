@@ -2,7 +2,6 @@
 
 import { useUser } from "@/features/auth/context";
 import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
-import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { isMeetingMember } from "../lib/meetingMember";
 import { daysToMs } from "../lib/meetingTime";
 import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
@@ -22,17 +21,15 @@ export function MeetingAttendanceContent({ meetingId, projectId }: MeetingAttend
 
   if (!meeting || !user || !settings) return null;
 
-  const backLink = (
-    <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">
-      <ChevronLeft size={14} />
-      Back to meeting
-    </AnchorLink>
-  );
+  const meetingDate = new Date(meeting.date);
+  const now = new Date();
+  const isUpcomingMeeting = meetingDate >= now;
+  const meetingsHref = `/projects/${projectId}/meetings?tab=${isUpcomingMeeting ? "upcoming" : "previous"}`;
 
   if (!workspaceCanEdit) {
     return (
       <div className="stack">
-        {backLink}
+        <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Attendance" />
         <p className="muted">This project is archived; attendance cannot be edited.</p>
       </div>
     );
@@ -43,7 +40,7 @@ export function MeetingAttendanceContent({ meetingId, projectId }: MeetingAttend
   const canRecord = isOrganiser || (settings.allowAnyoneToRecordAttendance && isMember);
   const attendanceEditWindowMs = daysToMs(settings.attendanceEditWindowDays);
 
-  if (new Date(meeting.date) >= new Date()) {
+  if (isUpcomingMeeting) {
     return (
       <div className="stack">
         <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Attendance" />
