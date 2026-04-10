@@ -11,9 +11,9 @@ describe("repo invites scope", () => {
   });
 
   it.each([
-    "findStaffScopedProject",
-    "findStaffScopedProjectAccess",
     "findVacantModuleStudentsForProject",
+    "findInviteEligibleStudentsForTeam",
+    "findInviteEligibleStudentForTeamByEmail",
     "findProjectTeamSummaries",
   ])("exports %s from scope repo", (name) => {
     expect(scopeRepo).toHaveProperty(name);

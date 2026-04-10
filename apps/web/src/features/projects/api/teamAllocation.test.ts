@@ -5,12 +5,15 @@ vi.mock("@/shared/api/http", () => ({ apiFetch: (...args: unknown[]) => apiFetch
 
 import {
   acceptInvite,
+  approveAllocationDraft,
   applyCustomAllocation,
+  deleteAllocationDraft,
   applyManualAllocation,
   applyRandomAllocation,
   cancelTeamInvite,
   createTeamForProject,
   declineInvite,
+  getAllocationDrafts,
   getCustomAllocationCoverage,
   getCustomAllocationQuestionnaires,
   getManualAllocationWorkspace,
@@ -20,6 +23,7 @@ import {
   getTeamInvites,
   previewCustomAllocation,
   sendTeamInvite,
+  updateAllocationDraft,
 } from "./teamAllocation";
 
 function expectFetch(path: string, init?: Record<string, unknown>) {
@@ -152,5 +156,25 @@ describe("team allocation api client", () => {
       method: "POST",
       body: JSON.stringify({ previewId: "custom-preview-1", teamNames: ["Team Orion", "Team Vega"] }),
     });
+  });
+
+  it("calls allocation draft endpoints with optional optimistic payloads", async () => {
+    await getAllocationDrafts(55);
+    expectFetch("/team-allocation/projects/55/allocation-drafts", { cache: "no-store" });
+
+    await updateAllocationDraft(55, 7, { teamName: "Blue", studentIds: [1], expectedUpdatedAt: "2026-01-01T00:00:00.000Z" });
+    expectFetch("/team-allocation/projects/55/allocation-drafts/7", {
+      method: "PATCH",
+      body: JSON.stringify({ teamName: "Blue", studentIds: [1], expectedUpdatedAt: "2026-01-01T00:00:00.000Z" }),
+    });
+
+    await approveAllocationDraft(55, 7, { expectedUpdatedAt: "2026-01-01T00:00:00.000Z" });
+    expectFetch("/team-allocation/projects/55/allocation-drafts/7/approve", {
+      method: "PATCH",
+      body: JSON.stringify({ expectedUpdatedAt: "2026-01-01T00:00:00.000Z" }),
+    });
+
+    await deleteAllocationDraft(55, 7);
+    expectFetch("/team-allocation/projects/55/allocation-drafts/7", { method: "DELETE" });
   });
 });

@@ -1,7 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { StaffCustomisedAllocationPanel } from "./StaffCustomisedAllocationPanel";
-
 const getCustomAllocationQuestionnairesMock = vi.fn();
 const getCustomAllocationCoverageMock = vi.fn();
 const previewCustomAllocationMock = vi.fn();

@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   prisma: {
     teamInvite: {
-      updateMany: vi.fn(),
-      findUnique: vi.fn(),
-      findFirst: vi.fn(),
-      deleteMany: vi.fn(),
       create: vi.fn(),
+      deleteMany: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      updateMany: vi.fn(),
     },
     team: { findUnique: vi.fn() },
     user: { findUnique: vi.fn() },
@@ -16,37 +17,75 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../../../shared/db.js", () => ({ prisma: mocks.prisma }));
 
-import { createTeamInviteRecord, updateInviteStatusFromPending } from "./repo.invites.js";
+import {
+  createTeamInviteRecord,
+  findActiveInvite,
+  findInviteContext,
+  findPendingInvitesForEmail,
+  getInvitesForTeam,
+  updateInviteStatusFromPending,
+} from "./repo.invites.js";
 
-describe("repo invites", () => {
+describe("repo.invites", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns null when invite transition updates nothing", async () => {
-    mocks.prisma.teamInvite.findFirst.mockResolvedValue(null);
-    await expect(updateInviteStatusFromPending("i-1", "DECLINED", new Date())).resolves.toBeNull();
+  it("findActiveInvite filters by active pending invite and active team", async () => {
+    mocks.prisma.teamInvite.findFirst.mockResolvedValue({ id: "inv-1" });
+    await expect(findActiveInvite(4, "a@x.com")).resolves.toEqual({ id: "inv-1" });
+    expect(mocks.prisma.teamInvite.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ teamId: 4, inviteeEmail: "a@x.com", status: "PENDING", active: true }) }),
+    );
   });
 
-  it("returns updated invite when transition succeeds", async () => {
-    mocks.prisma.teamInvite.findFirst.mockResolvedValue({
-      id: "i-1",
-      teamId: 3,
-      inviteeEmail: "u@x.com",
-    });
-    mocks.prisma.teamInvite.deleteMany.mockResolvedValue({ count: 0 });
+  it("createTeamInviteRecord persists pending active defaults", async () => {
+    const expiresAt = new Date("2026-01-10T00:00:00.000Z");
+    mocks.prisma.teamInvite.create.mockResolvedValue({ id: "inv-2" });
+    await createTeamInviteRecord({ teamId: 4, inviterId: 9, inviteeEmail: "a@x.com", tokenHash: "hash", expiresAt });
+    expect(mocks.prisma.teamInvite.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: "PENDING", active: true, inviteeId: null, message: null }) }),
+    );
+  });
+
+  it("findInviteContext returns selected team and inviter data", async () => {
+    mocks.prisma.team.findUnique.mockResolvedValue({ teamName: "Blue" });
+    mocks.prisma.user.findUnique.mockResolvedValue({ firstName: "Ada" });
+    const result = await findInviteContext(2, 3);
+    expect(result).toEqual({ team: { teamName: "Blue" }, inviter: { firstName: "Ada" } });
+  });
+
+  it("getInvitesForTeam and findPendingInvitesForEmail query with expected filters", async () => {
+    mocks.prisma.teamInvite.findMany.mockResolvedValueOnce([{ id: "a" }]).mockResolvedValueOnce([{ id: "b" }]);
+    await expect(getInvitesForTeam(6)).resolves.toEqual([{ id: "a" }]);
+    await expect(findPendingInvitesForEmail("u@x.com")).resolves.toEqual([{ id: "b" }]);
+    expect(mocks.prisma.teamInvite.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ where: expect.objectContaining({ inviteeEmail: "u@x.com", status: "PENDING", active: true }) }),
+    );
+  });
+
+  it("returns null when pending invite for transition is missing", async () => {
+    mocks.prisma.teamInvite.findFirst.mockResolvedValue(null);
+    await expect(updateInviteStatusFromPending("inv-1", "DECLINED", new Date())).resolves.toBeNull();
+  });
+
+  it("returns null when transition loses race during update", async () => {
+    mocks.prisma.teamInvite.findFirst.mockResolvedValue({ id: "inv-1", teamId: 3, inviteeEmail: "u@x.com" });
+    mocks.prisma.teamInvite.deleteMany.mockResolvedValue({ count: 1 });
+    mocks.prisma.teamInvite.updateMany.mockResolvedValue({ count: 0 });
+    await expect(updateInviteStatusFromPending("inv-1", "DECLINED", new Date())).resolves.toBeNull();
+  });
+
+  it("updates pending invite, deactivates duplicates, and reloads row", async () => {
+    mocks.prisma.teamInvite.findFirst.mockResolvedValue({ id: "inv-1", teamId: 3, inviteeEmail: "u@x.com" });
+    mocks.prisma.teamInvite.deleteMany.mockResolvedValue({ count: 1 });
     mocks.prisma.teamInvite.updateMany.mockResolvedValue({ count: 1 });
-    mocks.prisma.teamInvite.findUnique.mockResolvedValue({ id: "i-1", status: "DECLINED" });
-    await expect(updateInviteStatusFromPending("i-1", "DECLINED", new Date())).resolves.toEqual({
-      id: "i-1",
+    mocks.prisma.teamInvite.findUnique.mockResolvedValue({ id: "inv-1", status: "DECLINED" });
+    await expect(updateInviteStatusFromPending("inv-1", "DECLINED", new Date())).resolves.toEqual({
+      id: "inv-1",
       status: "DECLINED",
     });
-  });
-
-  it("creates invite with pending defaults", async () => {
-    const payload = { teamId: 1, inviterId: 2, inviteeEmail: "u@x.com", tokenHash: "h", expiresAt: new Date() };
-    mocks.prisma.teamInvite.create.mockResolvedValue({ id: "i-2" });
-    await createTeamInviteRecord(payload);
-    expect(mocks.prisma.teamInvite.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: "PENDING", active: true }) }),
+    expect(mocks.prisma.teamInvite.deleteMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ teamId: 3, inviteeEmail: "u@x.com", active: false }) }),
     );
   });
 });

@@ -32,7 +32,7 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../shared/db.js", () => ({
+vi.mock("../../../shared/db.js", () => ({
   prisma: mocks.prisma,
 }));
 

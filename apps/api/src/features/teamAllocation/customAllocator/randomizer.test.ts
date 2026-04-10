@@ -8,11 +8,35 @@ describe("randomizer", () => {
     );
   });
 
-  it("creates balanced teams", () => {
-    const teams = planRandomTeams([1, 2, 3, 4, 5, 6, 7], 3, { seed: 42 });
-    const sizes = teams.map((team) => team.members.length);
-    expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThanOrEqual(1);
-    expect(sizes.reduce((sum, size) => sum + size, 0)).toBe(7);
+  it("rejects empty student pools and team counts larger than student count", () => {
+    expect(() => planRandomTeams([], 2)).toThrow("students must include at least one student");
+    expect(() => planRandomTeams([1, 2], 3)).toThrow("teamCount cannot exceed the number of students");
+  });
+
+  it.each([
+    [{ minTeamSize: 0 }, "minTeamSize must be a positive integer"],
+    [{ maxTeamSize: 0 }, "maxTeamSize must be a positive integer"],
+    [{ minTeamSize: 3, maxTeamSize: 2 }, "minTeamSize cannot exceed maxTeamSize"],
+    [{ minTeamSize: 2, maxTeamSize: 2 }, "team size constraints cannot be satisfied for the given student count"],
+  ])("validates team-size constraints %p", (options, message) => {
+    expect(() => planRandomTeams([1, 2, 3], 2, options as any)).toThrow(message);
+  });
+
+  it("creates balanced teams with explicit size constraints", () => {
+    const teams = planRandomTeams([1, 2, 3, 4, 5, 6], 3, { minTeamSize: 2, maxTeamSize: 2, seed: 42 });
+    expect(teams).toHaveLength(3);
+    expect(teams.every((team) => team.members.length === 2)).toBe(true);
+  });
+
+  it("uses provided rng callback and keeps distribution deterministic", () => {
+    let calls = 0;
+    const rng = () => {
+      calls += 1;
+      return 0.25;
+    };
+    const teams = planRandomTeams([1, 2, 3, 4], 2, { rng });
+    expect(calls).toBeGreaterThan(0);
+    expect(teams.flatMap((team) => team.members).sort()).toEqual([1, 2, 3, 4]);
   });
 
   it("is deterministic with the same seed", () => {
@@ -20,5 +44,16 @@ describe("randomizer", () => {
     const first = planRandomTeams(students, 3, { seed: 9 });
     const second = planRandomTeams(students, 3, { seed: 9 });
     expect(first).toEqual(second);
+  });
+
+  it("throws when shuffled iteration produces more students than planned target capacity", () => {
+    const students = [1] as number[];
+    (students as any)[Symbol.iterator] = function* iterator() {
+      yield 1;
+      yield 2;
+    };
+    expect(() => planRandomTeams(students as any, 1, { rng: () => 0.1 })).toThrow(
+      "team size targets are overfilled",
+    );
   });
 });

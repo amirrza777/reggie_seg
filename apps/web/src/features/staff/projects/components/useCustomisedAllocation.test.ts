@@ -29,9 +29,16 @@ const questionnaires = {
   ],
 };
 
+async function selectTemplate(result: ReturnType<typeof renderHook<typeof useCustomisedAllocation>>["result"]) {
+  act(() => result.current.onSelectTemplate("101"));
+  await waitFor(() => {
+    expect(getCoverageMock).toHaveBeenCalledWith(9, 101);
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
-  getQuestionnairesMock.mockResolvedValue(questionnaires as any);
+  getQuestionnairesMock.mockResolvedValue(questionnaires as never);
   getCoverageMock.mockResolvedValue({
     project: questionnaires.project,
     questionnaireTemplateId: 101,
@@ -40,36 +47,55 @@ beforeEach(() => {
     nonRespondingStudents: 1,
     responseRate: 75,
     responseThreshold: 80,
-  } as any);
+  } as never);
 });
 
 describe("useCustomisedAllocation", () => {
-  it("loads questionnaires and exposes sorted eligible templates", async () => {
+  it("loads and sorts eligible templates", async () => {
     const { result } = renderHook(() => useCustomisedAllocation({ projectId: 9, initialTeamCount: 2 }));
-    await waitFor(() => {
-      expect(result.current.isLoadingQuestionnaires).toBe(false);
-    });
+    await waitFor(() => expect(result.current.isLoadingQuestionnaires).toBe(false));
     expect(getQuestionnairesMock).toHaveBeenCalledWith(9);
     expect(result.current.eligibleQuestionnaires.map((item) => item.templateName)).toEqual(["Alpha", "Zeta"]);
-    expect(result.current.selectedQuestionnaire).toBeNull();
   });
 
-  it("fetches coverage and calls preview API with current criteria", async () => {
-    previewMock.mockResolvedValue({ previewId: "pv-1", previewTeams: [], unassignedStudents: [] } as any);
+  it("keeps selected questionnaire visible when search filters others", async () => {
     const { result } = renderHook(() => useCustomisedAllocation({ projectId: 9, initialTeamCount: 2 }));
-    await waitFor(() => {
-      expect(result.current.eligibleQuestionnaires.length).toBe(2);
-    });
-    act(() => result.current.onSelectTemplate("101"));
-    await waitFor(() => {
-      expect(getCoverageMock).toHaveBeenCalledWith(9, 101);
-    });
+    await waitFor(() => expect(result.current.eligibleQuestionnaires.length).toBe(2));
+    await selectTemplate(result);
+    act(() => result.current.setQuestionnaireSearch("nomatch"));
+    expect(result.current.visibleQuestionnaires.map((item) => item.id)).toEqual([101]);
+  });
+
+  it("updates strategy and weight for active criteria", async () => {
+    const { result } = renderHook(() => useCustomisedAllocation({ projectId: 9, initialTeamCount: 2 }));
+    await waitFor(() => expect(result.current.eligibleQuestionnaires.length).toBe(2));
+    await selectTemplate(result);
+    act(() => result.current.updateStrategy(1, "ignore"));
+    act(() => result.current.updateWeight(1, 5));
+    expect(result.current.criteriaConfigByQuestionId[1]).toEqual({ strategy: "ignore", weight: 5 });
+    expect(result.current.successMessage).toBe("");
+  });
+
+  it("calls preview API with current criteria", async () => {
+    previewMock.mockResolvedValue({ previewId: "pv-1", previewTeams: [], unassignedStudents: [] } as never);
+    const { result } = renderHook(() => useCustomisedAllocation({ projectId: 9, initialTeamCount: 2 }));
+    await waitFor(() => expect(result.current.eligibleQuestionnaires.length).toBe(2));
+    await selectTemplate(result);
     act(() => result.current.runPreview());
-    await waitFor(() => {
-      expect(previewMock).toHaveBeenCalledWith(9, expect.objectContaining({ questionnaireTemplateId: 101, teamCount: 2 }));
-    });
-    await waitFor(() => {
-      expect(result.current.preview?.previewId).toBe("pv-1");
-    });
+    await waitFor(() => expect(previewMock).toHaveBeenCalledWith(9, expect.objectContaining({ questionnaireTemplateId: 101, teamCount: 2 })));
+    await waitFor(() => expect(result.current.preview?.previewId).toBe("pv-1"));
+  });
+
+  it("clears preview state and sets fallback message when preview fails", async () => {
+    previewMock.mockResolvedValueOnce({ previewId: "pv-1", previewTeams: [], unassignedStudents: [] } as never);
+    previewMock.mockRejectedValueOnce("bad");
+    const { result } = renderHook(() => useCustomisedAllocation({ projectId: 9, initialTeamCount: 2 }));
+    await waitFor(() => expect(result.current.eligibleQuestionnaires.length).toBe(2));
+    await selectTemplate(result);
+    act(() => result.current.runPreview());
+    await waitFor(() => expect(result.current.preview?.previewId).toBe("pv-1"));
+    act(() => result.current.runPreview());
+    await waitFor(() => expect(result.current.errorMessage).toBe("Failed to preview customised allocation."));
+    expect(result.current.preview).toBeNull();
   });
 });

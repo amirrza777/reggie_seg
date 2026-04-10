@@ -12,12 +12,11 @@ describe("service", () => {
     expect(names.length).toBeGreaterThan(0);
   });
 
-  it("keeps a callable aggregate API surface", () => {
+  it("keeps runtime exports callable or primitive constants", () => {
     for (const name of listExports()) {
       const value = (moduleUnderTest as Record<string, unknown>)[name];
-      // Skip type-only or constant exports (e.g. numeric config values)
-      if (typeof value !== "function") continue;
-      expect(value).toBeTypeOf("function");
+      const valueType = typeof value;
+      expect(["function", "number", "string", "boolean"]).toContain(valueType);
     }
   });
 });
