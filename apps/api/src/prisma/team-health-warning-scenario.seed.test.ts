@@ -28,7 +28,15 @@ vi.mock("../../prisma/seed/prismaClient", () => ({
   prisma: mockState.prisma,
 }));
 
-import { __teamHealthWarningInternals, seedTeamHealthWarningScenario } from "../../prisma/seed/team-health-warning-scenario";
+import { seedTeamHealthWarningScenario } from "../../prisma/seed/team-health-warning-scenario";
+import * as scenarioActors from "../../prisma/seed/teamHealthScenario/actors";
+import * as scenarioAssessments from "../../prisma/seed/teamHealthScenario/assessments";
+import * as scenarioCleanup from "../../prisma/seed/teamHealthScenario/cleanup";
+import * as scenarioMessages from "../../prisma/seed/teamHealthScenario/messages";
+import * as scenarioSetup from "../../prisma/seed/teamHealthScenario/setup";
+import * as scenarioSummary from "../../prisma/seed/teamHealthScenario/summary";
+import { resetScenarioDeadlineOverrides, uniquePositiveIds } from "../../prisma/seed/scenarioUtils";
+import { toDateFromNow } from "../../prisma/seed/teamHealthScenario/time";
 
 function makeContext(overrides: Record<string, unknown> = {}) {
   return {
@@ -70,105 +78,105 @@ describe("team-health-warning-scenario helpers", () => {
 
   it("covers module resolution, project/team upserts, and allocation updates", async () => {
     mockState.prisma.module.findFirst.mockResolvedValueOnce({ id: 88 }).mockResolvedValueOnce(null).mockResolvedValueOnce(null);
-    expect(await __teamHealthWarningInternals.resolveScenarioModuleId(makeContext())).toBe(88);
-    expect(await __teamHealthWarningInternals.resolveScenarioModuleId(makeContext({ modules: [{ id: 77 }] }))).toBe(77);
-    expect(await __teamHealthWarningInternals.resolveScenarioModuleId(makeContext({ modules: [] }))).toBeNull();
+    expect(await scenarioSetup.resolveScenarioModuleId(makeContext())).toBe(88);
+    expect(await scenarioSetup.resolveScenarioModuleId(makeContext({ modules: [{ id: 77 }] }))).toBe(77);
+    expect(await scenarioSetup.resolveScenarioModuleId(makeContext({ modules: [] }))).toBeNull();
 
     mockState.prisma.project.findFirst.mockResolvedValueOnce({ id: 700 });
-    await __teamHealthWarningInternals.upsertScenarioProject(makeContext(), 11, 21);
+    await scenarioSetup.upsertScenarioProject(makeContext(), 11, 21);
     expect(mockState.prisma.project.update).toHaveBeenCalled();
     mockState.prisma.project.findFirst.mockResolvedValueOnce(null);
-    await __teamHealthWarningInternals.upsertScenarioProject(makeContext(), 11, 21);
+    await scenarioSetup.upsertScenarioProject(makeContext(), 11, 21);
     expect(mockState.prisma.project.create).toHaveBeenCalled();
 
     mockState.prisma.team.findUnique.mockResolvedValueOnce({ id: 701 });
-    await __teamHealthWarningInternals.upsertScenarioTeam(makeContext(), 31);
+    await scenarioSetup.upsertScenarioTeam(makeContext(), 31);
     expect(mockState.prisma.team.update).toHaveBeenCalled();
     mockState.prisma.team.findUnique.mockResolvedValueOnce(null);
-    await __teamHealthWarningInternals.upsertScenarioTeam(makeContext(), 31);
+    await scenarioSetup.upsertScenarioTeam(makeContext(), 31);
     expect(mockState.prisma.team.create).toHaveBeenCalled();
 
-    await __teamHealthWarningInternals.ensureTeamAllocations(41, [101, 102]);
+    await scenarioSetup.ensureTeamAllocations(41, [101, 102]);
     expect(mockState.prisma.teamAllocation.deleteMany).toHaveBeenCalled();
     expect(mockState.prisma.teamAllocation.createMany).toHaveBeenCalled();
   });
 
   it("covers meeting cleanup and deadline override reset branches", async () => {
     mockState.prisma.meeting.findMany.mockResolvedValueOnce([]);
-    expect(await __teamHealthWarningInternals.clearTeamMeetings(41)).toBe(0);
+    expect(await scenarioCleanup.clearTeamMeetings(41)).toBe(0);
 
     mockState.prisma.meeting.findMany.mockResolvedValueOnce([{ id: 1 }, { id: 2 }]);
     mockState.prisma.meetingComment.findMany.mockResolvedValueOnce([{ id: 7 }]);
-    expect(await __teamHealthWarningInternals.clearTeamMeetings(41)).toBe(2);
+    expect(await scenarioCleanup.clearTeamMeetings(41)).toBe(2);
     expect(mockState.prisma.mention.deleteMany).toHaveBeenCalled();
     expect(mockState.prisma.meeting.deleteMany).toHaveBeenCalled();
 
-    await __teamHealthWarningInternals.resetScenarioDeadlineOverrides(31, 41, [101, 102]);
+    await resetScenarioDeadlineOverrides(31, 41, [101, 102]);
     expect(mockState.prisma.studentDeadlineOverride.deleteMany).toHaveBeenCalled();
 
     mockState.prisma.projectDeadline.findUnique.mockResolvedValueOnce(null);
-    await __teamHealthWarningInternals.resetScenarioDeadlineOverrides(31, 41, [101, 102]);
+    await resetScenarioDeadlineOverrides(31, 41, [101, 102]);
     expect(mockState.prisma.teamDeadlineOverride.deleteMany).toHaveBeenCalledTimes(2);
   });
 
   it("covers template label fallback and partial assessment creation rules", async () => {
     mockState.prisma.question.findMany.mockResolvedValueOnce([{ label: "Alpha" }]);
-    expect(await __teamHealthWarningInternals.getTemplateQuestionLabels(21)).toEqual(["Alpha"]);
+    expect(await scenarioAssessments.getTemplateQuestionLabels(21)).toEqual(["Alpha"]);
     mockState.prisma.question.findMany.mockResolvedValueOnce([]);
-    expect(await __teamHealthWarningInternals.getTemplateQuestionLabels(21)).toEqual(["Overall contribution"]);
+    expect(await scenarioAssessments.getTemplateQuestionLabels(21)).toEqual(["Overall contribution"]);
 
-    const count = await __teamHealthWarningInternals.seedPartialPeerAssessments(31, 41, 21, [101, 102, 0 as unknown as number]);
+    const count = await scenarioAssessments.seedPartialPeerAssessments(31, 41, 21, [101, 102, 0 as unknown as number]);
     expect(count).toBe(1);
     expect(mockState.prisma.peerFeedback.deleteMany).toHaveBeenCalled();
     expect(mockState.prisma.peerAssessment.deleteMany).toHaveBeenCalled();
   });
 
   it("covers team-health message builders and existing-scenario helper branches", async () => {
-    const openRows = __teamHealthWarningInternals.buildOpenScenarioMessages(31, 41, 101);
+    const openRows = scenarioMessages.buildOpenScenarioMessages(31, 41, 101);
     expect(openRows).toHaveLength(3);
-    const resolved = __teamHealthWarningInternals.buildResolvedScenarioMessage(31, 41, 101, 901);
+    const resolved = scenarioMessages.buildResolvedScenarioMessage(31, 41, 101, 901);
     expect(resolved.resolved).toBe(true);
-    const allRows = __teamHealthWarningInternals.buildScenarioTeamHealthMessageRows(31, 41, 101, 901);
+    const allRows = scenarioMessages.buildScenarioTeamHealthMessageRows(31, 41, 101, 901);
     expect(allRows).toHaveLength(4);
 
-    await __teamHealthWarningInternals.seedTeamHealthMessages(31, 41, 101, 901);
+    await scenarioMessages.seedTeamHealthMessages(31, 41, 101, 901);
     expect(mockState.prisma.teamHealthMessage.deleteMany).toHaveBeenCalled();
     expect(mockState.prisma.teamHealthMessage.createMany).toHaveBeenCalled();
 
     mockState.prisma.project.findFirst.mockResolvedValueOnce(null);
     await expect(
-      __teamHealthWarningInternals.seedExistingSeTeamHealthMessages(makeContext(), 101, 901),
+      scenarioMessages.seedExistingSeTeamHealthMessages(makeContext(), 101, 901),
     ).resolves.toEqual({ seeded: false });
 
     mockState.prisma.project.findFirst.mockResolvedValueOnce({ id: 222 });
     mockState.prisma.team.findFirst.mockResolvedValueOnce(null);
     await expect(
-      __teamHealthWarningInternals.seedExistingSeTeamHealthMessages(makeContext(), 101, 901),
+      scenarioMessages.seedExistingSeTeamHealthMessages(makeContext(), 101, 901),
     ).resolves.toEqual({ seeded: false });
 
     mockState.prisma.project.findFirst.mockResolvedValueOnce({ id: 222 });
     mockState.prisma.team.findFirst.mockResolvedValueOnce({ id: 333 });
     mockState.prisma.teamAllocation.findFirst.mockResolvedValueOnce({ userId: 444 });
     await expect(
-      __teamHealthWarningInternals.seedExistingSeTeamHealthMessages(makeContext(), 101, 901),
+      scenarioMessages.seedExistingSeTeamHealthMessages(makeContext(), 101, 901),
     ).resolves.toEqual({ seeded: true, projectId: 222, teamId: 333 });
 
     mockState.prisma.project.findFirst.mockResolvedValueOnce({ id: 223 });
     mockState.prisma.team.findFirst.mockResolvedValueOnce({ id: 334 });
     mockState.prisma.teamAllocation.findFirst.mockResolvedValueOnce(null);
     await expect(
-      __teamHealthWarningInternals.seedExistingSeTeamHealthMessages(makeContext(), 555, 901),
+      scenarioMessages.seedExistingSeTeamHealthMessages(makeContext(), 555, 901),
     ).resolves.toEqual({ seeded: true, projectId: 223, teamId: 334 });
   });
 
   it("covers actor/member resolution and validation helpers", async () => {
-    const actors = await __teamHealthWarningInternals.resolveScenarioActors(makeContext());
+    const actors = await scenarioActors.resolveScenarioActors(makeContext());
     expect(actors.requesterId).toBe(101);
     expect(actors.reviewerId).toBe(901);
 
     mockState.prisma.user.findUnique.mockResolvedValueOnce(null);
     mockState.prisma.user.findMany.mockResolvedValueOnce([]);
-    const fallbackActors = await __teamHealthWarningInternals.resolveScenarioActors(
+    const fallbackActors = await scenarioActors.resolveScenarioActors(
       makeContext({ usersByRole: { students: [{ id: 8 }], adminOrStaff: [{ id: 77 }] } }),
     );
     expect(fallbackActors.requesterId).toBe(8);
@@ -176,7 +184,7 @@ describe("team-health-warning-scenario helpers", () => {
 
     mockState.prisma.user.findUnique.mockResolvedValueOnce({ id: 9001 });
     mockState.prisma.user.findMany.mockResolvedValueOnce([]);
-    const devAdminActors = await __teamHealthWarningInternals.resolveScenarioActors(
+    const devAdminActors = await scenarioActors.resolveScenarioActors(
       makeContext({ usersByRole: { students: [], adminOrStaff: [] } }),
     );
     expect(devAdminActors.requesterId).toBe(9001);
@@ -184,7 +192,7 @@ describe("team-health-warning-scenario helpers", () => {
 
     mockState.prisma.user.findUnique.mockResolvedValueOnce(null);
     mockState.prisma.user.findMany.mockResolvedValueOnce([{ id: 8001 }]);
-    const enterpriseAdminActors = await __teamHealthWarningInternals.resolveScenarioActors(
+    const enterpriseAdminActors = await scenarioActors.resolveScenarioActors(
       makeContext({ usersByRole: { students: [], adminOrStaff: [] } }),
     );
     expect(enterpriseAdminActors.requesterId).toBe(8001);
@@ -193,24 +201,24 @@ describe("team-health-warning-scenario helpers", () => {
     mockState.prisma.user.findUnique.mockResolvedValueOnce(null);
     mockState.prisma.user.findMany.mockResolvedValueOnce([]);
     const sparseStudents = [{ id: 1 }, undefined as unknown as { id: number }, { id: 3 }, { id: 4 }, { id: 5 }];
-    const sparseActors = await __teamHealthWarningInternals.resolveScenarioActors(
+    const sparseActors = await scenarioActors.resolveScenarioActors(
       makeContext({ usersByRole: { students: sparseStudents, adminOrStaff: [] } }),
     );
     expect(sparseActors.requesterId).toBe(1);
 
-    const ids = __teamHealthWarningInternals.buildScenarioMemberIds(makeContext(), 101, 901);
+    const ids = scenarioActors.buildScenarioMemberIds(makeContext(), 101, 901);
     expect(ids).toEqual(expect.arrayContaining([101, 901]));
-    const idsWithoutReviewer = __teamHealthWarningInternals.buildScenarioMemberIds(makeContext(), 101, null);
+    const idsWithoutReviewer = scenarioActors.buildScenarioMemberIds(makeContext(), 101, null);
     expect(idsWithoutReviewer).not.toContain(901);
-    expect(__teamHealthWarningInternals.uniquePositiveUserIds([1, 2, 2, -1, 0])).toEqual([1, 2]);
+    expect(uniquePositiveIds([1, 2, 2, -1, 0])).toEqual([1, 2]);
 
-    expect(__teamHealthWarningInternals.validateScenarioPrerequisites(null, 21, 101, [101, 102]).ok).toBe(false);
-    expect(__teamHealthWarningInternals.validateScenarioPrerequisites(11, null, 101, [101, 102]).ok).toBe(false);
-    expect(__teamHealthWarningInternals.validateScenarioPrerequisites(11, 21, null, [101, 102]).ok).toBe(false);
-    expect(__teamHealthWarningInternals.validateScenarioPrerequisites(11, 21, 101, [101]).ok).toBe(false);
-    expect(__teamHealthWarningInternals.validateScenarioPrerequisites(11, 21, 101, [101, 102]).ok).toBe(true);
-    expect(__teamHealthWarningInternals.toDateFromNow(1).getTime()).toBeGreaterThan(Date.now() - 1000);
-    expect(__teamHealthWarningInternals.buildTeamHealthScenarioDetails(31, 41, 2, 1, 0, { seeded: false })).toContain(
+    expect(scenarioActors.validateScenarioPrerequisites(null, 21, 101, [101, 102]).ok).toBe(false);
+    expect(scenarioActors.validateScenarioPrerequisites(11, null, 101, [101, 102]).ok).toBe(false);
+    expect(scenarioActors.validateScenarioPrerequisites(11, 21, null, [101, 102]).ok).toBe(false);
+    expect(scenarioActors.validateScenarioPrerequisites(11, 21, 101, [101]).ok).toBe(false);
+    expect(scenarioActors.validateScenarioPrerequisites(11, 21, 101, [101, 102]).ok).toBe(true);
+    expect(toDateFromNow(1).getTime()).toBeGreaterThan(Date.now() - 1000);
+    expect(scenarioSummary.buildTeamHealthScenarioDetails(31, 41, 2, 1, 0, { seeded: false })).toContain(
       "project=31",
     );
   });

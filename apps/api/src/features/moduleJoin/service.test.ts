@@ -28,7 +28,9 @@ function registerServiceTests() {
   registerJoinInvalidFormatTest();
   registerJoinUnknownCodeTest();
   registerReadJoinCodeTest();
+  registerReadJoinCodeUnauthorizedTest();
   registerRotateJoinCodeTest();
+  registerRotateUnauthorizedTest();
   registerRotateNotFoundAuthTest();
   registerRotateNotFoundUpdateTest();
   registerUniqueRetrySuccessTest();
@@ -147,16 +149,17 @@ function registerJoinUnknownCodeTest() {
 function registerReadJoinCodeTest() {
   it("returns managed join codes only when auth-scoped lookup succeeds", async () => {
     const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    mockState.repo.findJoinActor.mockResolvedValue({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
     mockState.repo.getAuthorizedModuleJoinCode.mockResolvedValueOnce({ id: 12, joinCode: "ABCD2345" });
 
-    await expect(getModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
+    await expect(getModuleJoinCode(1, 12)).resolves.toEqual({
       ok: true,
       value: { moduleId: 12, joinCode: "ABCD2345" },
     });
     expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining("[moduleJoin:audit]"), expect.stringContaining("module_join_code_viewed"));
 
     mockState.repo.getAuthorizedModuleJoinCode.mockResolvedValueOnce(null);
-    await expect(getModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
+    await expect(getModuleJoinCode(1, 12)).resolves.toEqual({
       ok: false,
       status: 404,
       code: "MODULE_NOT_FOUND",
@@ -166,9 +169,22 @@ function registerReadJoinCodeTest() {
   });
 }
 
+function registerReadJoinCodeUnauthorizedTest() {
+  it("returns unauthorized when actor is missing for code read", async () => {
+    mockState.repo.findJoinActor.mockResolvedValue(null);
+    await expect(getModuleJoinCode(1, 12)).resolves.toEqual({
+      ok: false,
+      status: 401,
+      code: "UNAUTHORIZED",
+      error: "Unauthorized",
+    });
+  });
+}
+
 function registerRotateJoinCodeTest() {
   it("rotates join code for authorized users and emits audit", async () => {
     const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    mockState.repo.findJoinActor.mockResolvedValue({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
     mockState.repo.getAuthorizedModuleForJoinCodeMutation.mockResolvedValueOnce({
       id: 12,
       name: "SEGP",
@@ -182,7 +198,7 @@ function registerRotateJoinCodeTest() {
       joinCode: "WXYZ6789",
     });
 
-    await expect(rotateModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
+    await expect(rotateModuleJoinCode(1, 12)).resolves.toEqual({
       ok: true,
       value: {
         moduleId: 12,
@@ -194,10 +210,23 @@ function registerRotateJoinCodeTest() {
   });
 }
 
+function registerRotateUnauthorizedTest() {
+  it("returns unauthorized when actor is missing for rotate", async () => {
+    mockState.repo.findJoinActor.mockResolvedValue(null);
+    await expect(rotateModuleJoinCode(1, 12)).resolves.toEqual({
+      ok: false,
+      status: 401,
+      code: "UNAUTHORIZED",
+      error: "Unauthorized",
+    });
+  });
+}
+
 function registerRotateNotFoundAuthTest() {
   it("returns not-found when rotate authorization lookup fails", async () => {
+    mockState.repo.findJoinActor.mockResolvedValue({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
     mockState.repo.getAuthorizedModuleForJoinCodeMutation.mockResolvedValue(null);
-    await expect(rotateModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
+    await expect(rotateModuleJoinCode(1, 12)).resolves.toEqual({
       ok: false,
       status: 404,
       code: "MODULE_NOT_FOUND",
@@ -208,6 +237,7 @@ function registerRotateNotFoundAuthTest() {
 
 function registerRotateNotFoundUpdateTest() {
   it("returns not-found when rotate update result disappears", async () => {
+    mockState.repo.findJoinActor.mockResolvedValue({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
     mockState.repo.getAuthorizedModuleForJoinCodeMutation.mockResolvedValue({
       id: 12,
       name: "SEGP",
@@ -216,7 +246,7 @@ function registerRotateNotFoundUpdateTest() {
     });
     mockState.repo.updateModuleJoinCode.mockResolvedValue(null);
 
-    await expect(rotateModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
+    await expect(rotateModuleJoinCode(1, 12)).resolves.toEqual({
       ok: false,
       status: 404,
       code: "MODULE_NOT_FOUND",

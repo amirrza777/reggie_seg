@@ -95,18 +95,22 @@ function buildScenarioSeedPlan(context: SeedContext, config: SeedProfileConfig):
 }
 
 export function buildDevSeedPlan(context: SeedContext, config: SeedProfileConfig) {
-  return [...buildCoreSeedPlan(context), ...buildMembershipSeedPlan(context, config), ...buildScenarioSeedPlan(context, config)];
+  return buildProfileSeedPlan(context, config);
 }
 
 export function buildDemoSeedPlan(context: SeedContext, config: SeedProfileConfig) {
-  return [...buildCoreSeedPlan(context), ...buildMembershipSeedPlan(context, config), ...buildScenarioSeedPlan(context, config)];
+  return buildProfileSeedPlan(context, config);
 }
 
 export function buildE2ESeedPlan(context: SeedContext, config: SeedProfileConfig) {
-  return [...buildCoreSeedPlan(context), ...buildMembershipSeedPlan(context, config), ...buildScenarioSeedPlan(context, config)];
+  return buildProfileSeedPlan(context, config);
 }
 
 export function buildTrelloE2ESeedPlan(context: SeedContext, config: SeedProfileConfig) {
+  return buildProfileSeedPlan(context, config);
+}
+
+function buildProfileSeedPlan(context: SeedContext, config: SeedProfileConfig) {
   return [...buildCoreSeedPlan(context), ...buildMembershipSeedPlan(context, config), ...buildScenarioSeedPlan(context, config)];
 }
 

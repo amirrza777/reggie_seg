@@ -2,9 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Response } from "express";
 
 const mockState = vi.hoisted(() => ({
-  repo: {
-    findJoinActor: vi.fn(),
-  },
   service: {
     joinModuleByCode: vi.fn(),
     getModuleJoinCode: vi.fn(),
@@ -12,7 +9,6 @@ const mockState = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("./repo.js", () => mockState.repo);
 vi.mock("./service.js", () => mockState.service);
 
 import {
@@ -93,7 +89,7 @@ function registerJoinServiceMappingTest() {
 }
 
 function registerReadValidationTest() {
-  it("code-read handler validates module id and actor", async () => {
+  it("code-read handler validates auth and module id", async () => {
     const unauthorized = mockRes();
     await getModuleJoinCodeHandler({ params: { moduleId: "3" } } as any, unauthorized);
     expect(unauthorized.status).toHaveBeenCalledWith(401);
@@ -101,17 +97,11 @@ function registerReadValidationTest() {
     const invalidModuleId = mockRes();
     await getModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "abc" } } as any, invalidModuleId);
     expect(invalidModuleId.status).toHaveBeenCalledWith(400);
-
-    mockState.repo.findJoinActor.mockResolvedValue(null);
-    const noActor = mockRes();
-    await getModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as any, noActor);
-    expect(noActor.status).toHaveBeenCalledWith(401);
   });
 }
 
 function registerReadFailureTest() {
   it("code-read handler maps service errors and does not set no-store on failure", async () => {
-    mockState.repo.findJoinActor.mockResolvedValue({ id: 7, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
     (mockState.service.getModuleJoinCode as any).mockResolvedValue({
       ok: false,
       status: 404,
@@ -128,7 +118,6 @@ function registerReadFailureTest() {
 
 function registerReadSuccessTest() {
   it("code-read handler sets no-store on success", async () => {
-    mockState.repo.findJoinActor.mockResolvedValue({ id: 7, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
     (mockState.service.getModuleJoinCode as any).mockResolvedValue({
       ok: true,
       value: { moduleId: 3, joinCode: "ABCD2345" },
@@ -142,7 +131,7 @@ function registerReadSuccessTest() {
 }
 
 function registerRotateValidationTest() {
-  it("rotate handler validates module id and actor", async () => {
+  it("rotate handler validates auth and module id", async () => {
     const unauthorized = mockRes();
     await rotateModuleJoinCodeHandler({ params: { moduleId: "3" } } as any, unauthorized);
     expect(unauthorized.status).toHaveBeenCalledWith(401);
@@ -150,17 +139,11 @@ function registerRotateValidationTest() {
     const invalidModuleId = mockRes();
     await rotateModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "abc" } } as any, invalidModuleId);
     expect(invalidModuleId.status).toHaveBeenCalledWith(400);
-
-    mockState.repo.findJoinActor.mockResolvedValue(null);
-    const noActor = mockRes();
-    await rotateModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as any, noActor);
-    expect(noActor.status).toHaveBeenCalledWith(401);
   });
 }
 
 function registerRotateFailureTest() {
   it("rotate handler maps service errors and does not set no-store on failure", async () => {
-    mockState.repo.findJoinActor.mockResolvedValue({ id: 7, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
     (mockState.service.rotateModuleJoinCode as any).mockResolvedValue({
       ok: false,
       status: 409,
@@ -177,7 +160,6 @@ function registerRotateFailureTest() {
 
 function registerRotateSuccessTest() {
   it("rotate handler sets no-store on success", async () => {
-    mockState.repo.findJoinActor.mockResolvedValue({ id: 7, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
     (mockState.service.rotateModuleJoinCode as any).mockResolvedValue({
       ok: true,
       value: { moduleId: 3, joinCode: "WXYZ6789" },

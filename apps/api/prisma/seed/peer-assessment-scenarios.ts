@@ -1,5 +1,6 @@
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
+import { resetScenarioDeadlineOverrides, uniquePositiveIds } from "./scenarioUtils";
 import type { SeedContext } from "./types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -9,10 +10,6 @@ const ASSESSMENT_OPEN_PROJECT_NAME = "Assessment Open Demo Project";
 const ASSESSMENT_OPEN_TEAM_NAME = "Assessment Open Demo Team";
 const FEEDBACK_OPEN_PROJECT_NAME = "Feedback Pending Demo Project";
 const FEEDBACK_OPEN_TEAM_NAME = "Feedback Pending Demo Team";
-
-function uniqueUserIds(userIds: number[]) {
-  return Array.from(new Set(userIds.filter((value) => Number.isInteger(value) && value > 0)));
-}
 
 async function ensureScenarioProject(
   enterpriseId: string,
@@ -118,25 +115,6 @@ async function upsertProjectDeadline(
       taskDueDateMcf: dates.taskDueDate,
       assessmentDueDateMcf: dates.assessmentDueDate,
       feedbackDueDateMcf: dates.feedbackDueDate,
-    },
-  });
-}
-
-async function resetScenarioDeadlineOverrides(projectId: number, teamId: number, memberIds: number[]) {
-  await prisma.teamDeadlineOverride.deleteMany({
-    where: { teamId },
-  });
-
-  const deadline = await prisma.projectDeadline.findUnique({
-    where: { projectId },
-    select: { id: true },
-  });
-  if (!deadline) return;
-
-  await prisma.studentDeadlineOverride.deleteMany({
-    where: {
-      projectDeadlineId: deadline.id,
-      userId: { in: memberIds },
     },
   });
 }
@@ -364,7 +342,7 @@ async function resolveScenarioSeedTarget(context: SeedContext) {
   // Use the tail of the student pool for demo teams so marker bootstrap users
   // from the head of seed data are not pulled in by default.
   const scenarioStudents = context.usersByRole.students.slice(-4).map((user) => user.id);
-  const memberIds = uniqueUserIds([...(devAdmin ? [devAdmin.id] : []), ...scenarioStudents]);
+  const memberIds = uniquePositiveIds([...(devAdmin ? [devAdmin.id] : []), ...scenarioStudents]);
   if (memberIds.length < 2) {
     return { ready: false as const, result: { value: undefined, rows: 0, details: "skipped (not enough team members)" } };
   }
