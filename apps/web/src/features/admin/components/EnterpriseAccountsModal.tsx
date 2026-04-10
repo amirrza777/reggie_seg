@@ -123,15 +123,21 @@ function EnterpriseAdminInviteSection(props: Pick<
   return (
     <div className="enterprise-management__invite-section ui-stack-xs">
       <p className="muted">Invite an email address to become an enterprise admin.</p>
-      <form className="enterprise-management__invite-form" onSubmit={props.onInviteSubmit}>
+      <form className="enterprise-management__invite-form" onSubmit={props.onInviteSubmit} autoComplete="off">
         <input
           type="email"
+          name="enterprise-admin-invite-email"
           value={props.inviteEmail}
           onChange={(event) => props.onInviteEmailChange(event.target.value)}
           placeholder="name@enterprise.com"
           aria-label="Enterprise admin invite email"
-          className="input enterprise-management__invite-input"
-          autoComplete="email"
+          className="ui-input enterprise-management__invite-input"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          data-lpignore="true"
+          data-1p-ignore="true"
         />
         <Button type="submit" disabled={isBusy}>
           {isBusy ? "Sending..." : "Send invite"}

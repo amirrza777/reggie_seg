@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
-import { APP_NAME } from "../../../../packages/shared/src/constants/index.js";
+
+const APP_NAME = "Team Feedback";
 
 const smtpHost = process.env.SMTP_HOST;
 const smtpPort = Number(process.env.SMTP_PORT || 587);

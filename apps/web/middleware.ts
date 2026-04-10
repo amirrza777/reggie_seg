@@ -44,8 +44,19 @@ export async function middleware(req: NextRequest) {
   }
 
   try {
+    const cookieStr = req.headers.get("cookie") ?? "";
+    const tfAccessToken =
+      cookieStr
+        .split(";")
+        .map((c) => c.trim())
+        .find((c) => c.startsWith("tf_access_token="))
+        ?.slice("tf_access_token=".length) ?? null;
+
     const meRes = await fetch(`${API_BASE}/auth/me`, {
-      headers: { cookie: req.headers.get("cookie") ?? "" },
+      headers: {
+        cookie: cookieStr,
+        ...(tfAccessToken ? { Authorization: `Bearer ${tfAccessToken}` } : {}),
+      },
       credentials: "include",
     });
 

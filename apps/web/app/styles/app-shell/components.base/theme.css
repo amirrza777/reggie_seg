@@ -45,6 +45,12 @@
   color: var(--status-success-text);
 }
 
+.ui-toast--warning {
+  background: var(--status-warning-soft);
+  border-color: var(--status-warning-border);
+  color: var(--status-warning-text);
+}
+
 @keyframes ui-toast-enter {
   from {
     opacity: 0;

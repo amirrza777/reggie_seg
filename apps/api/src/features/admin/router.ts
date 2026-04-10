@@ -4,6 +4,7 @@ import {
   createEnterpriseHandler,
   deleteEnterpriseHandler,
   getSummaryHandler,
+  inviteCurrentEnterpriseAdminHandler,
   inviteEnterpriseAdminHandler,
   listAuditLogsHandler,
   listEnterpriseUsersHandler,
@@ -27,6 +28,7 @@ router.use(ensureAdmin);
 
 router.use("/enterprises", ensureSuperAdmin);
 router.get("/summary", getSummaryHandler);
+router.post("/invites/enterprise-admin", inviteCurrentEnterpriseAdminHandler);
 router.get("/users", listUsersHandler);
 router.get("/users/search", searchUsersHandler);
 router.patch("/users/:id/role", updateUserRoleHandler);

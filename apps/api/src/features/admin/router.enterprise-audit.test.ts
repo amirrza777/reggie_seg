@@ -112,6 +112,7 @@ describe("admin router enterprise and audit routes", () => {
   const listEnterprises = getRouteHandler("get", "/enterprises");
   const searchEnterprises = getRouteHandler("get", "/enterprises/search");
   const createEnterprise = getRouteHandler("post", "/enterprises");
+  const inviteCurrentEnterpriseAdmin = getRouteHandler("post", "/invites/enterprise-admin");
   const inviteEnterpriseAdmin = getRouteHandler("post", "/enterprises/:enterpriseId/invites/enterprise-admin");
   const listEnterpriseUsers = getRouteHandler("get", "/enterprises/:enterpriseId/users");
   const patchEnterpriseUser = getRouteHandler("patch", "/enterprises/:enterpriseId/users/:id");
@@ -336,6 +337,32 @@ describe("admin router enterprise and audit routes", () => {
 
     expect((res.status as any)).toHaveBeenCalledWith(400);
     expect((res.json as any)).toHaveBeenCalledWith({ error: "Email must be a valid email address" });
+    expect(prisma.enterprise.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid current-enterprise invite emails before enterprise lookup", async () => {
+    const res = mockRes();
+
+    await inviteCurrentEnterpriseAdmin(
+      { body: { email: "not-an-email" }, adminUser: { id: 1, enterpriseId: "ent-1" } } as any,
+      res,
+    );
+
+    expect((res.status as any)).toHaveBeenCalledWith(400);
+    expect((res.json as any)).toHaveBeenCalledWith({ error: "Email must be a valid email address" });
+    expect(prisma.enterprise.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("rejects current-enterprise invites when admin enterprise context is missing", async () => {
+    const res = mockRes();
+
+    await inviteCurrentEnterpriseAdmin(
+      { body: { email: "invite@example.com" }, adminUser: { id: 1 } } as any,
+      res,
+    );
+
+    expect((res.status as any)).toHaveBeenCalledWith(400);
+    expect((res.json as any)).toHaveBeenCalledWith({ error: "Enterprise context is required" });
     expect(prisma.enterprise.findUnique).not.toHaveBeenCalled();
   });
 

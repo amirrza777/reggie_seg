@@ -40,7 +40,7 @@
 }
 
 .auth-title {
-  font-family: "SF Pro Display", sans-serif;
+  font-family: inherit;
   font-size: var(--fs-auth-title);
   font-weight: var(--fw-bold);
   letter-spacing: -0.03em;

@@ -8,7 +8,7 @@ import {
 } from "./service.js";
 
 import * as repo from "./repo.js";
-import * as teamAllocationService from "../teamAllocation/service.js";
+import * as teamAllocationService from "../teamAllocation/service/service.js";
 import * as email from "../../shared/email.js";
 import * as notificationsService from "../notifications/service.js";
 
@@ -25,7 +25,7 @@ vi.mock("./repo.js", () => ({
   getModuleMeetingSettingsForTeam: vi.fn(),
 }));
 
-vi.mock("../teamAllocation/service.js", () => ({
+vi.mock("../teamAllocation/service/service.js", () => ({
   getTeamMembers: vi.fn(),
 }));
 

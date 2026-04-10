@@ -33,6 +33,7 @@ export async function signup(payload: SignupPayload) {
 
 export async function acceptEnterpriseAdminInvite(payload: {
   token: string;
+  newPassword: string;
   firstName?: string;
   lastName?: string;
 }) {

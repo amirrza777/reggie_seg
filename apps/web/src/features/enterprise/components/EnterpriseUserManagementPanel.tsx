@@ -331,7 +331,8 @@ export function EnterpriseUserManagementPanel({ currentUserId, currentUserRole }
         </Button>
       </form>
       <p className="ui-note ui-note--muted">
-        Student and staff accounts can be created here. Enterprise admin access is managed through the invite flow.
+        Student and staff accounts can be created here. New accounts receive a password setup email. Enterprise admin
+        access is managed through the invite flow.
       </p>
       {createMessage ? (
         <div className={createStatus === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}>

@@ -22,6 +22,11 @@
   border-color: color-mix(in srgb, var(--glass-ui-border) 70%, var(--status-success-border) 30%);
 }
 
+.ui-toast--warning {
+  background: color-mix(in srgb, var(--glass-ui-bg) 72%, var(--status-warning-soft) 28%);
+  border-color: color-mix(in srgb, var(--glass-ui-border) 70%, var(--status-warning-border) 30%);
+}
+
 .user-menu__meta,
 .user-menu__links,
 .notification-bell__header {

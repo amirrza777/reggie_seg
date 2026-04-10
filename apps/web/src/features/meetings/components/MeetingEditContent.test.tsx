@@ -23,6 +23,10 @@ vi.mock("next/link", () => ({
   default: ({ href, children }: any) => <a href={href}>{children}</a>,
 }));
 
+vi.mock("@/features/projects/workspace/ProjectWorkspaceCanEditContext", () => ({
+  useProjectWorkspaceCanEdit: () => ({ canEdit: true }),
+}));
+
 import { useUser } from "@/features/auth/context";
 import { MeetingEditContent } from "./MeetingEditContent";
 

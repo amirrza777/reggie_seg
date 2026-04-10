@@ -103,11 +103,7 @@ function resolveStoreFromEnv(): RateLimitStore {
 
   const redisUrl = process.env.RATE_LIMIT_REDIS_URL?.trim();
   if (!redisUrl) {
-    if (!allowInMemoryRateLimitFallback()) {
-      throw new Error(
-        "[rateLimit] RATE_LIMIT_REDIS_URL is required in production when RATE_LIMIT_ALLOW_IN_MEMORY is not true",
-      );
-    }
+    warnRedisFallback("RATE_LIMIT_REDIS_URL is not set, using in-memory store");
     envSelectedStore = inMemoryStore;
     return envSelectedStore;
   }

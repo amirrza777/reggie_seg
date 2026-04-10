@@ -9,6 +9,12 @@ Replace `<REPO_URL>` with the GitHub/GitLab repo URL and `<REPO_FOLDER>` with th
 
 ---
 
+## Authorship And Blame Credit
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md#authorship-and-blame-credit) for setup and team guidance.
+
+---
+
 ## 2) Start MySQL (Database)
 
 Run from the repo root (same folder as `docker-compose.yml`):

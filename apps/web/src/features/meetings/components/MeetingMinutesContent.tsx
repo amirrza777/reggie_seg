@@ -2,7 +2,6 @@
 
 import { useUser } from "@/features/auth/context";
 import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
-import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { isMeetingMember } from "../lib/meetingMember";
 import { daysToMs } from "../lib/meetingTime";
 import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
@@ -24,17 +23,15 @@ export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesCo
 
   if (!meeting || !user || !settings) return null;
 
-  const backLink = (
-    <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">
-      <ChevronLeft size={14} />
-      Back to meeting
-    </AnchorLink>
-  );
+  const meetingDate = new Date(meeting.date);
+  const now = new Date();
+  const isUpcomingMeeting = meetingDate > now;
+  const meetingsHref = `/projects/${projectId}/meetings?tab=${isUpcomingMeeting ? "upcoming" : "previous"}`;
 
   if (!workspaceCanEdit) {
     return (
       <div className="stack">
-        {backLink}
+        <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Minutes" />
         <Card title="Minutes">
           <p className="muted">This project is archived; minutes are read-only.</p>
           {meeting.minutes ? <RichTextViewer content={meeting.minutes.content} /> : <p className="muted">No minutes recorded.</p>}
@@ -49,11 +46,6 @@ export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesCo
     || isOriginalWriter
     || (settings.allowAnyoneToWriteMinutes && isMember);
   const editWindowMs = daysToMs(settings.minutesEditWindowDays);
-
-  const meetingDate = new Date(meeting.date);
-  const now = new Date();
-  const isUpcomingMeeting = meetingDate > now;
-  const meetingsHref = `/projects/${projectId}/meetings?tab=${isUpcomingMeeting ? "upcoming" : "previous"}`;
 
   if (isUpcomingMeeting) {
     return (

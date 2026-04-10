@@ -153,6 +153,64 @@
   font-weight: var(--fw-semibold);
 }
 
+.user-menu__session-toast-layer {
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 14px);
+  padding-right: 16px;
+  padding-left: 16px;
+}
+
+.user-menu__session-toast {
+  min-width: min(360px, calc(100vw - 32px));
+  max-width: min(480px, calc(100vw - 32px));
+}
+
+.user-menu__session-toast-message {
+  margin: 0;
+  font-size: var(--fs-body-sm);
+  line-height: 1.5;
+}
+
+.user-menu__session-toast-actions {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.user-menu__session-toast-link,
+.user-menu__session-toast-dismiss {
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+}
+
+.user-menu__session-toast-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.user-menu__session-toast-link:hover,
+.user-menu__session-toast-link:focus-visible {
+  text-decoration-thickness: 2px;
+}
+
+.user-menu__session-toast-dismiss {
+  border: 1px solid var(--status-warning-border);
+  background: color-mix(in srgb, var(--status-warning-soft) 48%, transparent);
+  color: inherit;
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.user-menu__session-toast-dismiss:hover,
+.user-menu__session-toast-dismiss:focus-visible {
+  background: color-mix(in srgb, var(--status-warning-soft) 68%, transparent);
+}
+
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .user-menu__trigger {
     -webkit-backdrop-filter: blur(var(--glass-ui-blur));

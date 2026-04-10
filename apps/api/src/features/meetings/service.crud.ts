@@ -11,10 +11,10 @@ import {
   getModuleMeetingSettingsForTeam,
 } from "./repo.js";
 import { assertProjectMutableForWritesByTeamId } from "../../shared/projectWriteGuard.js";
-import { getTeamMembers } from "../teamAllocation/service.js";
+import { getTeamMembers } from "../teamAllocation/service/service.js";
 import { addNotification } from "../notifications/service.js";
 import { sendEmail } from "../../shared/email.js";
-import { buildIcs } from "../../../../../packages/shared/src/ics/index.js";
+import { buildIcs } from "./ics.js";
 
 /** Returns the meetings. */
 export function listMeetings(teamId: number) {
