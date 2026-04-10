@@ -1,3 +1,9 @@
 # Mass refactor that split files into .view/.impl wrappers and moved code.
 # Ignored in blame so original contributors are attributed for pre-existing lines.
 7d3d29bf9ccace944f45e2cc91cd5cdbdc132c8a
+
+# 2026-04-10: reverse refactor removing .impl/.view wrappers (mechanical moves/renames).
+fcf26712f7dbeaeea13881902c98b09f95e82bf0
+90f2be2f05c3a40dd1b03f849410b4027f12a30f
+bdf97bcbf04278c6e98fb9abdbf43711cd531ad9
+1405e1693c7187aa32aeb729f6b5be7afcfb6d06
