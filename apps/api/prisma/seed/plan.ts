@@ -13,7 +13,6 @@ import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedU
 import type { SeedProfileConfig } from "./config";
 import type { SeedContext, SeedEnterprise } from "./types";
 import { seedForumPosts } from "./forum";
-import { seedGithubDemoPath } from "./githubDemo";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines, seedStaffStudentMarks } from "./outcomes";
 import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios";
 import { seedMeetings } from "./meetings";
@@ -73,7 +72,6 @@ function buildScenarioSeedPlan(context: SeedContext, config: SeedProfileConfig):
     ...buildStaffStudentMarksStep(context, config),
     buildTeamInvitesStep(context),
     buildGithubE2EUsersStep(context),
-    ...buildGithubDemoStep(context, config),
     ...buildCompletedProjectStep(context, config),
     buildProjectDeadlinesStep(context),
     buildPeerAssessmentsStep(context),
@@ -166,11 +164,6 @@ function buildTeamInvitesStep(context: SeedContext) {
 
 function buildGithubE2EUsersStep(context: SeedContext) {
   return buildScenarioStep("seedGithubE2EUsers", () => seedGithubE2EUsers(context.enterprise.id, context.projects, context.teams));
-}
-
-function buildGithubDemoStep(context: SeedContext, config: SeedProfileConfig) {
-  if (!config.scenarios.has("githubDemo")) return [];
-  return [buildScenarioStep("seedGithubDemoPath", () => seedGithubDemoPath(context))];
 }
 
 function buildCompletedProjectStep(context: SeedContext, config: SeedProfileConfig) {
