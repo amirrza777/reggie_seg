@@ -29,11 +29,23 @@ function mockRes() {
   return res as Response;
 }
 
-describe("moduleJoin controller", () => {
+describe("moduleJoin controller", registerControllerTests);
+
+function registerControllerTests() {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+  registerJoinValidationTest();
+  registerJoinServiceMappingTest();
+  registerReadValidationTest();
+  registerReadFailureTest();
+  registerReadSuccessTest();
+  registerRotateValidationTest();
+  registerRotateFailureTest();
+  registerRotateSuccessTest();
+}
 
+function registerJoinValidationTest() {
   it("join handler validates auth and request body", async () => {
     const unauthorized = mockRes();
     await joinModuleHandler({ body: { code: "ABCD2345" } } as any, unauthorized);
@@ -50,7 +62,9 @@ describe("moduleJoin controller", () => {
     expect(invalidNormalized.json).toHaveBeenCalledWith({ code: "INVALID_CODE", error: "code must be a valid module join code" });
     expect(mockState.service.joinModuleByCode).not.toHaveBeenCalled();
   });
+}
 
+function registerJoinServiceMappingTest() {
   it("join handler maps service success and full error status range", async () => {
     (mockState.service.joinModuleByCode as any)
       .mockResolvedValueOnce({ ok: false, status: 401, code: "UNAUTHORIZED", error: "Unauthorized" })
@@ -76,7 +90,9 @@ describe("moduleJoin controller", () => {
       result: "joined",
     });
   });
+}
 
+function registerReadValidationTest() {
   it("code-read handler validates module id and actor", async () => {
     const unauthorized = mockRes();
     await getModuleJoinCodeHandler({ params: { moduleId: "3" } } as any, unauthorized);
@@ -91,7 +107,9 @@ describe("moduleJoin controller", () => {
     await getModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as any, noActor);
     expect(noActor.status).toHaveBeenCalledWith(401);
   });
+}
 
+function registerReadFailureTest() {
   it("code-read handler maps service errors and does not set no-store on failure", async () => {
     mockState.repo.findJoinActor.mockResolvedValue({ id: 7, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
     (mockState.service.getModuleJoinCode as any).mockResolvedValue({
@@ -106,7 +124,9 @@ describe("moduleJoin controller", () => {
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.setHeader).not.toHaveBeenCalled();
   });
+}
 
+function registerReadSuccessTest() {
   it("code-read handler sets no-store on success", async () => {
     mockState.repo.findJoinActor.mockResolvedValue({ id: 7, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
     (mockState.service.getModuleJoinCode as any).mockResolvedValue({
@@ -119,7 +139,9 @@ describe("moduleJoin controller", () => {
     expect(getRes.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store");
     expect(getRes.json).toHaveBeenCalledWith({ moduleId: 3, joinCode: "ABCD2345" });
   });
+}
 
+function registerRotateValidationTest() {
   it("rotate handler validates module id and actor", async () => {
     const unauthorized = mockRes();
     await rotateModuleJoinCodeHandler({ params: { moduleId: "3" } } as any, unauthorized);
@@ -134,7 +156,9 @@ describe("moduleJoin controller", () => {
     await rotateModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as any, noActor);
     expect(noActor.status).toHaveBeenCalledWith(401);
   });
+}
 
+function registerRotateFailureTest() {
   it("rotate handler maps service errors and does not set no-store on failure", async () => {
     mockState.repo.findJoinActor.mockResolvedValue({ id: 7, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
     (mockState.service.rotateModuleJoinCode as any).mockResolvedValue({
@@ -149,7 +173,9 @@ describe("moduleJoin controller", () => {
     expect(res.status).toHaveBeenCalledWith(409);
     expect(res.setHeader).not.toHaveBeenCalled();
   });
+}
 
+function registerRotateSuccessTest() {
   it("rotate handler sets no-store on success", async () => {
     mockState.repo.findJoinActor.mockResolvedValue({ id: 7, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
     (mockState.service.rotateModuleJoinCode as any).mockResolvedValue({
@@ -162,5 +188,4 @@ describe("moduleJoin controller", () => {
     expect(rotateRes.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store");
     expect(rotateRes.json).toHaveBeenCalledWith({ moduleId: 3, joinCode: "WXYZ6789" });
   });
-
-});
+}

@@ -21,11 +21,21 @@ import {
   updateModuleJoinCode,
 } from "./repo.js";
 
-describe("moduleJoin repo", () => {
+describe("moduleJoin repo", registerRepoTests);
+
+function registerRepoTests() {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+  registerActorLookupTest();
+  registerJoinableModuleLookupTest();
+  registerInsertEnrollmentTest();
+  registerAuthorizedJoinCodeLookupTest();
+  registerAuthorizedMutationLookupTest();
+  registerJoinCodeUpdateTest();
+}
 
+function registerActorLookupTest() {
   it("findJoinActor queries by user id with selected fields", async () => {
     mockState.prisma.user.findUnique.mockResolvedValue({ id: 7 });
     await findJoinActor(7);
@@ -34,7 +44,9 @@ describe("moduleJoin repo", () => {
       select: { id: true, enterpriseId: true, role: true },
     });
   });
+}
 
+function registerJoinableModuleLookupTest() {
   it("findJoinableModuleByCode filters by enterprise/code and non-archived modules", async () => {
     mockState.prisma.module.findFirst.mockResolvedValue({ id: 9, name: "SEGP" });
     await findJoinableModuleByCode("ent-1", "ABCD2345");
@@ -43,7 +55,9 @@ describe("moduleJoin repo", () => {
       select: { id: true, name: true },
     });
   });
+}
 
+function registerInsertEnrollmentTest() {
   it("insertModuleEnrollment returns true only when at least one row is inserted", async () => {
     mockState.prisma.userModule.createMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
     await expect(insertModuleEnrollment("ent-1", 7, 9)).resolves.toBe(true);
@@ -53,7 +67,9 @@ describe("moduleJoin repo", () => {
       skipDuplicates: true,
     });
   });
+}
 
+function registerAuthorizedJoinCodeLookupTest() {
   it("getAuthorizedModuleJoinCode uses role split for admin vs module lead", async () => {
     mockState.prisma.module.findFirst.mockResolvedValue({ id: 12, joinCode: "ABCD2345" });
 
@@ -76,7 +92,9 @@ describe("moduleJoin repo", () => {
       select: { id: true, joinCode: true },
     });
   });
+}
 
+function registerAuthorizedMutationLookupTest() {
   it("getAuthorizedModuleForJoinCodeMutation uses role split for admin vs module lead", async () => {
     mockState.prisma.module.findFirst.mockResolvedValue({ id: 12, name: "SEGP", enterpriseId: "ent-1", joinCode: "ABCD2345" });
 
@@ -99,7 +117,9 @@ describe("moduleJoin repo", () => {
       select: { id: true, name: true, enterpriseId: true, joinCode: true },
     });
   });
+}
 
+function registerJoinCodeUpdateTest() {
   it("updateModuleJoinCode updates by compound key and returns lookup result including null", async () => {
     mockState.prisma.module.update.mockResolvedValue({ id: 12 });
     mockState.prisma.module.findFirst.mockResolvedValueOnce({ id: 12, name: "SEGP", enterpriseId: "ent-1", joinCode: "WXYZ6789" });
@@ -118,4 +138,4 @@ describe("moduleJoin repo", () => {
     mockState.prisma.module.findFirst.mockResolvedValueOnce(null);
     await expect(updateModuleJoinCode(12, "ent-1", "NEXTCODE")).resolves.toBeNull();
   });
-});
+}
