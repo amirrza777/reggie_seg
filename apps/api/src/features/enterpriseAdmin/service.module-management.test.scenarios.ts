@@ -62,7 +62,7 @@ import {
 } from "./service.module-management.js";
 const enterpriseUser = { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } as const;
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   mockState.prisma.$transaction.mockImplementation(async (fn: any) => fn(mockState.prisma));
   mockState.helpers.ensureCreatorLeader.mockImplementation((leaderIds: number[]) => leaderIds);
   mockState.helpers.sanitiseModuleStudentIdsForUpdate.mockImplementation(async (_enterpriseId: string, studentIds: number[]) => studentIds);
@@ -163,7 +163,10 @@ describe("enterpriseAdmin service.module-management", () => {
     });
   });
   it("returns conflict when updating module with duplicate module code", async () => {
-    mockState.prisma.module.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 8 });
+    mockState.prisma.module.findFirst
+      .mockResolvedValueOnce({ id: 7, archivedAt: null }) // module exists (pre-check)
+      .mockResolvedValueOnce(null)                        // name doesn't conflict
+      .mockResolvedValueOnce({ id: 8 });                  // code conflicts
     const result = await updateModule(enterpriseUser as any, 7, {
       name: "Updated module",
       code: "MOD-200",
@@ -175,7 +178,7 @@ describe("enterpriseAdmin service.module-management", () => {
       taIds: [],
       studentIds: [],
     });
-    expect(mockState.prisma.module.findFirst).toHaveBeenNthCalledWith(2, {
+    expect(mockState.prisma.module.findFirst).toHaveBeenNthCalledWith(3, {
       where: {
         enterpriseId: "ent-1",
         code: "MOD-200",
@@ -186,7 +189,10 @@ describe("enterpriseAdmin service.module-management", () => {
     expect(result).toEqual({ ok: false, status: 409, error: "Module code already exists" });
   });
   it("returns validation error when updating module with invalid assignments", async () => {
-    mockState.prisma.module.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+    mockState.prisma.module.findFirst
+      .mockResolvedValueOnce({ id: 7, archivedAt: null }) // module exists (pre-check)
+      .mockResolvedValueOnce(null)                        // name doesn't conflict
+      .mockResolvedValueOnce(null);                       // code doesn't conflict
     mockState.helpers.validateAssignmentUsers.mockResolvedValueOnce({ ok: false, error: "invalid assignments" });
     const result = await updateModule(enterpriseUser as any, 7, {
       name: "Updated module",
