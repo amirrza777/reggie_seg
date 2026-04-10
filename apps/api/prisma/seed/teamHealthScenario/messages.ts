@@ -8,52 +8,58 @@ function deleteScenarioTeamHealthMessages(projectId: number, teamId: number) {
   return prisma.teamHealthMessage.deleteMany({ where: { projectId, teamId } });
 }
 
+function buildOpenMessage(
+  projectId: number,
+  teamId: number,
+  requesterId: number,
+  subject: string,
+  details: string,
+  createdAt: Date,
+) {
+  return {
+    projectId,
+    teamId,
+    requesterUserId: requesterId,
+    subject,
+    details,
+    resolved: false,
+    responseText: null,
+    reviewedByUserId: null,
+    createdAt,
+    updatedAt: createdAt,
+    reviewedAt: null,
+  } satisfies TeamHealthMessageRow;
+}
+
 export function buildOpenScenarioMessages(projectId: number, teamId: number, requesterId: number) {
   const createdAtOpen = toDateFromNow(-2);
   const createdAtOpenOlder = toDateFromNow(-4);
   const createdAtOpenOldest = toDateFromNow(-9);
   return [
-    {
+    buildOpenMessage(
       projectId,
       teamId,
-      requesterUserId: requesterId,
-      subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Blocked on delivery plan and ownership`,
-      details:
-        "We are struggling to keep momentum and need staff support to align priorities and ownership before the feedback deadline.",
-      resolved: false,
-      responseText: null,
-      reviewedByUserId: null,
-      createdAt: createdAtOpen,
-      updatedAt: createdAtOpen,
-      reviewedAt: null,
-    },
-    {
+      requesterId,
+      `${SEEDED_MESSAGE_SUBJECT_PREFIX} Blocked on delivery plan and ownership`,
+      "We are struggling to keep momentum and need staff support to align priorities and ownership before the feedback deadline.",
+      createdAtOpen,
+    ),
+    buildOpenMessage(
       projectId,
       teamId,
-      requesterUserId: requesterId,
-      subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Escalation: recurring stand-up absences`,
-      details:
-        "Two members have repeatedly missed stand-ups and planning updates. We need help agreeing expectations and accountability.",
-      resolved: false,
-      responseText: null,
-      reviewedByUserId: null,
-      createdAt: createdAtOpenOlder,
-      updatedAt: createdAtOpenOlder,
-      reviewedAt: null,
-    },
-    {
+      requesterId,
+      `${SEEDED_MESSAGE_SUBJECT_PREFIX} Escalation: recurring stand-up absences`,
+      "Two members have repeatedly missed stand-ups and planning updates. We need help agreeing expectations and accountability.",
+      createdAtOpenOlder,
+    ),
+    buildOpenMessage(
       projectId,
       teamId,
-      requesterUserId: requesterId,
-      subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Clarification request on task split`,
-      details: "The team has uncertainty around ownership boundaries and review responsibilities after the last sprint handover.",
-      resolved: false,
-      responseText: null,
-      reviewedByUserId: null,
-      createdAt: createdAtOpenOldest,
-      updatedAt: createdAtOpenOldest,
-      reviewedAt: null,
-    },
+      requesterId,
+      `${SEEDED_MESSAGE_SUBJECT_PREFIX} Clarification request on task split`,
+      "The team has uncertainty around ownership boundaries and review responsibilities after the last sprint handover.",
+      createdAtOpenOldest,
+    ),
   ] satisfies TeamHealthMessageRow[];
 }
 

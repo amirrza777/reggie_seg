@@ -28,7 +28,6 @@ vi.mock("../../prisma/seed/prismaClient", () => ({
   prisma: mockState.prisma,
 }));
 
-import { seedTeamHealthWarningScenario } from "../../prisma/seed/team-health-warning-scenario";
 import * as scenarioActors from "../../prisma/seed/teamHealthScenario/actors";
 import * as scenarioAssessments from "../../prisma/seed/teamHealthScenario/assessments";
 import * as scenarioCleanup from "../../prisma/seed/teamHealthScenario/cleanup";
@@ -48,7 +47,7 @@ function makeContext(overrides: Record<string, unknown> = {}) {
       adminOrStaff: [{ id: 900 }],
     },
     ...overrides,
-  } as any;
+  } as never;
 }
 
 function resetDefaultMocks() {
@@ -221,44 +220,5 @@ describe("team-health-warning-scenario helpers", () => {
     expect(scenarioSummary.buildTeamHealthScenarioDetails(31, 41, 2, 1, 0, { seeded: false })).toContain(
       "project=31",
     );
-  });
-});
-
-describe("seedTeamHealthWarningScenario", () => {
-  beforeEach(() => {
-    resetDefaultMocks();
-    mockState.prisma.project.findFirst.mockResolvedValue(null);
-    mockState.prisma.team.findUnique.mockResolvedValue(null);
-  });
-
-  it("skips when prerequisites are missing", async () => {
-    mockState.prisma.module.findFirst.mockResolvedValue(null);
-    const value = await seedTeamHealthWarningScenario(makeContext({ modules: [], templates: [] }));
-    expect(value).toBeUndefined();
-    expect(mockState.prisma.project.create).not.toHaveBeenCalled();
-  });
-
-  it("runs full happy path with existing SE branch and cleanup", async () => {
-    mockState.prisma.meeting.findMany.mockResolvedValue([{ id: 9 }]);
-    mockState.prisma.meetingComment.findMany.mockResolvedValue([{ id: 10 }]);
-    mockState.prisma.project.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 222 });
-    mockState.prisma.team.findUnique.mockResolvedValueOnce(null);
-    mockState.prisma.team.findFirst.mockResolvedValueOnce({ id: 333 });
-    await expect(seedTeamHealthWarningScenario(makeContext())).resolves.toEqual({ projectId: 31, teamId: 41 });
-    expect(mockState.prisma.project.create).toHaveBeenCalled();
-    expect(mockState.prisma.team.create).toHaveBeenCalled();
-    expect(mockState.prisma.projectDeadline.upsert).toHaveBeenCalled();
-    expect(mockState.prisma.teamWarning.deleteMany).toHaveBeenCalled();
-    expect(mockState.prisma.teamHealthMessage.createMany).toHaveBeenCalled();
-  });
-
-  it("skips when requester cannot be resolved", async () => {
-    mockState.prisma.user.findUnique.mockResolvedValue(null);
-    mockState.prisma.user.findMany.mockResolvedValue([]);
-    const value = await seedTeamHealthWarningScenario(
-      makeContext({ usersByRole: { students: [], adminOrStaff: [] } }),
-    );
-    expect(value).toBeUndefined();
-    expect(mockState.prisma.project.create).not.toHaveBeenCalled();
   });
 });

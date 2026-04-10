@@ -115,17 +115,7 @@ function buildProfileSeedPlan(context: SeedContext, config: SeedProfileConfig) {
 }
 
 export function buildSeedStepPlan(context: SeedContext, config: SeedProfileConfig) {
-  switch (config.name) {
-    case "demo":
-      return buildDemoSeedPlan(context, config);
-    case "e2e":
-      return buildE2ESeedPlan(context, config);
-    case "trello-e2e":
-      return buildTrelloE2ESeedPlan(context, config);
-    case "dev":
-    default:
-      return buildDevSeedPlan(context, config);
-  }
+  return buildProfileSeedPlan(context, config);
 }
 
 function buildMembershipStep(name: string, run: () => Promise<unknown>): SeedStepDefinition {

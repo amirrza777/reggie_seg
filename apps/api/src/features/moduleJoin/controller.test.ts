@@ -44,16 +44,16 @@ function registerControllerTests() {
 function registerJoinValidationTest() {
   it("join handler validates auth and request body", async () => {
     const unauthorized = mockRes();
-    await joinModuleHandler({ body: { code: "ABCD2345" } } as any, unauthorized);
+    await joinModuleHandler({ body: { code: "ABCD2345" } } as never, unauthorized);
     expect(unauthorized.status).toHaveBeenCalledWith(401);
 
     const invalidBody = mockRes();
-    await joinModuleHandler({ user: { sub: 7 }, body: {} } as any, invalidBody);
+    await joinModuleHandler({ user: { sub: 7 }, body: {} } as never, invalidBody);
     expect(invalidBody.status).toHaveBeenCalledWith(400);
     expect(invalidBody.json).toHaveBeenCalledWith({ code: "INVALID_REQUEST", error: "code is required" });
 
     const invalidNormalized = mockRes();
-    await joinModuleHandler({ user: { sub: 7 }, body: { code: "bad" } } as any, invalidNormalized);
+    await joinModuleHandler({ user: { sub: 7 }, body: { code: "bad" } } as never, invalidNormalized);
     expect(invalidNormalized.status).toHaveBeenCalledWith(400);
     expect(invalidNormalized.json).toHaveBeenCalledWith({ code: "INVALID_CODE", error: "code must be a valid module join code" });
     expect(mockState.service.joinModuleByCode).not.toHaveBeenCalled();
@@ -62,7 +62,7 @@ function registerJoinValidationTest() {
 
 function registerJoinServiceMappingTest() {
   it("join handler maps service success and full error status range", async () => {
-    (mockState.service.joinModuleByCode as any)
+    (mockState.service.joinModuleByCode as never)
       .mockResolvedValueOnce({ ok: false, status: 401, code: "UNAUTHORIZED", error: "Unauthorized" })
       .mockResolvedValueOnce({ ok: false, status: 403, code: "FORBIDDEN", error: "Forbidden" })
       .mockResolvedValueOnce({ ok: false, status: 404, code: "MODULE_NOT_FOUND", error: "Module not found" })
@@ -74,12 +74,12 @@ function registerJoinServiceMappingTest() {
 
     for (const status of [401, 403, 404, 409]) {
       const res = mockRes();
-      await joinModuleHandler({ user: { sub: 7 }, body: { code: "ABCD2345" } } as any, res);
+      await joinModuleHandler({ user: { sub: 7 }, body: { code: "ABCD2345" } } as never, res);
       expect(res.status).toHaveBeenCalledWith(status);
     }
 
     const okRes = mockRes();
-    await joinModuleHandler({ user: { sub: 7 }, body: { code: "ABCD2345" } } as any, okRes);
+    await joinModuleHandler({ user: { sub: 7 }, body: { code: "ABCD2345" } } as never, okRes);
     expect(okRes.json).toHaveBeenCalledWith({
       moduleId: 3,
       moduleName: "SEGP",
@@ -91,18 +91,18 @@ function registerJoinServiceMappingTest() {
 function registerReadValidationTest() {
   it("code-read handler validates auth and module id", async () => {
     const unauthorized = mockRes();
-    await getModuleJoinCodeHandler({ params: { moduleId: "3" } } as any, unauthorized);
+    await getModuleJoinCodeHandler({ params: { moduleId: "3" } } as never, unauthorized);
     expect(unauthorized.status).toHaveBeenCalledWith(401);
 
     const invalidModuleId = mockRes();
-    await getModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "abc" } } as any, invalidModuleId);
+    await getModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "abc" } } as never, invalidModuleId);
     expect(invalidModuleId.status).toHaveBeenCalledWith(400);
   });
 }
 
 function registerReadFailureTest() {
   it("code-read handler maps service errors and does not set no-store on failure", async () => {
-    (mockState.service.getModuleJoinCode as any).mockResolvedValue({
+    (mockState.service.getModuleJoinCode as never).mockResolvedValue({
       ok: false,
       status: 404,
       code: "MODULE_NOT_FOUND",
@@ -110,7 +110,7 @@ function registerReadFailureTest() {
     });
 
     const res = mockRes();
-    await getModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as any, res);
+    await getModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as never, res);
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.setHeader).not.toHaveBeenCalled();
   });
@@ -118,13 +118,13 @@ function registerReadFailureTest() {
 
 function registerReadSuccessTest() {
   it("code-read handler sets no-store on success", async () => {
-    (mockState.service.getModuleJoinCode as any).mockResolvedValue({
+    (mockState.service.getModuleJoinCode as never).mockResolvedValue({
       ok: true,
       value: { moduleId: 3, joinCode: "ABCD2345" },
     });
 
     const getRes = mockRes();
-    await getModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as any, getRes);
+    await getModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as never, getRes);
     expect(getRes.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store");
     expect(getRes.json).toHaveBeenCalledWith({ moduleId: 3, joinCode: "ABCD2345" });
   });
@@ -133,18 +133,18 @@ function registerReadSuccessTest() {
 function registerRotateValidationTest() {
   it("rotate handler validates auth and module id", async () => {
     const unauthorized = mockRes();
-    await rotateModuleJoinCodeHandler({ params: { moduleId: "3" } } as any, unauthorized);
+    await rotateModuleJoinCodeHandler({ params: { moduleId: "3" } } as never, unauthorized);
     expect(unauthorized.status).toHaveBeenCalledWith(401);
 
     const invalidModuleId = mockRes();
-    await rotateModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "abc" } } as any, invalidModuleId);
+    await rotateModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "abc" } } as never, invalidModuleId);
     expect(invalidModuleId.status).toHaveBeenCalledWith(400);
   });
 }
 
 function registerRotateFailureTest() {
   it("rotate handler maps service errors and does not set no-store on failure", async () => {
-    (mockState.service.rotateModuleJoinCode as any).mockResolvedValue({
+    (mockState.service.rotateModuleJoinCode as never).mockResolvedValue({
       ok: false,
       status: 409,
       code: "CONFLICT",
@@ -152,7 +152,7 @@ function registerRotateFailureTest() {
     });
 
     const res = mockRes();
-    await rotateModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as any, res);
+    await rotateModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as never, res);
     expect(res.status).toHaveBeenCalledWith(409);
     expect(res.setHeader).not.toHaveBeenCalled();
   });
@@ -160,13 +160,13 @@ function registerRotateFailureTest() {
 
 function registerRotateSuccessTest() {
   it("rotate handler sets no-store on success", async () => {
-    (mockState.service.rotateModuleJoinCode as any).mockResolvedValue({
+    (mockState.service.rotateModuleJoinCode as never).mockResolvedValue({
       ok: true,
       value: { moduleId: 3, joinCode: "WXYZ6789" },
     });
 
     const rotateRes = mockRes();
-    await rotateModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as any, rotateRes);
+    await rotateModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as never, rotateRes);
     expect(rotateRes.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store");
     expect(rotateRes.json).toHaveBeenCalledWith({ moduleId: 3, joinCode: "WXYZ6789" });
   });

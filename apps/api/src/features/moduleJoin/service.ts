@@ -83,7 +83,7 @@ function emitModuleJoinAuditEvent(
  * CONFLICT -> 409
  */
 export async function joinModuleByCode(actorUserId: number, rawCode: string) {
-  const actorResult = await resolveJoinActor(actorUserId);
+  const actorResult = await resolveStudentJoinActor(actorUserId);
   if (!actorResult.ok) return actorResult;
 
   const moduleResult = await resolveJoinTargetModule(actorResult.value, rawCode);
@@ -93,7 +93,7 @@ export async function joinModuleByCode(actorUserId: number, rawCode: string) {
 }
 
 export async function getModuleJoinCode(actorUserId: number, moduleId: number) {
-  const actorResult = await resolveJoinActor(actorUserId);
+  const actorResult = await resolveJoinCodeManagerActor(actorUserId);
   if (!actorResult.ok) return actorResult;
   const actor = actorResult.value;
 
@@ -121,7 +121,7 @@ export async function getModuleJoinCode(actorUserId: number, moduleId: number) {
 }
 
 export async function rotateModuleJoinCode(actorUserId: number, moduleId: number) {
-  const actorResult = await resolveJoinActor(actorUserId);
+  const actorResult = await resolveJoinCodeManagerActor(actorUserId);
   if (!actorResult.ok) return actorResult;
   const actor = actorResult.value;
 
@@ -182,11 +182,19 @@ function isModuleJoinCodeUniqueConstraintError(error: unknown) {
   return Array.isArray(target) && target.includes("enterpriseId") && target.includes("joinCode");
 }
 
-async function resolveJoinActor(actorUserId: number) {
+async function resolveStudentJoinActor(actorUserId: number) {
   const actorResult = await requireJoinActor(actorUserId);
   if (!actorResult.ok) return actorResult;
   const actor = actorResult.value;
   if (actor.role === "STAFF") return fail(403, "FORBIDDEN", "Forbidden");
+  return { ok: true as const, value: actor };
+}
+
+async function resolveJoinCodeManagerActor(actorUserId: number) {
+  const actorResult = await requireJoinActor(actorUserId);
+  if (!actorResult.ok) return actorResult;
+  const actor = actorResult.value;
+  if (actor.role === "STUDENT") return fail(403, "FORBIDDEN", "Forbidden");
   return { ok: true as const, value: actor };
 }
 
