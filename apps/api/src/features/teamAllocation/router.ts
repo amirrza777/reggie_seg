@@ -10,34 +10,34 @@ import {
   listReceivedInvitesHandler,
   listTeamInvitesHandler,
   rejectTeamInviteHandler,
-} from "./controller.invites.js";
+} from "./controllers/controller.invites.js";
 import {
   applyManualAllocationHandler,
   getManualAllocationWorkspaceHandler,
-} from "./controller.manual.js";
+} from "./controllers/controller.manual.js";
 import {
   applyRandomAllocationHandler,
   previewRandomAllocationHandler,
-} from "./controller.random.js";
+} from "./controllers/controller.random.js";
 import {
   applyCustomAllocationHandler,
   getCustomAllocationCoverageHandler,
   listCustomAllocationQuestionnairesHandler,
   previewCustomAllocationHandler,
-} from "./controller.custom-allocation.js";
+} from "./controllers/controller.custom-allocation.js";
 import {
   approveAllocationDraftHandler,
   deleteAllocationDraftHandler,
   listAllocationDraftsHandler,
   updateAllocationDraftHandler,
-} from "./controller.drafts.js";
+} from "./controllers/controller.drafts.js";
 import {
   addUserToTeamHandler,
   createTeamForProjectHandler,
   createTeamHandler,
   getTeamByIdHandler,
   getTeamMembersHandler,
-} from "./controller.teams.js";
+} from "./controllers/controller.teams.js";
 
 const router = Router();
 
