@@ -9,7 +9,7 @@ import {
   parseProjectIdParam,
   parseProjectTeamAndUserQuery,
   parseTeamHealthMessageBody,
-} from "./controller.parsers.js";
+} from "../projects/controller.parsers.js";
 
 export async function createTeamHealthMessageHandler(req: Request, res: Response) {
   const projectId = parseProjectIdParam(req.params.projectId);

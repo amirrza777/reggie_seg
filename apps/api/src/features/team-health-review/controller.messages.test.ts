@@ -8,25 +8,12 @@ import {
 } from "./controller.js";
 
 vi.mock("./service.js", () => ({
-  createProject: vi.fn(),
-  fetchProjectById: vi.fn(),
-  fetchProjectMarking: vi.fn(),
-  fetchProjectTeamsForStaff: vi.fn(),
-  fetchProjectsForUser: vi.fn(),
-  fetchProjectsForStaff: vi.fn(),
-  fetchModulesForUser: vi.fn(),
-  fetchProjectDeadline: vi.fn(),
-  fetchTeammatesForProject: vi.fn(),
-  fetchTeamById: vi.fn(),
-  fetchTeamByUserAndProject: vi.fn(),
-  fetchQuestionsForProject: vi.fn(),
+  fetchTeamDeadlineForStaff: vi.fn(),
+  reviewTeamHealthMessageForStaff: vi.fn(),
+  resolveTeamHealthMessageWithDeadlineOverrideForStaff: vi.fn(),
   submitTeamHealthMessage: vi.fn(),
   fetchMyTeamHealthMessages: vi.fn(),
   fetchTeamHealthMessagesForStaff: vi.fn(),
-  updateTeamDeadlineProfileForStaff: vi.fn(),
-  fetchStaffStudentDeadlineOverrides: vi.fn(),
-  upsertStaffStudentDeadlineOverride: vi.fn(),
-  clearStaffStudentDeadlineOverride: vi.fn(),
 }));
 
 function mockResponse() {
@@ -36,7 +23,7 @@ function mockResponse() {
   return res as Response;
 }
 
-describe("projects controller team health handlers", () => {
+describe("team-health-review message controller", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -98,9 +85,7 @@ describe("projects controller team health handlers", () => {
     await getMyTeamHealthMessagesHandler({ params: { projectId: "x" }, query: { userId: "7" } } as any, badRes);
     expect(badRes.status).toHaveBeenCalledWith(400);
 
-    (service.fetchMyTeamHealthMessages as any).mockResolvedValue([
-      { id: 1, subject: "Need support", resolved: false },
-    ]);
+    (service.fetchMyTeamHealthMessages as any).mockResolvedValue([{ id: 1, subject: "Need support", resolved: false }]);
     const okRes = mockResponse();
     await getMyTeamHealthMessagesHandler({ params: { projectId: "3" }, query: { userId: "7" } } as any, okRes);
     expect(service.fetchMyTeamHealthMessages).toHaveBeenCalledWith(7, 3);
@@ -122,9 +107,7 @@ describe("projects controller team health handlers", () => {
     );
     expect(badRes.status).toHaveBeenCalledWith(400);
 
-    (service.fetchTeamHealthMessagesForStaff as any).mockResolvedValue([
-      { id: 4, subject: "Urgent", resolved: false },
-    ]);
+    (service.fetchTeamHealthMessagesForStaff as any).mockResolvedValue([{ id: 4, subject: "Urgent", resolved: false }]);
     const okRes = mockResponse();
     await getStaffTeamHealthMessagesHandler(
       { params: { projectId: "3", teamId: "2" }, query: { userId: "7" } } as any,

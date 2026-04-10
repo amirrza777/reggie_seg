@@ -10,11 +10,11 @@ import {
   resolveTeamWarningForStaff,
   updateProjectWarningsConfigForStaff,
 } from "./service.js";
-import * as repo from "../repo.js";
+import * as repo from "./repo.js";
+import * as projectRepo from "../projects/repo.js";
+import * as teamHealthRepo from "../team-health-review/repo.js";
 
-vi.mock("../repo.js", () => ({
-  getTeamByUserAndProject: vi.fn(),
-  getTeamById: vi.fn(),
+vi.mock("./repo.js", () => ({
   getStaffProjectWarningsConfig: vi.fn(),
   getProjectWarningsSettings: vi.fn(),
   getProjectTeamWarningSignals: vi.fn(),
@@ -23,20 +23,28 @@ vi.mock("../repo.js", () => ({
   updateAutoTeamWarningById: vi.fn(),
   createTeamWarning: vi.fn(),
   getTeamWarningsForTeamInProject: vi.fn(),
-  canStaffAccessTeamInProject: vi.fn(),
   updateStaffProjectWarningsConfig: vi.fn(),
 }));
 
-vi.mock("../../notifications/service.js", () => ({
+vi.mock("../projects/repo.js", () => ({
+  getTeamByUserAndProject: vi.fn(),
+  getTeamById: vi.fn(),
+}));
+
+vi.mock("../team-health-review/repo.js", () => ({
+  canStaffAccessTeamInProject: vi.fn(),
+}));
+
+vi.mock("../notifications/service.js", () => ({
   addNotification: vi.fn(),
 }));
 
-vi.mock("../../../shared/projectWriteGuard.js", () => ({
+vi.mock("../../shared/projectWriteGuard.js", () => ({
   assertProjectMutableForWritesByProjectId: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("../../../shared/db.js", async (importOriginal) => {
-  const mod = await importOriginal<typeof import("../../../shared/db.js")>();
+vi.mock("../../shared/db.js", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../../shared/db.js")>();
   return {
     ...mod,
     prisma: {
@@ -58,7 +66,7 @@ describe("projects/warnings service", () => {
   });
 
   it("createTeamWarningForStaff requires staff access", async () => {
-    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(false);
+    (teamHealthRepo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(false);
     await expect(
       createTeamWarningForStaff(9, 3, 22, {
         type: "LOW_ATTENDANCE",
@@ -69,7 +77,7 @@ describe("projects/warnings service", () => {
     ).resolves.toBeNull();
     expect(repo.createTeamWarning).not.toHaveBeenCalled();
 
-    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
+    (teamHealthRepo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
     (repo.createTeamWarning as any).mockResolvedValueOnce({ id: 44, source: "MANUAL", createdByUserId: 9 });
     await expect(
       createTeamWarningForStaff(9, 3, 22, {
@@ -87,28 +95,28 @@ describe("projects/warnings service", () => {
   });
 
   it("fetchTeamWarningsForStaff enforces scope before listing", async () => {
-    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(false);
+    (teamHealthRepo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(false);
     await expect(fetchTeamWarningsForStaff(9, 3, 22)).resolves.toBeNull();
     expect(repo.getTeamWarningsForTeamInProject).not.toHaveBeenCalled();
 
-    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
+    (teamHealthRepo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
     (repo.getTeamWarningsForTeamInProject as any).mockResolvedValueOnce([{ id: 2 }]);
     await expect(fetchTeamWarningsForStaff(9, 3, 22)).resolves.toEqual([{ id: 2 }]);
     expect(repo.getTeamWarningsForTeamInProject).toHaveBeenCalledWith(3, 22);
   });
 
   it("resolveTeamWarningForStaff enforces scope and resolves only active warnings in team", async () => {
-    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(false);
+    (teamHealthRepo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(false);
     await expect(resolveTeamWarningForStaff(9, 3, 22, 80)).resolves.toBeNull();
     expect(repo.getTeamWarningsForTeamInProject).not.toHaveBeenCalled();
     expect(repo.resolveTeamWarningById).not.toHaveBeenCalled();
 
-    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
+    (teamHealthRepo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
     (repo.getTeamWarningsForTeamInProject as any).mockResolvedValueOnce([{ id: 81 }, { id: 82 }]);
     await expect(resolveTeamWarningForStaff(9, 3, 22, 80)).resolves.toBeNull();
     expect(repo.resolveTeamWarningById).not.toHaveBeenCalled();
 
-    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
+    (teamHealthRepo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
     (repo.getTeamWarningsForTeamInProject as any).mockResolvedValueOnce([{ id: 80 }, { id: 81 }]);
     (repo.resolveTeamWarningById as any).mockResolvedValueOnce({ id: 80, active: false });
     await expect(resolveTeamWarningForStaff(9, 3, 22, 80)).resolves.toEqual({ id: 80, active: false });
@@ -117,11 +125,11 @@ describe("projects/warnings service", () => {
   });
 
   it("fetchMyTeamWarnings returns active warnings for current team", async () => {
-    (repo.getTeamByUserAndProject as any).mockResolvedValueOnce(null);
+    (projectRepo.getTeamByUserAndProject as any).mockResolvedValueOnce(null);
     await expect(fetchMyTeamWarnings(7, 3)).resolves.toBeNull();
     expect(repo.getTeamWarningsForTeamInProject).not.toHaveBeenCalled();
 
-    (repo.getTeamByUserAndProject as any).mockResolvedValueOnce({ id: 22 });
+    (projectRepo.getTeamByUserAndProject as any).mockResolvedValueOnce({ id: 22 });
     (repo.getTeamWarningsForTeamInProject as any).mockResolvedValueOnce([{ id: 5, active: true }]);
     await expect(fetchMyTeamWarnings(7, 3)).resolves.toEqual([{ id: 5, active: true }]);
     expect(repo.getTeamWarningsForTeamInProject).toHaveBeenCalledWith(3, 22, { activeOnly: true });

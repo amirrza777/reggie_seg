@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Response } from "express";
-import * as service from "../service.js";
+import * as service from "./service.js";
 import {
   createStaffTeamWarningHandler,
   evaluateProjectWarningsHandler,
@@ -11,7 +11,7 @@ import {
   updateProjectWarningsConfigHandler,
 } from "./controller.js";
 
-vi.mock("../service.js", () => ({
+vi.mock("./service.js", () => ({
   createTeamWarningForStaff: vi.fn(),
   evaluateProjectWarningsForStaff: vi.fn(),
   fetchMyTeamWarnings: vi.fn(),

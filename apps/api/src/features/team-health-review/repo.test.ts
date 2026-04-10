@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { prisma } from "../../../shared/db.js";
+import { prisma } from "../../shared/db.js";
 import {
   canStaffAccessTeamInProject,
   createTeamHealthMessage,
@@ -12,7 +12,7 @@ import {
   reviewTeamHealthMessage,
 } from "./repo.js";
 
-vi.mock("../../../shared/db.js", () => ({
+vi.mock("../../shared/db.js", () => ({
   prisma: {
     $transaction: vi.fn(),
     user: {

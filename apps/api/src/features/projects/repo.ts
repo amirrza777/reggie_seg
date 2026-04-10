@@ -9,9 +9,9 @@ import {
   getStaffProjectsImpl,
 } from "./repo.highAuthorship.impl.js";
 
-export * from "./warnings/repo.js";
+export * from "../warnings/repo.js";
 export * from "./nav-flags/repo.js";
-export * from "./team-health-review/repo.js";
+export * from "../team-health-review/repo.js";
 
 export type ProjectDeadlineInput = {
   taskOpenDate: Date;

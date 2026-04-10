@@ -6,12 +6,12 @@ import {
   resolveTeamHealthMessageWithDeadlineOverrideForStaff,
   reviewTeamHealthMessageForStaff,
 } from "./service.js";
-import * as repo from "../repo.js";
-import * as notificationsService from "../../notifications/service.js";
+import * as repo from "./repo.js";
+import * as projectRepo from "../projects/repo.js";
+import * as notificationsService from "../notifications/service.js";
 
-vi.mock("../repo.js", () => ({
+vi.mock("./repo.js", () => ({
   canStaffAccessTeamInProject: vi.fn(),
-  getTeamById: vi.fn(),
   getTeamDeadlineDetailsInProject: vi.fn(),
   getTeamCurrentDeadlineInProject: vi.fn(),
   hasAnotherResolvedTeamHealthMessage: vi.fn(),
@@ -19,7 +19,13 @@ vi.mock("../repo.js", () => ({
   resolveTeamHealthMessageWithDeadlineOverride: vi.fn(),
 }));
 
-vi.mock("../../notifications/service.js", () => ({
+vi.mock("../projects/repo.js", () => ({
+  getTeamById: vi.fn(),
+  getTeamByUserAndProject: vi.fn(),
+  getModuleLeadsForProject: vi.fn(),
+}));
+
+vi.mock("../notifications/service.js", () => ({
   addNotification: vi.fn(),
 }));
 
@@ -72,7 +78,7 @@ describe("team-health-review service", () => {
       resolved: true,
       responseText: "Thanks for raising this. We will follow up.",
     });
-    (repo.getTeamById as any).mockResolvedValueOnce({
+    (projectRepo.getTeamById as any).mockResolvedValueOnce({
       id: 2,
       projectId: 3,
       allocations: [

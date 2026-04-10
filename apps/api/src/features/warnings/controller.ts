@@ -1,6 +1,6 @@
 import type { Response } from "express";
-import { sendProjectOrModuleArchivedConflict } from "../../../shared/projectWriteGuard.js";
-import type { AuthRequest } from "../../../auth/middleware.js";
+import { sendProjectOrModuleArchivedConflict } from "../../shared/projectWriteGuard.js";
+import type { AuthRequest } from "../../auth/middleware.js";
 import {
   createTeamWarningForStaff,
   evaluateProjectWarningsForStaff,
@@ -9,8 +9,8 @@ import {
   fetchTeamWarningsForStaff,
   resolveTeamWarningForStaff,
   updateProjectWarningsConfigForStaff,
-} from "../service.js";
-import { parsePositiveInt, resolveAuthenticatedUserId } from "../controller.shared.js";
+} from "./service.js";
+import { parsePositiveInt, resolveAuthenticatedUserId } from "../projects/controller.shared.js";
 
 function parseSeverity(value: unknown): "LOW" | "MEDIUM" | "HIGH" | null {
   if (value === "LOW" || value === "MEDIUM" || value === "HIGH") {

@@ -1,5 +1,5 @@
-import { prisma } from "../../../shared/db.js";
-import { assertProjectMutableForWritesByProjectId } from "../../../shared/projectWriteGuard.js";
+import { prisma } from "../../shared/db.js";
+import { assertProjectMutableForWritesByProjectId } from "../../shared/projectWriteGuard.js";
 
 async function getScopedStaffUser(userId: number) {
   return prisma.user.findUnique({

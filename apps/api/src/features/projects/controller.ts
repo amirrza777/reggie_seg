@@ -26,7 +26,7 @@ export {
   createTeamHealthMessageHandler,
   getMyTeamHealthMessagesHandler,
   getStaffTeamHealthMessagesHandler,
-} from "./controller.team-health.js";
+} from "../team-health-review/controller.js";
 
 export {
   updateTeamDeadlineProfileHandler,
@@ -43,7 +43,7 @@ export {
   getProjectWarningsConfigHandler,
   updateProjectWarningsConfigHandler,
   evaluateProjectWarningsHandler,
-} from "./warnings/controller.js";
+} from "../warnings/controller.js";
 
 export {
   getProjectNavFlagsConfigHandler,

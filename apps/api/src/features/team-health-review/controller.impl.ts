@@ -11,7 +11,7 @@ import {
   parseProjectTeamRequestAndUserBody,
   parseTeamHealthResolveBody,
   parseTeamHealthReviewBody,
-} from "../controller.parsers.js";
+} from "../projects/controller.parsers.js";
 
 export async function getStaffTeamDeadlineHandler(req: Request, res: Response) {
   const parsed = parseProjectTeamAndUserQuery(req as any);

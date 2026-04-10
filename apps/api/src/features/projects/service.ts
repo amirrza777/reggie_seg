@@ -22,14 +22,9 @@ import {
   getStaffProjectsForMarking,
   getStaffStudentDeadlineOverrides,
   getUserProjectMarking,
-  createTeamHealthMessage,
-  getTeamHealthMessagesForUserInProject,
-  getTeamHealthMessagesForTeamInProject,
-  canStaffAccessTeamInProject,
   updateStaffTeamDeadlineProfile as updateStaffTeamDeadlineProfileInDb,
   upsertStaffStudentDeadlineOverride as upsertStaffStudentDeadlineOverrideInDb,
   clearStaffStudentDeadlineOverride as clearStaffStudentDeadlineOverrideInDb,
-  getModuleLeadsForProject,
   type ProjectDeadlineInput,
   type StudentDeadlineOverrideInput,
 } from "./repo.js";
@@ -49,14 +44,14 @@ export {
   evaluateProjectWarningsForProject,
   parseProjectWarningsConfig,
   getDefaultProjectWarningsConfig,
-} from "./warnings/service.js";
+} from "../warnings/service.js";
 
 export type {
   WarningRuleSeverity,
   ProjectWarningRuleConfig,
   ProjectWarningsConfig,
   ProjectWarningsEvaluationSummary,
-} from "./warnings/service.js";
+} from "../warnings/service.js";
 export {
   fetchProjectNavFlagsConfigForStaff,
   updateProjectNavFlagsConfigForStaff,
@@ -71,6 +66,11 @@ export type {
   ProjectNavPeerModes,
   ProjectNavFlagsConfig,
 } from "./nav-flags/service.js";
+export {
+  submitTeamHealthMessage,
+  fetchMyTeamHealthMessages,
+  fetchTeamHealthMessagesForStaff,
+} from "../team-health-review/service.js";
 
 /** Creates a project. */
 export async function createProject(
@@ -503,44 +503,6 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
 /** Returns the project marking. */
 export async function fetchProjectMarking(userId: number, projectId: number) {
   return getUserProjectMarking(userId, projectId);
-}
-
-export async function submitTeamHealthMessage(
-  userId: number,
-  projectId: number,
-  subject: string,
-  details: string
-) {
-  const team = await getTeamByUserAndProject(userId, projectId);
-  if (!team) return null;
-
-  const message = await createTeamHealthMessage(projectId, team.id, userId, subject, details);
-  const leads = await getModuleLeadsForProject(projectId);
-  await Promise.all(
-    leads.map((lead) =>
-      addNotification({
-        userId: lead.userId,
-        type: "TEAM_HEALTH_SUBMITTED",
-        message: "A team health message has been submitted",
-        link: `/staff/projects/${projectId}/teams/${team.id}/teamhealth`,
-      })
-    )
-  );
-  return message;
-}
-
-export async function fetchMyTeamHealthMessages(userId: number, projectId: number) {
-  const team = await getTeamByUserAndProject(userId, projectId);
-  if (!team) return null;
-
-  return getTeamHealthMessagesForTeamInProject(projectId, team.id);
-}
-
-export async function fetchTeamHealthMessagesForStaff(userId: number, projectId: number, teamId: number) {
-  const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
-  if (!canAccess) return null;
-
-  return getTeamHealthMessagesForTeamInProject(projectId, teamId);
 }
 
 export async function updateTeamDeadlineProfileForStaff(

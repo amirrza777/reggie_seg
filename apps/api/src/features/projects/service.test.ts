@@ -12,9 +12,6 @@ import {
   fetchTeamById,
   fetchTeamByUserAndProject,
   fetchTeammatesForProject,
-  submitTeamHealthMessage,
-  fetchMyTeamHealthMessages,
-  fetchTeamHealthMessagesForStaff,
   upsertStaffStudentDeadlineOverride,
 } from "./service.js";
 import * as repo from "./repo.js";
@@ -35,12 +32,8 @@ vi.mock("./repo.js", () => ({
   hasActiveTeamForUserInProject: vi.fn(),
   upsertTeamAllocationQuestionnaireResponse: vi.fn(),
   getStaffProjectsForMarking: vi.fn(),
-  createTeamHealthMessage: vi.fn(),
-  getTeamHealthMessagesForUserInProject: vi.fn(),
-  getTeamHealthMessagesForTeamInProject: vi.fn(),
   createTeamWarning: vi.fn(),
   getTeamWarningsForTeamInProject: vi.fn(),
-  canStaffAccessTeamInProject: vi.fn(),
   getStaffProjectWarningsConfig: vi.fn(),
   getStaffProjectNavFlagsConfig: vi.fn(),
   updateStaffProjectNavFlagsConfig: vi.fn(),
@@ -50,7 +43,6 @@ vi.mock("./repo.js", () => ({
   getActiveAutoTeamWarningsForProject: vi.fn(),
   resolveTeamWarningById: vi.fn(),
   updateAutoTeamWarningById: vi.fn(),
-  getModuleLeadsForProject: vi.fn(),
   upsertStaffStudentDeadlineOverride: vi.fn(),
   clearStaffStudentDeadlineOverride: vi.fn(),
 }));
@@ -92,10 +84,6 @@ const getTeamByIdMock = vi.mocked(repo.getTeamById);
 const getTeamByUserAndProjectMock = vi.mocked(repo.getTeamByUserAndProject);
 const getQuestionsForProjectMock = vi.mocked(repo.getQuestionsForProject);
 const getStaffProjectsForMarkingMock = vi.mocked(repo.getStaffProjectsForMarking);
-const createTeamHealthMessageMock = vi.mocked(repo.createTeamHealthMessage);
-const getTeamHealthMessagesForUserInProjectMock = vi.mocked(repo.getTeamHealthMessagesForUserInProject);
-const getTeamHealthMessagesForTeamInProjectMock = vi.mocked(repo.getTeamHealthMessagesForTeamInProject);
-const canStaffAccessTeamInProjectMock = vi.mocked(repo.canStaffAccessTeamInProject);
 describe("projects service", () => {
   const deadlineInput = {
     taskOpenDate: new Date("2026-03-01T09:00:00.000Z"),
@@ -339,67 +327,6 @@ describe("projects service", () => {
         ],
       },
     ]);
-  });
-
-  it("submitTeamHealthMessage validates membership and creates request", async () => {
-    (repo.getTeamByUserAndProject as any).mockResolvedValueOnce(null);
-    await expect(submitTeamHealthMessage(7, 3, "Need support", "Please review")).resolves.toBeNull();
-    expect(repo.createTeamHealthMessage).not.toHaveBeenCalled();
-
-    (repo.getTeamByUserAndProject as any).mockResolvedValueOnce({ id: 22 });
-    (repo.createTeamHealthMessage as any).mockResolvedValue({ id: 101, resolved: false });
-    (repo.getModuleLeadsForProject as any).mockResolvedValue([]);
-    await expect(submitTeamHealthMessage(7, 3, "Need support", "Please review")).resolves.toEqual({
-      id: 101,
-      resolved: false,
-    });
-    expect(repo.createTeamHealthMessage).toHaveBeenCalledWith(3, 22, 7, "Need support", "Please review");
-  });
-
-  it("fetchMyTeamHealthMessages requires membership and returns team requests", async () => {
-    (repo.getTeamByUserAndProject as any).mockResolvedValueOnce(null);
-    await expect(fetchMyTeamHealthMessages(7, 3)).resolves.toBeNull();
-    expect(repo.getTeamHealthMessagesForTeamInProject).not.toHaveBeenCalled();
-
-    (repo.getTeamByUserAndProject as any).mockResolvedValueOnce({ id: 22 });
-    (repo.getTeamHealthMessagesForTeamInProject as any).mockResolvedValue([{ id: 1 }]);
-    await expect(fetchMyTeamHealthMessages(7, 3)).resolves.toEqual([{ id: 1 }]);
-    expect(repo.getTeamHealthMessagesForTeamInProject).toHaveBeenCalledWith(3, 22);
-  });
-
-  it("fetchTeamHealthMessagesForStaff enforces staff scope before listing requests", async () => {
-    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(false);
-    await expect(fetchTeamHealthMessagesForStaff(9, 3, 22)).resolves.toBeNull();
-    expect(repo.getTeamHealthMessagesForTeamInProject).not.toHaveBeenCalled();
-
-    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
-    (repo.getTeamHealthMessagesForTeamInProject as any).mockResolvedValue([{ id: 4 }]);
-    await expect(fetchTeamHealthMessagesForStaff(9, 3, 22)).resolves.toEqual([{ id: 4 }]);
-    expect(repo.getTeamHealthMessagesForTeamInProject).toHaveBeenCalledWith(3, 22);
-  });
-
-  it("notifies module leads when a team health message is submitted", async () => {
-    (repo.getTeamByUserAndProject as any).mockResolvedValue({ id: 22 });
-    (repo.createTeamHealthMessage as any).mockResolvedValue({ id: 101 });
-    (repo.getModuleLeadsForProject as any).mockResolvedValue([{ userId: 10 }, { userId: 11 }]);
-
-    await submitTeamHealthMessage(7, 3, "Need support", "Details");
-
-    expect(notificationsService.addNotification).toHaveBeenCalledTimes(2);
-    expect(notificationsService.addNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 10, type: "TEAM_HEALTH_SUBMITTED" })
-    );
-    expect(notificationsService.addNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 11, type: "TEAM_HEALTH_SUBMITTED" })
-    );
-  });
-
-  it("does not notify when user is not in a team", async () => {
-    (repo.getTeamByUserAndProject as any).mockResolvedValue(null);
-
-    await submitTeamHealthMessage(7, 3, "Need support", "Details");
-
-    expect(notificationsService.addNotification).not.toHaveBeenCalled();
   });
 
   it("notifies the student when a deadline override is granted", async () => {

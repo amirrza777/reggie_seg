@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TrelloService } from "./service.js";
 import { TrelloRepo } from "./repo.js";
-import { canStaffAccessTeamInProject } from "../projects/team-health-review/repo.js";
+import { canStaffAccessTeamInProject } from "../team-health-review/repo.js";
 
-vi.mock("../projects/team-health-review/repo.js", () => ({
+vi.mock("../team-health-review/repo.js", () => ({
   canStaffAccessTeamInProject: vi.fn(),
 }));
 
