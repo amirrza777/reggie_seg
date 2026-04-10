@@ -1,4 +1,4 @@
-import { sendEmail } from "../../shared/email.js";
+import { sendEmail } from "../../../shared/email.js";
 
 const defaultFrontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 

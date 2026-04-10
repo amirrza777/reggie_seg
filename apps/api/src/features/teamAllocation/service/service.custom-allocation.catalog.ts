@@ -1,4 +1,4 @@
-import { assertProjectMutableForWrites } from "../../shared/projectWriteGuard.js";
+import { assertProjectMutableForWrites } from "../../../shared/projectWriteGuard.js";
 import {
   findCustomAllocationQuestionnairesForStaff,
   findCustomAllocationTemplateForStaff,

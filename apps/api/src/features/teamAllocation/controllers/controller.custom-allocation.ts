@@ -1,6 +1,6 @@
 import type { Response } from "express";
-import type { AuthRequest } from "../../auth/middleware.js";
-import { sendProjectOrModuleArchivedConflict } from "../../shared/projectWriteGuard.js";
+import type { AuthRequest } from "../../../auth/middleware.js";
+import { sendProjectOrModuleArchivedConflict } from "../../../shared/projectWriteGuard.js";
 import {
   parseCustomAllocationApplyBody,
   parseCustomAllocationCoverageTemplateId,

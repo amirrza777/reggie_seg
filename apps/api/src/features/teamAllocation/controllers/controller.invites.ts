@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import type { AuthRequest } from "../../auth/middleware.js";
+import type { AuthRequest } from "../../../auth/middleware.js";
 import {
   acceptTeamInvite,
   cancelTeamInvite,

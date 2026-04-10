@@ -1,6 +1,6 @@
 import { prisma } from "../../shared/db.js";
 import { createComment, deleteComment, createMentions, getMeetingById } from "./repo.js";
-import { getTeamMembers, getTeamById } from "../teamAllocation/service.js";
+import { getTeamMembers, getTeamById } from "../teamAllocation/service/service.js";
 import { addNotification } from "../notifications/service.js";
 import { extractMentionsFromText, resolveMentionedMembers } from "../../shared/mentions.js";
 import { assertProjectMutableForWritesByTeamId } from "../../shared/projectWriteGuard.js";

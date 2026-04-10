@@ -1,5 +1,5 @@
 import type { Prisma, TeamInviteStatus } from "@prisma/client";
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
 export async function findActiveInvite(teamId: number, inviteeEmail: string) {
   return prisma.teamInvite.findFirst({

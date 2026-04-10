@@ -1,11 +1,11 @@
-import type { AuthRequest } from "../../auth/middleware.js";
-import { parseSearchQuery } from "../../shared/search.js";
+import type { AuthRequest } from "../../../auth/middleware.js";
+import { parseSearchQuery } from "../../../shared/search.js";
 import {
   parseOptionalPositiveInt,
   parsePositiveInt,
   parseTrimmedString,
   type ParseResult,
-} from "../../shared/parse.js";
+} from "../../../shared/parse.js";
 
 export function parseStaffActor(req: AuthRequest): ParseResult<number> {
   const userId = req.user?.sub;

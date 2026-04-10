@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { addComment, removeComment } from "./service.js";
 
 import * as repo from "./repo.js";
-import * as teamAllocationService from "../teamAllocation/service.js";
+import * as teamAllocationService from "../teamAllocation/service/service.js";
 import * as notificationsService from "../notifications/service.js";
 import { prisma } from "../../shared/db.js";
 
@@ -13,7 +13,7 @@ vi.mock("./repo.js", () => ({
   createMentions: vi.fn(),
 }));
 
-vi.mock("../teamAllocation/service.js", () => ({
+vi.mock("../teamAllocation/service/service.js", () => ({
   getTeamMembers: vi.fn(),
   getTeamById: vi.fn(),
 }));

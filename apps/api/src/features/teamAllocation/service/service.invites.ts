@@ -1,8 +1,8 @@
 import crypto from "crypto";
 import type { TeamInviteStatus } from "@prisma/client";
-import { sendEmail } from "../../shared/email.js";
-import { addNotification } from "../notifications/service.js";
-import { prisma } from "../../shared/db.js";
+import { sendEmail } from "../../../shared/email.js";
+import { addNotification } from "../../notifications/service.js";
+import { prisma } from "../../../shared/db.js";
 import {
   createTeamInviteRecord,
   findActiveInvite,

@@ -1,4 +1,4 @@
-import { assertProjectMutableForWrites } from "../../shared/projectWriteGuard.js";
+import { assertProjectMutableForWrites } from "../../../shared/projectWriteGuard.js";
 import { applyRandomAllocationPlan, findStaffScopedProject, findVacantModuleStudentsForProject } from "../repo/repo.js";
 import {
   deleteCustomAllocationPreview,

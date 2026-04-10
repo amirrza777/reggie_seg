@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 import type {
   CustomAllocationLatestResponse,
   CustomAllocationTemplate,

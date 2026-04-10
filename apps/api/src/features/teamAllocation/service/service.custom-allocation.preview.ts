@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { assertProjectMutableForWrites } from "../../shared/projectWriteGuard.js";
+import { assertProjectMutableForWrites } from "../../../shared/projectWriteGuard.js";
 import { planCustomAllocationTeams } from "../customAllocator/customAllocator.js";
 import {
   findCustomAllocationTemplateForStaff,
