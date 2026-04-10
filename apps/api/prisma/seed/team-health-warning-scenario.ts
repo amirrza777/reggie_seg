@@ -548,6 +548,41 @@ function buildTeamHealthScenarioDetails(
   return `${base}, existingSeProject=${existingSeSeed.projectId}, existingSeTeam=${existingSeSeed.teamId}`;
 }
 
+export const __teamHealthWarningInternals = {
+  uniquePositiveUserIds,
+  toDateFromNow,
+  resolveScenarioModuleId,
+  upsertScenarioProject,
+  upsertScenarioTeam,
+  ensureTeamAllocations,
+  clearTeamMeetings,
+  upsertScenarioDeadline,
+  resetScenarioDeadlineOverrides,
+  buildAssessmentAnswer,
+  buildAnswersJson,
+  getTemplateQuestionLabels,
+  seedPartialPeerAssessments,
+  deleteScenarioTeamHealthMessages,
+  buildOpenScenarioMessages,
+  buildResolvedScenarioMessage,
+  buildScenarioTeamHealthMessageRows,
+  insertScenarioTeamHealthMessages,
+  seedTeamHealthMessages,
+  findExistingScenarioProject,
+  findExistingScenarioTeam,
+  resolveExistingScenarioRequesterId,
+  deleteExistingScenarioSeededMessages,
+  buildExistingScenarioMessageRows,
+  insertExistingScenarioMessages,
+  seedExistingSeTeamHealthMessages,
+  resolveScenarioActors,
+  buildScenarioMemberIds,
+  validateScenarioPrerequisites,
+  preparePrimaryScenarioTeam,
+  clearPrimaryScenarioWarningsAndMeetings,
+  buildTeamHealthScenarioDetails,
+};
+
 export async function seedTeamHealthWarningScenario(context: SeedContext) {
   return withSeedLogging("seedTeamHealthWarningScenario", async () => {
     const moduleId = await resolveScenarioModuleId(context);

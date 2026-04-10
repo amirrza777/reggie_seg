@@ -6,7 +6,7 @@ const MODULE_JOIN_WINDOW_MS = 60 * 1000;
 const MODULE_JOIN_MAX = 20;
 const MODULE_JOIN_PREFIX = "module-join:join";
 
-function moduleJoinClientKey(req: Request, prefix: string) {
+export function moduleJoinClientKey(req: Request, prefix: string) {
   const authReq = req as AuthRequest;
   const userId = authReq.user?.sub;
   const ip = req.ip ?? "unknown";

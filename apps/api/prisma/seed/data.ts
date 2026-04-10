@@ -9,6 +9,18 @@ import {
   SEED_TEMPLATE_COUNT,
 } from "./volumes";
 
+type SeedUserCategory = "standard" | "assessment";
+type SeedUserParticipation = "full" | "restricted";
+
+export type SeedUserDefinition = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
+  seedCategory: SeedUserCategory;
+  seedParticipation: SeedUserParticipation;
+};
+
 const randomStudents = Array.from({ length: SEED_STUDENT_COUNT }, (_, index) => {
   const firstName = randFirstName();
   const lastName = randLastName();
@@ -18,6 +30,8 @@ const randomStudents = Array.from({ length: SEED_STUDENT_COUNT }, (_, index) => 
     lastName,
     email: `student${index + 1}@example.com`,
     role: "STUDENT" as const,
+    seedCategory: "standard" as const,
+    seedParticipation: "full" as const,
   };
 });
 
@@ -30,6 +44,8 @@ const randomStaff = Array.from({ length: SEED_STAFF_COUNT }, (_, index) => {
     lastName,
     email: `staff${index + 1}@example.com`,
     role: "STAFF" as const,
+    seedCategory: "standard" as const,
+    seedParticipation: "full" as const,
   };
 });
 
@@ -39,29 +55,40 @@ const specialMarkerUsers = [
     lastName: "Staff",
     email: "staff.assessment@example.com",
     role: "STAFF" as const,
+    seedCategory: "assessment" as const,
+    seedParticipation: "restricted" as const,
   },
   {
     firstName: "Assessment",
     lastName: "Enterprise Admin",
     email: "entp_admin.assessment@example.com",
     role: "ENTERPRISE_ADMIN" as const,
+    seedCategory: "assessment" as const,
+    seedParticipation: "restricted" as const,
   },
   {
     firstName: "Assessment",
     lastName: "Student",
     email: "student.assessment@example.com",
     role: "STUDENT" as const,
+    seedCategory: "assessment" as const,
+    seedParticipation: "restricted" as const,
   },
   {
     firstName: "Assessment",
     lastName: "Global Admin",
     email: "global_admin.assessment@example.com",
     role: "ADMIN" as const,
+    seedCategory: "assessment" as const,
+    seedParticipation: "restricted" as const,
   },
 ];
 
-export const seedMarkerUserData = specialMarkerUsers;
-export const userData = [...specialMarkerUsers, ...randomStaff, ...randomStudents];
+export const seedAssessmentAccountData: SeedUserDefinition[] = specialMarkerUsers;
+export const seedStandardUserData: SeedUserDefinition[] = [...randomStaff, ...randomStudents];
+export const seedMarkerUserData = seedAssessmentAccountData;
+export const userData: SeedUserDefinition[] = [...seedAssessmentAccountData, ...seedStandardUserData];
+export const seedAssessmentAccountEmailSet = new Set(seedAssessmentAccountData.map((user) => user.email));
 export const seedAssessmentStudentEmail = "student.assessment@example.com";
 
 const baseModuleNames = [

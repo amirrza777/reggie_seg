@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
   seedStaffStudentMarks: vi.fn(async () => undefined),
   seedTeamInvites: vi.fn(async () => undefined),
   seedGithubE2EUsers: vi.fn(async () => undefined),
-  seedGithubDemoPath: vi.fn(async () => undefined),
   seedCompletedProjectScenario: vi.fn(async () => undefined),
   seedProjectDeadlines: vi.fn(async () => undefined),
   seedPeerAssessments: vi.fn(async () => undefined),
@@ -47,10 +46,6 @@ vi.mock("../../prisma/seed/catalog", () => ({
 
 vi.mock("../../prisma/seed/forum", () => ({
   seedForumPosts: mocks.seedForumPosts,
-}));
-
-vi.mock("../../prisma/seed/githubDemo", () => ({
-  seedGithubDemoPath: mocks.seedGithubDemoPath,
 }));
 
 vi.mock("../../prisma/seed/outcomes", () => ({
@@ -92,6 +87,8 @@ const context: SeedContext = {
   enterprise: { id: "ent-1", code: "ENT", name: "Enterprise" },
   passwordHash: "hash",
   users: [],
+  standardUsers: [],
+  assessmentAccounts: [],
   usersByRole: { adminOrStaff: [{ id: 1 } as any], students: [{ id: 2 } as any] },
   modules: [{ id: 10 } as any],
   templates: [{ id: 20, questionLabels: ["Q1"] } as any],
@@ -113,10 +110,10 @@ describe("seed plan run callbacks", () => {
     vi.clearAllMocks();
 
     const profileConfigs: SeedProfileConfig[] = [
-      config("dev", ["completedProject", "githubDemo", "staffStudentMarks"]),
-      config("demo", ["adminTeamAllocation", "completedProject", "githubDemo", "staffStudentMarks"]),
-      config("e2e", ["githubDemo", "staffStudentMarks"]),
-      config("trello-e2e", ["adminTeamAllocation", "githubDemo", "staffStudentMarks"]),
+      config("dev", ["completedProject", "staffStudentMarks"]),
+      config("demo", ["adminTeamAllocation", "completedProject", "staffStudentMarks"]),
+      config("e2e", ["staffStudentMarks"]),
+      config("trello-e2e", ["adminTeamAllocation", "staffStudentMarks"]),
     ];
 
     for (const profile of profileConfigs) {
@@ -135,7 +132,6 @@ describe("seed plan run callbacks", () => {
     expect(mocks.seedStaffStudentMarks).toHaveBeenCalled();
     expect(mocks.seedTeamInvites).toHaveBeenCalled();
     expect(mocks.seedGithubE2EUsers).toHaveBeenCalled();
-    expect(mocks.seedGithubDemoPath).toHaveBeenCalled();
     expect(mocks.seedCompletedProjectScenario).toHaveBeenCalled();
     expect(mocks.seedProjectDeadlines).toHaveBeenCalled();
     expect(mocks.seedPeerAssessments).toHaveBeenCalled();

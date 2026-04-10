@@ -13,6 +13,8 @@ const context: SeedContext = {
   enterprise: { id: "ent-1", code: "ENT", name: "Enterprise" },
   passwordHash: "hashed",
   users: [],
+  standardUsers: [],
+  assessmentAccounts: [],
   usersByRole: {
     adminOrStaff: [],
     students: [],
@@ -46,7 +48,6 @@ describe("seed plan", () => {
       "seedStaffStudentMarks",
       "seedTeamInvites",
       "seedGithubE2EUsers",
-      "seedGithubDemoPath",
       "seedCompletedProjectScenario",
       "seedProjectDeadlines",
       "seedPeerAssessments",
@@ -72,7 +73,7 @@ describe("seed plan", () => {
     const steps = buildSeedStepPlan(context, config);
 
     expect(steps.map((step) => step.name)).not.toContain("seedCompletedProjectScenario");
-    expect(steps.map((step) => step.name)).toContain("seedGithubDemoPath");
+    expect(steps.map((step) => step.name)).not.toContain("seedGithubDemoPath");
     expect(steps.map((step) => step.name)).toContain("seedStaffStudentMarks");
   });
 

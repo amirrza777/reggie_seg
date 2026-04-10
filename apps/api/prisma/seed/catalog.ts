@@ -124,7 +124,14 @@ export async function seedTeams(enterpriseId: string, projects: SeedProject[]): 
 }
 
 export function planUserSeedData(enterpriseId: string, seedPasswordHash: string) {
-  return userData.map((user) => ({ ...user, enterpriseId, passwordHash: seedPasswordHash }));
+  return userData.map((user) => ({
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    role: user.role,
+    enterpriseId,
+    passwordHash: seedPasswordHash,
+  }));
 }
 
 export function planModuleSeedData(enterpriseId: string) {
@@ -232,10 +239,11 @@ function findSeedUsers(enterpriseId: string, emails: string[]) {
   });
 }
 
-function toSeedUsers(users: { id: number; role: Role; firstName: string | null; lastName: string | null }[]) {
+function toSeedUsers(users: { id: number; role: Role; email: string; firstName: string | null; lastName: string | null }[]) {
   return users.map((user) => ({
     id: user.id,
     role: user.role,
+    email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
   }));
