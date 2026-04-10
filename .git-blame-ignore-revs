@@ -1,0 +1,3 @@
+# Mass refactor that split files into .view/.impl wrappers and moved code.
+# Ignored in blame so original contributors are attributed for pre-existing lines.
+7d3d29bf9ccace944f45e2cc91cd5cdbdc132c8a
