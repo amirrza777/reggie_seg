@@ -28,7 +28,7 @@ describe("MarkingStudentList", () => {
 
     expect(screen.getByRole("link", { name: "Open student marking" })).toHaveAttribute(
       "href",
-      "/staff/modules/4/projects/9/teams/21/peer-assessment/11",
+      "/staff/peer-assessments/module/4/team/21/student/11",
     );
     expect(screen.getByText("Student identifier unavailable.")).toBeInTheDocument();
   });
