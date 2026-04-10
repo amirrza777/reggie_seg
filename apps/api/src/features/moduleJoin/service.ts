@@ -83,10 +83,7 @@ export async function joinModuleByCode(actorUserId: number, rawCode: string) {
   const moduleResult = await resolveJoinTargetModule(actorResult.value, rawCode);
   if (!moduleResult.ok) return moduleResult;
 
-  const enrollmentResult = await joinStudentToModule(actorResult.value, moduleResult.value.module);
-  if (!enrollmentResult.ok) return enrollmentResult;
-
-  return enrollmentResult;
+  return joinStudentToModule(actorResult.value, moduleResult.value.module);
 }
 
 export async function getModuleJoinCode(viewerUser: { enterpriseId: string; role: string; id: number }, moduleId: number) {

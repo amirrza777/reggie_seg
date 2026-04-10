@@ -37,7 +37,6 @@ export function planForumReactionSeedData(
   students: SeedUser[],
 ) {
   const projectIds = Array.from(new Set(posts.map((post) => post.projectId)));
-  const seen = new Set<string>();
 
   return projectIds.flatMap((projectId, projectIndex) => {
     const projectPosts = posts.filter((post) => post.projectId === projectId);
@@ -48,10 +47,6 @@ export function planForumReactionSeedData(
       const candidatePool = preferredUsers.concat(reactionIndex % 3 === 0 ? students : staffUsers);
       const reactor = candidatePool.find((user) => user.id !== post?.authorId);
       if (!post || !reactor) return null;
-
-      const key = `${post.id}:${reactor.id}`;
-      if (seen.has(key)) return null;
-      seen.add(key);
 
       return {
         postId: post.id,

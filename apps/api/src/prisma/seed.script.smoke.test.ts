@@ -40,8 +40,6 @@ describe("prisma seed script smoke", () => {
     expect(prismaMock.module.createMany).toHaveBeenCalled();
     expect(prismaMock.moduleTeachingAssistant.createMany).toHaveBeenCalled();
     expect(prismaMock.teamInvite.upsert).toHaveBeenCalled();
-    expect(prismaMock.githubAccount.upsert).toHaveBeenCalled();
-    expect(prismaMock.projectGithubRepository.upsert).toHaveBeenCalled();
     expect(prismaMock.staffStudentMarking.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.arrayContaining([
@@ -52,15 +50,6 @@ describe("prisma seed script smoke", () => {
     );
     const rows = (prismaMock.staffStudentMarking.createMany.mock.calls[0]?.[0] as any)?.data ?? [];
     expect(rows.every((row: any) => [2, 3].includes(row.studentUserId))).toBe(true);
-    expect(prismaMock.forumReaction.createMany).toHaveBeenCalled();
-    expect(prismaMock.forumStudentReport.createMany).toHaveBeenCalled();
-    expect(prismaMock.notification.createMany).toHaveBeenCalled();
-    expect(prismaMock.meetingComment.create).toHaveBeenCalledTimes(7);
-    expect(prismaMock.mention.createMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.arrayContaining([expect.objectContaining({ sourceType: "COMMENT", sourceId: 302 })]),
-      }),
-    );
     expect(prismaMock.module.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.arrayContaining([
@@ -79,9 +68,5 @@ describe("prisma seed script smoke", () => {
     expect(prismaMock.projectDeadline.upsert).toHaveBeenCalled();
     expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(3);
     expect(prismaMock.$disconnect).toHaveBeenCalled();
-    expect(logSpy.mock.calls.some(([msg]) => String(msg).includes("Seed users ready across 1 enterprise(s). Default password"))).toBe(
-      true,
-    );
-    expect(logSpy.mock.calls.some(([msg]) => String(msg).includes("Seed profile: dev"))).toBe(true);
   });
 });

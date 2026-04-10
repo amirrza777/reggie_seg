@@ -148,4 +148,19 @@ describe("seedPeerAssessmentProgressScenarios", () => {
     const upsertPayload = prismaMock.peerAssessment.upsert.mock.calls[0]?.[0];
     expect(Object.keys(upsertPayload.create.answersJson)).toEqual(["Fallback A", "Fallback B"]);
   });
+
+  it("skips student deadline override cleanup when project deadline is absent", async () => {
+    prismaMock.projectDeadline.findUnique.mockResolvedValue(null);
+
+    await seedPeerAssessmentProgressScenarios({
+      enterprise: { id: "ent-1" },
+      modules: [{ id: 11 }],
+      templates: [{ id: 500, questionLabels: ["Q1"] }],
+      users: [{ id: 7, role: "ADMIN" }],
+      usersByRole: { students: [{ id: 21 }, { id: 22 }] },
+    } as any);
+
+    expect(prismaMock.teamDeadlineOverride.deleteMany).toHaveBeenCalled();
+    expect(prismaMock.studentDeadlineOverride.deleteMany).not.toHaveBeenCalled();
+  });
 });

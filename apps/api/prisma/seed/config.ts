@@ -21,7 +21,6 @@ export type SeedProfileName = "dev" | "demo" | "e2e" | "trello-e2e";
 export type SeedScenarioName =
   | "adminTeamAllocation"
   | "completedProject"
-  | "githubDemo"
   | "staffStudentMarks";
 
 export type SeedProfileConfig = {
@@ -55,25 +54,25 @@ const BASE_PROFILE_CONFIGS: Record<SeedProfileName, SeedProfileConfig> = {
     name: "dev",
     fixtureJoinCodes: false,
     deterministicFixtures: false,
-    scenarios: new Set(["completedProject", "githubDemo", "staffStudentMarks"]),
+    scenarios: new Set(["completedProject", "staffStudentMarks"]),
   },
   demo: {
     name: "demo",
     fixtureJoinCodes: true,
     deterministicFixtures: true,
-    scenarios: new Set(["adminTeamAllocation", "completedProject", "githubDemo", "staffStudentMarks"]),
+    scenarios: new Set(["adminTeamAllocation", "completedProject", "staffStudentMarks"]),
   },
   e2e: {
     name: "e2e",
     fixtureJoinCodes: true,
     deterministicFixtures: true,
-    scenarios: new Set(["githubDemo", "staffStudentMarks"]),
+    scenarios: new Set(["staffStudentMarks"]),
   },
   "trello-e2e": {
     name: "trello-e2e",
     fixtureJoinCodes: true,
     deterministicFixtures: true,
-    scenarios: new Set(["adminTeamAllocation", "githubDemo", "staffStudentMarks"]),
+    scenarios: new Set(["adminTeamAllocation", "staffStudentMarks"]),
   },
 };
 
