@@ -72,13 +72,18 @@ describe("auth controller parsers", () => {
   });
 
   it("parses enterprise-admin invite accept payload", () => {
-    expect(parseAcceptEnterpriseAdminInviteBody({ token: " abc ", firstName: " Ada ", lastName: " Lovelace " })).toEqual({
+    expect(parseAcceptEnterpriseAdminInviteBody({
+      token: " abc ",
+      newPassword: " secret-123 ",
+      firstName: " Ada ",
+      lastName: " Lovelace ",
+    })).toEqual({
       ok: true,
-      value: { token: "abc", firstName: "Ada", lastName: "Lovelace" },
+      value: { token: "abc", newPassword: "secret-123", firstName: "Ada", lastName: "Lovelace" },
     });
     expect(parseAcceptEnterpriseAdminInviteBody({})).toEqual({
       ok: false,
-      error: "token required",
+      error: "token and newPassword required",
     });
   });
 

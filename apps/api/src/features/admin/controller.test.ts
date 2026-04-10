@@ -69,6 +69,7 @@ import {
   createEnterpriseHandler,
   deleteEnterpriseHandler,
   getSummaryHandler,
+  inviteCurrentEnterpriseAdminHandler,
   inviteEnterpriseAdminHandler,
   listAuditLogsHandler,
   listEnterpriseUsersHandler,
@@ -255,6 +256,37 @@ describe("admin controller", () => {
     mocks.inviteEnterpriseAdmin.mockRejectedValueOnce(new Error("smtp down"));
     const failRes = createRes();
     await inviteEnterpriseAdminHandler(req, failRes);
+    expect(failRes.status).toHaveBeenCalledWith(500);
+  });
+
+  it("handles current-enterprise admin invite validation and service outcomes", async () => {
+    const req = {
+      adminUser: { enterpriseId: "ent-1", id: 1 },
+      body: { email: "invite@example.com" },
+    } as any;
+
+    const okRes = createRes();
+    await inviteCurrentEnterpriseAdminHandler(req, okRes);
+    expect(mocks.inviteEnterpriseAdmin).toHaveBeenCalledWith({ enterpriseId: "ent-1", email: "invite@example.com" }, 1);
+    expect(okRes.status).toHaveBeenCalledWith(201);
+
+    const missingEnterpriseRes = createRes();
+    await inviteCurrentEnterpriseAdminHandler({ adminUser: { id: 1 }, body: { email: "invite@example.com" } } as any, missingEnterpriseRes);
+    expect(missingEnterpriseRes.status).toHaveBeenCalledWith(400);
+
+    mocks.parseInviteEnterpriseAdminBody.mockReturnValueOnce({ ok: false, error: "email must be a string" });
+    const badBodyRes = createRes();
+    await inviteCurrentEnterpriseAdminHandler(req, badBodyRes);
+    expect(badBodyRes.status).toHaveBeenCalledWith(400);
+
+    mocks.inviteEnterpriseAdmin.mockResolvedValueOnce({ ok: false, status: 409, error: "User already has enterprise admin access" });
+    const conflictRes = createRes();
+    await inviteCurrentEnterpriseAdminHandler(req, conflictRes);
+    expect(conflictRes.status).toHaveBeenCalledWith(409);
+
+    mocks.inviteEnterpriseAdmin.mockRejectedValueOnce(new Error("smtp down"));
+    const failRes = createRes();
+    await inviteCurrentEnterpriseAdminHandler(req, failRes);
     expect(failRes.status).toHaveBeenCalledWith(500);
   });
 

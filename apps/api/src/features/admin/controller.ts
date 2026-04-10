@@ -29,6 +29,28 @@ import {
   updateOwnEnterpriseUserRole,
 } from "./service.js";
 
+async function processEnterpriseAdminInvite(
+  req: AdminRequest,
+  res: Response,
+  enterpriseId: string,
+  failureLabel: string,
+) {
+  const parsedBody = parseInviteEnterpriseAdminBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+
+  try {
+    const result = await inviteEnterpriseAdmin(
+      { enterpriseId, email: parsedBody.value.email },
+      req.adminUser?.id,
+    );
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    return res.status(201).json(result.value);
+  } catch (err) {
+    console.error(`${failureLabel} error`, err);
+    return res.status(500).json({ error: "Could not send enterprise admin invite" });
+  }
+}
+
 export async function getSummaryHandler(req: AdminRequest, res: Response) {
   return res.json(await getSummary(req.adminUser?.enterpriseId as string));
 }
@@ -89,21 +111,15 @@ export async function createEnterpriseHandler(req: AdminRequest, res: Response) 
 export async function inviteEnterpriseAdminHandler(req: AdminRequest, res: Response) {
   const enterpriseId = parseAdminEnterpriseIdParam(req.params.enterpriseId);
   if (!enterpriseId.ok) return res.status(400).json({ error: enterpriseId.error });
+  return processEnterpriseAdminInvite(req, res, enterpriseId.value, "invite enterprise admin");
+}
 
-  const parsedBody = parseInviteEnterpriseAdminBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
-
-  try {
-    const result = await inviteEnterpriseAdmin(
-      { enterpriseId: enterpriseId.value, email: parsedBody.value.email },
-      req.adminUser?.id,
-    );
-    if (!result.ok) return res.status(result.status).json({ error: result.error });
-    return res.status(201).json(result.value);
-  } catch (err) {
-    console.error("invite enterprise admin error", err);
-    return res.status(500).json({ error: "Could not send enterprise admin invite" });
+export async function inviteCurrentEnterpriseAdminHandler(req: AdminRequest, res: Response) {
+  const enterpriseId = req.adminUser?.enterpriseId;
+  if (!enterpriseId) {
+    return res.status(400).json({ error: "Enterprise context is required" });
   }
+  return processEnterpriseAdminInvite(req, res, enterpriseId, "invite current enterprise admin");
 }
 
 export async function listEnterpriseUsersHandler(req: AdminRequest, res: Response) {
