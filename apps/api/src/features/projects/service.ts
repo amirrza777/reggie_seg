@@ -7,7 +7,6 @@ import {
   getModuleStudentProjectMatrixForUser,
   createProject as createProjectInDb,
   getTeammatesInProject,
-  getUserProjectDeadline,
   getTeamById,
   getTeamByUserAndProject,
   getQuestionsForProject,
@@ -20,16 +19,10 @@ import {
   getStaffProjectTeams,
   getStaffViewerModuleAccessLabel,
   getStaffProjectsForMarking,
-  getStaffStudentDeadlineOverrides,
   getUserProjectMarking,
-  updateStaffTeamDeadlineProfile as updateStaffTeamDeadlineProfileInDb,
-  upsertStaffStudentDeadlineOverride as upsertStaffStudentDeadlineOverrideInDb,
-  clearStaffStudentDeadlineOverride as clearStaffStudentDeadlineOverrideInDb,
   type ProjectDeadlineInput,
-  type StudentDeadlineOverrideInput,
 } from "./repo.js";
 import { prisma } from "../../shared/db.js";
-import { addNotification } from "../notifications/service.js";
 import { normalizeProjectNavFlagsConfig } from "./nav-flags/service.js";
 import { normalizeAndValidateAssessmentAnswers } from "../peerAssessment/answers.js";
 
@@ -71,6 +64,13 @@ export {
   fetchMyTeamHealthMessages,
   fetchTeamHealthMessagesForStaff,
 } from "../team-health-review/service.js";
+export {
+  fetchProjectDeadline,
+  updateTeamDeadlineProfileForStaff,
+  fetchStaffStudentDeadlineOverrides,
+  upsertStaffStudentDeadlineOverride,
+  clearStaffStudentDeadlineOverride,
+} from "./deadlines/service.js";
 
 /** Creates a project. */
 export async function createProject(
@@ -224,11 +224,6 @@ export async function fetchModuleStudentProjectMatrix(userId: number, moduleId: 
 /** Returns the teammates for project. */
 export async function fetchTeammatesForProject(userId: number, projectId: number) {
   return getTeammatesInProject(userId, projectId);
-}
-
-/** Returns the project deadline. */
-export async function fetchProjectDeadline(userId: number, projectId: number) {
-  return getUserProjectDeadline(userId, projectId);
 }
 
 /** Returns the team by ID. */
@@ -503,40 +498,4 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
 /** Returns the project marking. */
 export async function fetchProjectMarking(userId: number, projectId: number) {
   return getUserProjectMarking(userId, projectId);
-}
-
-export async function updateTeamDeadlineProfileForStaff(
-  actorUserId: number,
-  teamId: number,
-  deadlineProfile: "STANDARD" | "MCF",
-) {
-  return updateStaffTeamDeadlineProfileInDb(actorUserId, teamId, deadlineProfile);
-}
-
-export async function fetchStaffStudentDeadlineOverrides(actorUserId: number, projectId: number) {
-  return getStaffStudentDeadlineOverrides(actorUserId, projectId);
-}
-
-export async function upsertStaffStudentDeadlineOverride(
-  actorUserId: number,
-  projectId: number,
-  studentId: number,
-  payload: StudentDeadlineOverrideInput,
-) {
-  const override = await upsertStaffStudentDeadlineOverrideInDb(actorUserId, projectId, studentId, payload);
-  await addNotification({
-    userId: studentId,
-    type: "DEADLINE_OVERRIDE_GRANTED",
-    message: "Your deadline has been updated by a staff member",
-    link: `/projects/${projectId}/deadlines`,
-  });
-  return override;
-}
-
-export async function clearStaffStudentDeadlineOverride(
-  actorUserId: number,
-  projectId: number,
-  studentId: number,
-) {
-  return clearStaffStudentDeadlineOverrideInDb(actorUserId, projectId, studentId);
 }

@@ -11,7 +11,7 @@ import {
   fetchStaffStudentDeadlineOverrides,
   updateTeamDeadlineProfileForStaff,
   upsertStaffStudentDeadlineOverride,
-} from "../service.js";
+} from "./service.js";
 import {
   parseAuthenticatedUserId,
   parseDeadlineProfileBody,
@@ -22,7 +22,7 @@ import {
 import { parseStudentDeadlineOverridePayload } from "./controller.deadline-parsers.js";
 import { sendProjectOrModuleArchivedConflict } from "../../../shared/projectWriteGuard.js";
 
-vi.mock("../service.js", () => ({
+vi.mock("./service.js", () => ({
   updateTeamDeadlineProfileForStaff: vi.fn(),
   fetchStaffStudentDeadlineOverrides: vi.fn(),
   upsertStaffStudentDeadlineOverride: vi.fn(),

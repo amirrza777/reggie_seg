@@ -6,7 +6,7 @@ import {
   fetchStaffStudentDeadlineOverrides,
   updateTeamDeadlineProfileForStaff,
   upsertStaffStudentDeadlineOverride,
-} from "../service.js";
+} from "./service.js";
 import { parseStudentDeadlineOverridePayload } from "./controller.deadline-parsers.js";
 import {
   parseAuthenticatedUserId,
