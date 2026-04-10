@@ -9,14 +9,14 @@ describe("outcomes seeder peer assessments", () => {
   });
 
   it("skips missing projects/templates and teams with invalid setup", async () => {
-    await seedPeerAssessments([], [{ id: 10, projectId: 100 }], [{ id: 1, questionLabels: ["Q1"] }] as any);
+    await seedPeerAssessments([], [{ id: 10, projectId: 100 }], [{ id: 1, questionLabels: ["Q1"] }] as never);
     await seedPeerAssessments([{ id: 100, moduleId: 1, templateId: 1 }], [], []);
 
     prismaMock.teamAllocation.findMany.mockResolvedValue([{ user: { id: 1 } }]);
     await seedPeerAssessments(
       [{ id: 100, moduleId: 1, templateId: 999 }],
       [{ id: 10, projectId: 100 }],
-      [{ id: 1, questionLabels: ["Q1"] }] as any,
+      [{ id: 1, questionLabels: ["Q1"] }] as never,
     );
     expect(prismaMock.peerAssessment.create).not.toHaveBeenCalled();
   });
@@ -34,7 +34,7 @@ describe("outcomes seeder peer assessments", () => {
     await seedPeerAssessments(
       [{ id: 100, moduleId: 1, templateId: 1 }],
       [{ id: 10, projectId: 100 }],
-      [{ id: 1, questionLabels: ["Technical", "Communication"] }] as any,
+      [{ id: 1, questionLabels: ["Technical", "Communication"] }] as never,
     );
 
     expect(prismaMock.peerAssessment.update).toHaveBeenCalledTimes(1);
@@ -53,7 +53,7 @@ describe("outcomes seeder peer assessments", () => {
     await seedPeerAssessments(
       [{ id: 100, moduleId: 1, templateId: 1 }],
       [{ id: 10, projectId: 100 }],
-      [{ id: 1, questionLabels: ["Q1"] }] as any,
+      [{ id: 1, questionLabels: ["Q1"] }] as never,
     );
 
     expect(prismaMock.peerAssessment.create).not.toHaveBeenCalled();
@@ -69,7 +69,7 @@ describe("outcomes seeder peer assessments", () => {
     await seedPeerAssessments(
       [{ id: 100, moduleId: 1, templateId: 1 }],
       [{ id: 10, projectId: 999 }],
-      [{ id: 1, questionLabels: ["Q1"] }] as any,
+      [{ id: 1, questionLabels: ["Q1"] }] as never,
     );
 
     expect(prismaMock.peerAssessment.create).not.toHaveBeenCalled();
@@ -82,7 +82,7 @@ describe("outcomes seeder peer assessments", () => {
     await seedPeerAssessments(
       [{ id: 100, moduleId: 1, templateId: 1 }],
       [{ id: 10, projectId: 100 }],
-      [{ id: 1, questionLabels: ["Q1"] }] as any,
+      [{ id: 1, questionLabels: ["Q1"] }] as never,
     );
 
     expect(prismaMock.peerAssessment.create).not.toHaveBeenCalled();
@@ -100,7 +100,7 @@ describe("outcomes seeder peer assessments", () => {
     await seedPeerAssessments(
       [{ id: 100, moduleId: 1, templateId: 1 }],
       [{ id: 10, projectId: 100 }],
-      [{ id: 1, questionLabels: [] }] as any,
+      [{ id: 1, questionLabels: [] }] as never,
     );
 
     const payload = prismaMock.peerFeedback.upsert.mock.calls[0]?.[0];

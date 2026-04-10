@@ -89,11 +89,11 @@ const context: SeedContext = {
   users: [],
   standardUsers: [],
   assessmentAccounts: [],
-  usersByRole: { adminOrStaff: [{ id: 1 } as any], students: [{ id: 2 } as any] },
-  modules: [{ id: 10 } as any],
-  templates: [{ id: 20, questionLabels: ["Q1"] } as any],
-  projects: [{ id: 30, moduleId: 10, templateId: 20 } as any],
-  teams: [{ id: 40, projectId: 30 } as any],
+  usersByRole: { adminOrStaff: [{ id: 1 } as never], students: [{ id: 2 } as never] },
+  modules: [{ id: 10 } as never],
+  templates: [{ id: 20, questionLabels: ["Q1"] } as never],
+  projects: [{ id: 30, moduleId: 10, templateId: 20 } as never],
+  teams: [{ id: 40, projectId: 30 } as never],
 };
 
 function config(name: SeedProfileConfig["name"], scenarios: string[]): SeedProfileConfig {
@@ -101,7 +101,7 @@ function config(name: SeedProfileConfig["name"], scenarios: string[]): SeedProfi
     name,
     fixtureJoinCodes: false,
     deterministicFixtures: false,
-    scenarios: new Set(scenarios as any),
+    scenarios: new Set(scenarios as never),
   };
 }
 

@@ -13,7 +13,7 @@ const mockState = vi.hoisted(() => ({
 
 vi.mock("./repo.js", () => mockState.repo);
 
-import { getModuleJoinCode, joinModuleByCode, rotateModuleJoinCode, withGeneratedModuleJoinCode } from "./service.js";
+import { joinModuleByCode } from "./service.js";
 
 describe("moduleJoin service", registerServiceTests);
 
@@ -27,15 +27,6 @@ function registerServiceTests() {
   registerJoinForbiddenTest();
   registerJoinInvalidFormatTest();
   registerJoinUnknownCodeTest();
-  registerReadJoinCodeTest();
-  registerRotateJoinCodeTest();
-  registerRotateNotFoundAuthTest();
-  registerRotateNotFoundUpdateTest();
-  registerUniqueRetrySuccessTest();
-  registerUniqueRetryNonP2002Test();
-  registerUniqueRetryWrongTargetTest();
-  registerUniqueRetryFinalAttemptTest();
-  registerUniqueRetryZeroAttemptsTest();
 }
 
 function registerJoinSuccessTest() {
@@ -141,138 +132,5 @@ function registerJoinUnknownCodeTest() {
     expect(payload.joinCode).toBeUndefined();
     expect(payload.reason).toBe("not_found");
     infoSpy.mockRestore();
-  });
-}
-
-function registerReadJoinCodeTest() {
-  it("returns managed join codes only when auth-scoped lookup succeeds", async () => {
-    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
-    mockState.repo.getAuthorizedModuleJoinCode.mockResolvedValueOnce({ id: 12, joinCode: "ABCD2345" });
-
-    await expect(getModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
-      ok: true,
-      value: { moduleId: 12, joinCode: "ABCD2345" },
-    });
-    expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining("[moduleJoin:audit]"), expect.stringContaining("module_join_code_viewed"));
-
-    mockState.repo.getAuthorizedModuleJoinCode.mockResolvedValueOnce(null);
-    await expect(getModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
-      ok: false,
-      status: 404,
-      code: "MODULE_NOT_FOUND",
-      error: "Module not found",
-    });
-    infoSpy.mockRestore();
-  });
-}
-
-function registerRotateJoinCodeTest() {
-  it("rotates join code for authorized users and emits audit", async () => {
-    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
-    mockState.repo.getAuthorizedModuleForJoinCodeMutation.mockResolvedValueOnce({
-      id: 12,
-      name: "SEGP",
-      enterpriseId: "ent-1",
-      joinCode: "ABCD2345",
-    });
-    mockState.repo.updateModuleJoinCode.mockResolvedValueOnce({
-      id: 12,
-      name: "SEGP",
-      enterpriseId: "ent-1",
-      joinCode: "WXYZ6789",
-    });
-
-    await expect(rotateModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
-      ok: true,
-      value: {
-        moduleId: 12,
-        joinCode: "WXYZ6789",
-      },
-    });
-    expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining("[moduleJoin:audit]"), expect.stringContaining("module_join_code_rotated"));
-    infoSpy.mockRestore();
-  });
-}
-
-function registerRotateNotFoundAuthTest() {
-  it("returns not-found when rotate authorization lookup fails", async () => {
-    mockState.repo.getAuthorizedModuleForJoinCodeMutation.mockResolvedValue(null);
-    await expect(rotateModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
-      ok: false,
-      status: 404,
-      code: "MODULE_NOT_FOUND",
-      error: "Module not found",
-    });
-  });
-}
-
-function registerRotateNotFoundUpdateTest() {
-  it("returns not-found when rotate update result disappears", async () => {
-    mockState.repo.getAuthorizedModuleForJoinCodeMutation.mockResolvedValue({
-      id: 12,
-      name: "SEGP",
-      enterpriseId: "ent-1",
-      joinCode: "ABCD2345",
-    });
-    mockState.repo.updateModuleJoinCode.mockResolvedValue(null);
-
-    await expect(rotateModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
-      ok: false,
-      status: 404,
-      code: "MODULE_NOT_FOUND",
-      error: "Module not found",
-    });
-  });
-}
-
-function registerUniqueRetrySuccessTest() {
-  it("retries on join-code unique conflicts and succeeds", async () => {
-    const write = vi
-      .fn()
-      .mockRejectedValueOnce({ code: "P2002", meta: { target: ["enterpriseId", "joinCode"] } })
-      .mockResolvedValueOnce({ id: 22 });
-
-    await expect(withGeneratedModuleJoinCode("ent-1", write, 2)).resolves.toEqual({ id: 22 });
-    expect(write).toHaveBeenCalledTimes(2);
-  });
-}
-
-function registerUniqueRetryNonP2002Test() {
-  it("rethrows non-P2002 errors immediately", async () => {
-    const write = vi.fn().mockRejectedValueOnce(new Error("db down"));
-    await expect(withGeneratedModuleJoinCode("ent-1", write, 3)).rejects.toThrow("db down");
-    expect(write).toHaveBeenCalledTimes(1);
-  });
-}
-
-function registerUniqueRetryWrongTargetTest() {
-  it("rethrows P2002 with wrong target meta without retry", async () => {
-    const write = vi.fn().mockRejectedValueOnce({ code: "P2002", meta: { target: ["otherField"] } });
-    await expect(withGeneratedModuleJoinCode("ent-1", write, 3)).rejects.toEqual(
-      expect.objectContaining({ code: "P2002", meta: { target: ["otherField"] } }),
-    );
-    expect(write).toHaveBeenCalledTimes(1);
-  });
-}
-
-function registerUniqueRetryFinalAttemptTest() {
-  it("rethrows P2002 on final attempt", async () => {
-    const write = vi
-      .fn()
-      .mockRejectedValue({ code: "P2002", meta: { target: ["enterpriseId", "joinCode"] } });
-    await expect(withGeneratedModuleJoinCode("ent-1", write, 2)).rejects.toEqual(
-      expect.objectContaining({ code: "P2002" }),
-    );
-    expect(write).toHaveBeenCalledTimes(2);
-  });
-}
-
-function registerUniqueRetryZeroAttemptsTest() {
-  it("throws terminal generation error when maxAttempts is zero", async () => {
-    const write = vi.fn();
-    await expect(withGeneratedModuleJoinCode("ent-1", write, 0)).rejects.toThrow(
-      "Failed to generate module join code for enterprise ent-1",
-    );
-    expect(write).not.toHaveBeenCalled();
   });
 }

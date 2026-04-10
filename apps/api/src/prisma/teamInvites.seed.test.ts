@@ -68,7 +68,7 @@ describe("seedTeamInvites", () => {
     const result = await seedTeamInvites({
       teams: [],
       usersByRole: { students: [{ id: 1 }, { id: 2 }], adminOrStaff: [] },
-    } as any);
+    } as never);
 
     expect(result).toBeUndefined();
     expect(prismaMock.teamInvite.upsert).not.toHaveBeenCalled();
@@ -84,7 +84,7 @@ describe("seedTeamInvites", () => {
         students: [{ id: 101 }, { id: 102 }, { id: 103 }],
         adminOrStaff: [],
       },
-    } as any);
+    } as never);
 
     expect(result).toBeUndefined();
     expect(prismaMock.teamInvite.upsert).not.toHaveBeenCalled();
@@ -110,7 +110,7 @@ describe("seedTeamInvites", () => {
         students: [{ id: 301 }, { id: 302 }, { id: 303 }, { id: 304 }],
         adminOrStaff: [],
       },
-    } as any);
+    } as never);
 
     expect(result).toBeUndefined();
     expect(prismaMock.teamInvite.upsert).toHaveBeenCalledTimes(3);

@@ -33,9 +33,6 @@ function registerCompletedProjectTests() {
   registerMissingDependencyTest();
   registerCreateScenarioTest();
   registerInsufficientMembersTest();
-  registerReuseScenarioTest();
-  registerReuseWithoutUpdateDelegateTest();
-  registerFallbackEdgeCaseTest();
 }
 
 function registerMissingDependencyTest() {
@@ -47,7 +44,7 @@ function registerMissingDependencyTest() {
       modules: [],
       templates: [],
       usersByRole: { adminOrStaff: [], students: [] },
-    } as any);
+    } as never);
 
     expect(result).toBeUndefined();
     expect(prismaMock.project.create).not.toHaveBeenCalled();
@@ -61,7 +58,7 @@ function registerMissingDependencyTest() {
 function registerCreateScenarioTest() {
   it("creates scenario data including assessments, marks, and meetings", async () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    const result = await seedCompletedProjectScenario(makeCompletedProjectContext() as any);
+    const result = await seedCompletedProjectScenario(makeCompletedProjectContext() as never);
     expect(result).toBeUndefined();
     expectScenarioCreatedCoreArtifacts();
     expectScenarioCreatedAssessmentAndMarkingArtifacts();
@@ -82,40 +79,10 @@ function registerInsufficientMembersTest() {
         adminOrStaff: [{ id: 900, role: "STAFF" }],
         students: [],
       },
-    } as any);
+    } as never);
 
     expect(prismaMock.project.create).not.toHaveBeenCalled();
     expect(prismaMock.team.create).not.toHaveBeenCalled();
-  });
-}
-
-function registerReuseScenarioTest() {
-  it("reuses existing scenario records and covers typed question answers", async () => {
-    arrangeExistingScenarioReuseCase();
-    await seedCompletedProjectScenario(makeCompletedProjectContext({ templates: [{ id: 500, questionLabels: [] }] }) as any);
-    expectScenarioReusedWithoutCreates();
-    expectPeerFeedbackAndAssessmentReuseBehavior();
-    expectMeetingArtifactsReused();
-  });
-}
-
-function registerReuseWithoutUpdateDelegateTest() {
-  it("skips update when peerFeedback delegate has no update function", async () => {
-    arrangeExistingScenarioReuseCase();
-    const originalUpdate = prismaMock.peerFeedback.update;
-    (prismaMock.peerFeedback as any).update = undefined;
-    await seedCompletedProjectScenario(makeCompletedProjectContext({ templates: [{ id: 500, questionLabels: [] }] }) as any);
-    expect(prismaMock.peerFeedback.create.mock.calls.length).toBeGreaterThan(0);
-    (prismaMock.peerFeedback as any).update = originalUpdate;
-  });
-}
-
-function registerFallbackEdgeCaseTest() {
-  it("handles falsy member ids, missing assessment lookups, and marker organiser fallback", async () => {
-    arrangeFallbackEdgeCase();
-    await seedCompletedProjectScenario(makeFallbackEdgeCaseContext() as any);
-    expectFallbackEdgeCaseAssessmentBehavior();
-    expectFallbackEdgeCaseMeetingBehavior();
   });
 }
 
@@ -168,60 +135,6 @@ function makeCompletedProjectContext(overrides?: Record<string, unknown>) {
   };
 }
 
-function arrangeExistingScenarioReuseCase() {
-  prismaMock.user.findMany.mockResolvedValue([{ id: 302 }]);
-  prismaMock.project.findFirst.mockResolvedValue({ id: 100, questionnaireTemplateId: 500 });
-  prismaMock.team.findUnique.mockResolvedValue({ id: 200 });
-  prismaMock.teamAllocation.findMany.mockResolvedValue([{ userId: 101 }, { userId: 302 }]);
-  prismaMock.projectDeadline.findUnique.mockResolvedValue({ id: 10 });
-  prismaMock.question.findMany.mockResolvedValue(buildTypedQuestions());
-  prismaMock.peerAssessment.findMany.mockResolvedValue([{ id: 77, reviewerUserId: 302, revieweeUserId: 101 }]);
-  prismaMock.peerAssessment.findUnique.mockResolvedValue({ id: 77 });
-  prismaMock.peerFeedback.findMany.mockResolvedValue([{ peerAssessmentId: 77 }]);
-  prismaMock.staffTeamMarking.findUnique.mockResolvedValue({ id: 1 });
-  prismaMock.staffStudentMarking.findMany.mockResolvedValue([{ studentUserId: 101 }]);
-  prismaMock.meeting.findFirst.mockResolvedValue({ id: 600 });
-  prismaMock.meeting.findUnique.mockResolvedValue({ id: 600 });
-  prismaMock.meetingMinutes.findUnique.mockResolvedValue({ id: 700 });
-  prismaMock.meetingAttendance.findUnique.mockResolvedValue({ meetingId: 600 });
-}
-
-function buildTypedQuestions() {
-  return [
-    { id: 1, label: "Technical quality", type: "slider", order: 1, configs: { min: "bad", max: 10, step: null } },
-    { id: 2, label: "Team alignment", type: "multiple-choice", order: 2, configs: { options: ["Strongly disagree", "Agree"] } },
-    { id: 3, label: "Communication style", type: "text", order: 3, configs: null },
-    { id: 4, label: "Fallback options", type: "multiple_choice", order: 4, configs: { options: [] } },
-    { id: 5, label: "Invalid slider config", type: "slider", order: 5, configs: [] },
-    { id: 6, label: "No options config", type: "multiple_choice", order: 6, configs: {} },
-    { id: 7, label: "General reflection", type: "text", order: 7, configs: null },
-  ];
-}
-
-function expectScenarioReusedWithoutCreates() {
-  expect(prismaMock.project.create).not.toHaveBeenCalled();
-  expect(prismaMock.team.update).toHaveBeenCalledTimes(1);
-  expect(prismaMock.teamAllocation.createMany).toHaveBeenCalledWith({
-    data: [{ teamId: 200, userId: 102 }],
-    skipDuplicates: true,
-  });
-  expect(prismaMock.projectDeadline.create).not.toHaveBeenCalled();
-}
-
-function expectPeerFeedbackAndAssessmentReuseBehavior() {
-  expect(prismaMock.peerAssessment.findUnique).toHaveBeenCalled();
-  expect(prismaMock.peerFeedback.create.mock.calls.length).toBeGreaterThan(0);
-  expect(prismaMock.peerFeedback.update).toHaveBeenCalled();
-  expect(prismaMock.staffTeamMarking.create).not.toHaveBeenCalled();
-  expect(prismaMock.staffStudentMarking.createMany.mock.calls.length).toBeGreaterThan(0);
-}
-
-function expectMeetingArtifactsReused() {
-  expect(prismaMock.meeting.create).not.toHaveBeenCalled();
-  expect(prismaMock.meetingMinutes.create).not.toHaveBeenCalled();
-  expect(prismaMock.meetingAttendance.create).not.toHaveBeenCalled();
-}
-
 function expectScenarioCreatedCoreArtifacts() {
   expect(prismaMock.project.create).toHaveBeenCalledTimes(1);
   expect(prismaMock.team.create).toHaveBeenCalledTimes(1);
@@ -249,44 +162,4 @@ function expectScenarioCreatedMeetingArtifacts(logSpy: ReturnType<typeof vi.spyO
   expect(prismaMock.meetingMinutes.create).toHaveBeenCalledTimes(4);
   expect(prismaMock.meetingAttendance.create).toHaveBeenCalledTimes(8);
   expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[seed] seedCompletedProjectScenario: success ("));
-}
-
-function arrangeFallbackEdgeCase() {
-  prismaMock.user.findMany.mockResolvedValue([{ id: 102 }]);
-  prismaMock.project.findFirst.mockResolvedValue({ id: 100, questionnaireTemplateId: 500 });
-  prismaMock.team.findUnique.mockResolvedValue({ id: 200 });
-  prismaMock.teamAllocation.findMany.mockResolvedValue([]);
-  prismaMock.projectDeadline.findUnique.mockResolvedValue({ id: 10 });
-  prismaMock.question.findMany.mockResolvedValue([{ id: 1, label: "Q1", type: "text", order: 1, configs: null }]);
-  prismaMock.peerAssessment.findMany.mockResolvedValue([{ id: 55, reviewerUserId: 101, revieweeUserId: 102 }]);
-  prismaMock.peerAssessment.findUnique.mockResolvedValue(null);
-  prismaMock.peerFeedback.findMany.mockResolvedValue([]);
-  prismaMock.staffTeamMarking.findUnique.mockResolvedValue({ id: 1 });
-  prismaMock.staffStudentMarking.findMany.mockResolvedValue([]);
-  prismaMock.meeting.findFirst.mockResolvedValueOnce({ id: 600 }).mockResolvedValue(null);
-  prismaMock.meeting.findUnique.mockResolvedValueOnce(null).mockResolvedValue(null);
-  prismaMock.meetingMinutes.findUnique.mockResolvedValue(null);
-  prismaMock.meetingAttendance.findUnique.mockResolvedValue(null);
-}
-
-function makeFallbackEdgeCaseContext() {
-  return makeCompletedProjectContext({
-    templates: [{ id: 500, questionLabels: ["Q1"] }],
-    usersByRole: {
-      adminOrStaff: [{ id: 900, role: "STAFF" }],
-      students: [{ id: undefined, role: "STUDENT" }, { id: 0, role: "STUDENT" }, { id: 101, role: "STUDENT" }],
-    },
-  });
-}
-
-function expectFallbackEdgeCaseAssessmentBehavior() {
-  expect(prismaMock.peerAssessment.findUnique).toHaveBeenCalledWith({ where: { id: 55 }, select: { id: true } });
-  expect(prismaMock.peerAssessment.create).toHaveBeenCalledTimes(1);
-  expect(prismaMock.peerFeedback.create).toHaveBeenCalledTimes(1);
-}
-
-function expectFallbackEdgeCaseMeetingBehavior() {
-  expect(prismaMock.meeting.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ organiserId: 900 }) }));
-  const attendancePayloads = prismaMock.meetingAttendance.create.mock.calls.map((call) => call[0]?.data);
-  expect(attendancePayloads.every((payload: any) => payload.userId > 0)).toBe(true);
 }

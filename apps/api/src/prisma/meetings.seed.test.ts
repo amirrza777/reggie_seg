@@ -59,7 +59,7 @@ describe("seedMeetings", () => {
   });
 
   it("skips when no teams exist", async () => {
-    await expect(seedMeetings({ teams: [], usersByRole: { students: [] } } as any)).resolves.toBeUndefined();
+    await expect(seedMeetings({ teams: [], usersByRole: { students: [] } } as never)).resolves.toBeUndefined();
     expect(prismaMock.meeting.create).not.toHaveBeenCalled();
   });
 
@@ -69,7 +69,7 @@ describe("seedMeetings", () => {
       seedMeetings({
         teams: [{ id: 1, projectId: 10 }],
         usersByRole: { students: [{ id: 1, firstName: "A", lastName: "B" }] },
-      } as any),
+      } as never),
     ).resolves.toBeUndefined();
     expect(prismaMock.meeting.create).not.toHaveBeenCalled();
   });
@@ -85,7 +85,7 @@ describe("seedMeetings", () => {
             { id: 2, firstName: "", lastName: "Missing" },
           ],
         },
-      } as any),
+      } as never),
     ).resolves.toBeUndefined();
     expect(prismaMock.meeting.create).not.toHaveBeenCalled();
   });
@@ -102,7 +102,7 @@ describe("seedMeetings", () => {
             { id: 4, firstName: "D", lastName: "Four" },
           ],
         },
-      } as any),
+      } as never),
     ).resolves.toBeUndefined();
 
     expect(prismaMock.meeting.create).toHaveBeenCalledTimes(6);
@@ -117,7 +117,7 @@ describe("seedMeetings", () => {
   });
 
   it("formats two-name mentions and normalizes array sentence variants", async () => {
-    randSentenceMock.mockReturnValue(["seed", "sentence"] as any);
+    randSentenceMock.mockReturnValue(["seed", "sentence"] as never);
 
     await expect(
       seedMeetings({
@@ -129,7 +129,7 @@ describe("seedMeetings", () => {
             { id: 3, firstName: "C", lastName: "Three" },
           ],
         },
-      } as any),
+      } as never),
     ).resolves.toBeUndefined();
 
     const comments = prismaMock.meetingComment.create.mock.calls.map((call) => call[0]?.data?.content as string);

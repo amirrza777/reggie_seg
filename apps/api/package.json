@@ -13,13 +13,15 @@
     "test:modulejoin": "vitest run --config vitest.modulejoin.config.ts --silent",
     "test:modulejoin:coverage": "vitest run --config vitest.modulejoin.config.ts --coverage --silent",
     "loadtest:modulejoin": "node scripts/loadtest-module-join.js",
+    "quality:modulejoin-seed": "node scripts/quality-modulejoin-seed.js",
+    "check:modulejoin-seed": "npm run test:modulejoin && npm run test:seed && npm run quality:modulejoin-seed",
     "test:seed": "vitest run --config vitest.seed.config.ts --silent",
     "test:seed:coverage": "vitest run --config vitest.seed.config.ts --coverage --silent",
     "dev": "tsx --watch src/index.ts",
     "db:seed": "prisma generate && tsx prisma/seed/seed.ts",
     "db:unseed": "tsx prisma/seed/unseed.ts",
-    "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "lint:functions": "eslint \"src/**/*.{ts,tsx}\" --max-warnings 0 --ignore-pattern \"**/*.test.*\" --ignore-pattern \"**/*.spec.*\" --ignore-pattern \"**/__tests__/**\" --ignore-pattern \"**/*.test-helpers.*\""
+    "lint": "node scripts/verify-dev-deps.js && npx eslint \"src/**/*.{ts,tsx}\"",
+    "lint:functions": "node scripts/verify-dev-deps.js && npx eslint \"src/**/*.{ts,tsx}\" --max-warnings 0 --ignore-pattern \"**/*.test.*\" --ignore-pattern \"**/*.spec.*\" --ignore-pattern \"**/__tests__/**\" --ignore-pattern \"**/*.test-helpers.*\""
   },
   "keywords": [],
   "author": "",

@@ -48,7 +48,7 @@ describe("prisma seed script smoke", () => {
         ]),
       }),
     );
-    const rows = (prismaMock.staffStudentMarking.createMany.mock.calls[0]?.[0] as any)?.data ?? [];
+    const rows = (prismaMock.staffStudentMarking.createMany.mock.calls[0]?.[0] as never)?.data ?? [];
     expect(rows.every((row: any) => [2, 3].includes(row.studentUserId))).toBe(true);
     expect(prismaMock.module.createMany).toHaveBeenCalledWith(
       expect.objectContaining({

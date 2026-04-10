@@ -94,34 +94,12 @@ function buildScenarioSeedPlan(context: SeedContext, config: SeedProfileConfig):
   ];
 }
 
-export function buildDevSeedPlan(context: SeedContext, config: SeedProfileConfig) {
-  return [...buildCoreSeedPlan(context), ...buildMembershipSeedPlan(context, config), ...buildScenarioSeedPlan(context, config)];
-}
-
-export function buildDemoSeedPlan(context: SeedContext, config: SeedProfileConfig) {
-  return [...buildCoreSeedPlan(context), ...buildMembershipSeedPlan(context, config), ...buildScenarioSeedPlan(context, config)];
-}
-
-export function buildE2ESeedPlan(context: SeedContext, config: SeedProfileConfig) {
-  return [...buildCoreSeedPlan(context), ...buildMembershipSeedPlan(context, config), ...buildScenarioSeedPlan(context, config)];
-}
-
-export function buildTrelloE2ESeedPlan(context: SeedContext, config: SeedProfileConfig) {
+function buildProfileSeedPlan(context: SeedContext, config: SeedProfileConfig) {
   return [...buildCoreSeedPlan(context), ...buildMembershipSeedPlan(context, config), ...buildScenarioSeedPlan(context, config)];
 }
 
 export function buildSeedStepPlan(context: SeedContext, config: SeedProfileConfig) {
-  switch (config.name) {
-    case "demo":
-      return buildDemoSeedPlan(context, config);
-    case "e2e":
-      return buildE2ESeedPlan(context, config);
-    case "trello-e2e":
-      return buildTrelloE2ESeedPlan(context, config);
-    case "dev":
-    default:
-      return buildDevSeedPlan(context, config);
-  }
+  return buildProfileSeedPlan(context, config);
 }
 
 function buildMembershipStep(name: string, run: () => Promise<unknown>): SeedStepDefinition {

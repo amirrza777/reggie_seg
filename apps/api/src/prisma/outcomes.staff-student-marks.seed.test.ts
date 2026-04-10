@@ -59,7 +59,7 @@ function registerConfirmedStudentFilterTest() {
         { id: 100, moduleId: 1, templateId: 1 },
         { id: 200, moduleId: 2, templateId: 1 },
       ],
-    } as any;
+    } as never;
 
     await seedStaffStudentMarks(context);
 
@@ -87,7 +87,7 @@ function registerZeroCoverageTest() {
     configState.SEED_STUDENT_MARK_COVERAGE = 0;
     prismaMock.teamAllocation.findMany.mockResolvedValue([{ teamId: 10, userId: 101, user: { role: "STUDENT" } }]);
     prismaMock.user.findMany.mockResolvedValue([{ id: 101 }]);
-    randSentenceMock.mockReturnValue(undefined as any);
+    randSentenceMock.mockReturnValue(undefined as never);
 
     await seedStaffStudentMarks(makeStaffStudentMarksContext());
 
@@ -97,7 +97,7 @@ function registerZeroCoverageTest() {
 
 function registerInvalidGeneratorFallbackTest() {
   it("falls back to default formative feedback when generator output is invalid", async () => {
-    randSentenceMock.mockReturnValue(undefined as any);
+    randSentenceMock.mockReturnValue(undefined as never);
     prismaMock.teamAllocation.findMany.mockResolvedValue([{ teamId: 10, userId: 101, user: { role: "STUDENT" } }]);
     prismaMock.user.findMany.mockResolvedValue([{ id: 101 }]);
     prismaMock.staffStudentMarking.createMany.mockResolvedValue({ count: 1 });
@@ -162,7 +162,7 @@ function registerTaOnlyPoolTest() {
 
 function registerArraySentenceNormalizationTest() {
   it("normalizes array sentence output", async () => {
-    randSentenceMock.mockReturnValue(["  Strong communicator  "] as any);
+    randSentenceMock.mockReturnValue(["  Strong communicator  "] as never);
     prismaMock.teamAllocation.findMany.mockResolvedValue([{ teamId: 10, userId: 101, user: { role: "STUDENT" } }]);
     prismaMock.user.findMany.mockResolvedValue([{ id: 101 }]);
     prismaMock.staffStudentMarking.createMany.mockResolvedValue({ count: 1 });
@@ -195,5 +195,5 @@ function makeStaffStudentMarksContext(overrides?: Record<string, unknown>) {
     modules: [{ id: 1 }],
     projects: [{ id: 100, moduleId: 1, templateId: 1 }],
     ...(overrides ?? {}),
-  } as any;
+  } as never;
 }
