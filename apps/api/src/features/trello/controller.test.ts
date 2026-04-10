@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import * as trelloParsers from "./controller.parsers.js";
 import { TrelloController } from "./controller.js";
 import { TrelloService } from "./service.js";
 
@@ -27,6 +28,10 @@ function createMockRes() {
 describe("TrelloController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   //Get connect url (callbackUrl query required)
@@ -151,6 +156,25 @@ describe("TrelloController", () => {
     );
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({ ok: true });
+  });
+
+  it("returns 400 when parseTrelloCallbackBody fails", async () => {
+    vi.spyOn(trelloParsers, "parseTrelloCallbackBody").mockReturnValueOnce({
+      ok: false,
+      error: "Invalid callback body",
+    });
+
+    const req: any = {
+      body: { token: "ignored" },
+      user: { sub: 1 },
+    };
+    const res = createMockRes();
+
+    await TrelloController.callback(req, res);
+
+    expect(TrelloService.completeOauthCallback).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "Invalid callback body" });
   });
 
   it("handles missing token by passing empty string to service", async () => {

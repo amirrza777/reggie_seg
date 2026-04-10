@@ -1,6 +1,5 @@
-/**
- * Collection of Trello velocity/counts/cumulative APIs.
- */
+// Collection of Trello velocity/counts/cumulative APIs.
+
 
 export type { ListStatus } from "./listStatus";
 export { getListStatus } from "./listStatus";

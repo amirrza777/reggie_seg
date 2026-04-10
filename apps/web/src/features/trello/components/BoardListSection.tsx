@@ -1,3 +1,5 @@
+// Single list column on the board
+
 "use client";
 
 import React from "react";

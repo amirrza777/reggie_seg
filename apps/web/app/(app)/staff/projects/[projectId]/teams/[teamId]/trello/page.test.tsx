@@ -37,10 +37,6 @@ vi.mock("@/features/staff/trello/StaffProjectTrelloContent", () => ({
   ),
 }));
 
-vi.mock("@/features/staff/trello/StaffTrelloSummaryView", () => ({
-  StaffTrelloSummaryView: () => <div>summary-view</div>,
-}));
-
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 const getProjectDeadlineMock = vi.mocked(getProjectDeadline);
@@ -96,7 +92,6 @@ describe("StaffTrelloSectionPage", () => {
     render(page);
 
     expect(getProjectDeadlineMock).toHaveBeenCalledWith(88, 44);
-    expect(screen.getByText(/Team: Team B · No board linked/)).toBeInTheDocument();
     expect(screen.getByTestId("staff-trello-content")).toHaveTextContent("44:55:3:Team B:none");
   });
 });

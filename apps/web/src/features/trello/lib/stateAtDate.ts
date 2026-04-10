@@ -1,3 +1,5 @@
+// Helpers for card positions and per-status counts at a point in time
+
 import type { TrelloBoardAction, TrelloCard } from "../types";
 import { getListStatus } from "./listStatus";
 

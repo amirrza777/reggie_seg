@@ -1,3 +1,5 @@
+// Builds Recharts-friendly data for the cumulative progress chart
+
 import type { ProjectDeadline } from "@/features/projects/types";
 import { formatDate } from "@/shared/lib/formatDate";
 import type { CumulativeByWeekPoint } from "./cumulativeByWeek";

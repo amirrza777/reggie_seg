@@ -30,5 +30,15 @@ describe("cardCounts", () => {
       informationOnly: 1,
     });
   });
+
+  it("uses empty list name when list id is missing from listNamesById", () => {
+    const counts = countCardsByStatus(
+      { orphanList: [{ id: "a" }] },
+      {},
+      {},
+    );
+    expect(counts.total).toBe(1);
+    expect(counts.inProgress).toBe(1);
+  });
 });
 

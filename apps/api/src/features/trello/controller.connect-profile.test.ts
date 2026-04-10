@@ -83,6 +83,45 @@ describe("TrelloController connect/profile", () => {
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
+  it("returns null profile fields when Trello member cannot be resolved", async () => {
+    (TrelloRepo.getUserById as any).mockResolvedValue({
+      id: 1,
+      trelloToken: "token-abc",
+    });
+    (TrelloService.getTrelloMember as any).mockResolvedValue(null);
+
+    const req: any = { user: { sub: 1 } };
+    const res = createMockRes();
+
+    await TrelloController.getMyTrelloProfile(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      trelloMemberId: null,
+      fullName: null,
+      username: null,
+    });
+  });
+
+  it("resolves missing member fields from Trello API as null", async () => {
+    (TrelloRepo.getUserById as any).mockResolvedValue({
+      id: 1,
+      trelloToken: "token-abc",
+    });
+    (TrelloService.getTrelloMember as any).mockResolvedValue({ id: "m1" });
+
+    const req: any = { user: { sub: 1 } };
+    const res = createMockRes();
+
+    await TrelloController.getMyTrelloProfile(req, res);
+
+    expect(res.json).toHaveBeenCalledWith({
+      trelloMemberId: "m1",
+      fullName: null,
+      username: null,
+    });
+  });
+
   it("returns Trello profile when user has token", async () => {
     (TrelloRepo.getUserById as any).mockResolvedValue({
       id: 1,

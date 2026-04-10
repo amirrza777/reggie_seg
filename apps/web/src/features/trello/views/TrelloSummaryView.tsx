@@ -1,3 +1,6 @@
+// Summary dashboard: cards by status, velocity, cumulative chart, and optional integration settings.
+// Used by: student & staff (settings hidden, showIntegrationSettings = false)
+
 "use client";
 
 import type { BoardView } from "@/features/trello/api/client";
@@ -17,6 +20,8 @@ type Props = {
   onRequestChangeAccount?: () => void;
   deadline?: ProjectDeadline | null;
   integrationsReadOnly?: boolean;
+  showIntegrationSettings?: boolean; // true for students
+  filterVariant?: "project" | "staff"; // staff shell; unused
 };
 
 export function TrelloSummaryView({
@@ -27,6 +32,8 @@ export function TrelloSummaryView({
   onRequestChangeAccount,
   deadline,
   integrationsReadOnly = false,
+  showIntegrationSettings = true,
+  filterVariant: _filterVariant,
 }: Props) {
   const data = useTrelloSummaryData(view, sectionConfig, deadline);
 
@@ -55,13 +62,15 @@ export function TrelloSummaryView({
         projectEndTime={data.projectEndTime}
       />
 
-      <SummarySettings
-        projectId={projectId}
-        onRequestChangeBoard={onRequestChangeBoard}
-        onRequestChangeAccount={onRequestChangeAccount}
-        boardUrl={data.boardUrl}
-        integrationsReadOnly={integrationsReadOnly}
-      />
+      {showIntegrationSettings ? (
+        <SummarySettings
+          projectId={projectId}
+          onRequestChangeBoard={onRequestChangeBoard}
+          onRequestChangeAccount={onRequestChangeAccount}
+          boardUrl={data.boardUrl}
+          integrationsReadOnly={integrationsReadOnly}
+        />
+      ) : null}
     </div>
   );
 }

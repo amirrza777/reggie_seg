@@ -1,3 +1,5 @@
+// Summary panel: pie chart of card counts by status
+
 "use client";
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";

@@ -1,4 +1,5 @@
-/** Monday of the week for date (local time), as YYYY-MM-DD. */
+// Date-key helpers (week boundaries) shared by velocity, cumulative, and board timelines.
+
 export function getWeekStartKeyLocal(date: Date): string {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);

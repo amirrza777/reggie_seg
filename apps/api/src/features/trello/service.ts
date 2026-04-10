@@ -1,3 +1,5 @@
+// Trello logic: OAuth URL, API calls, team board assignment, staff/member access rules.
+
 import { TrelloRepo } from "./repo.js"
 import { matchesFuzzySearchCandidate } from "../../shared/fuzzySearch.js"
 import { canStaffAccessTeamInProject } from "../projects/team-health-review/repo.js"

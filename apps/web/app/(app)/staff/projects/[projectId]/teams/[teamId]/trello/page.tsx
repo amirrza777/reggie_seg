@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getProjectDeadline } from "@/features/projects/api/client";
 import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
-import { StaffTrelloSummaryView } from "@/features/staff/trello/StaffTrelloSummaryView";
+import { TrelloSummaryView } from "@/features/trello/views/TrelloSummaryView";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -34,10 +34,6 @@ export default async function StaffTrelloSectionPage({ params }: PageProps) {
 
   return (
     <div className="staff-projects">
-      <p className="muted">
-        Team: {team.teamName} · {team.trelloBoardId ? "Board linked" : "No board linked"}
-      </p>
-
       <section className="staff-projects__team-card" aria-label="Team Trello activity">
         <StaffProjectTrelloContent
           projectId={context.projectId}
@@ -45,7 +41,8 @@ export default async function StaffTrelloSectionPage({ params }: PageProps) {
           moduleId={projectResult.projectData.project.moduleId}
           teamName={team.teamName}
           deadline={deadline ?? undefined}
-          viewComponent={StaffTrelloSummaryView}
+          viewComponent={TrelloSummaryView}
+          viewExtraProps={{ showIntegrationSettings: false }}
         />
       </section>
     </div>
