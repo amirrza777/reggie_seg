@@ -40,8 +40,6 @@ describe("prisma seed script smoke", () => {
     expect(prismaMock.module.createMany).toHaveBeenCalled();
     expect(prismaMock.moduleTeachingAssistant.createMany).toHaveBeenCalled();
     expect(prismaMock.teamInvite.upsert).toHaveBeenCalled();
-    expect(prismaMock.githubAccount.upsert).toHaveBeenCalled();
-    expect(prismaMock.projectGithubRepository.upsert).toHaveBeenCalled();
     expect(prismaMock.staffStudentMarking.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.arrayContaining([

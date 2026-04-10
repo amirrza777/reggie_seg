@@ -11,6 +11,7 @@ import {
 import { seedCompletedProjectScenario } from "./completed-project";
 import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedUsers } from "./catalog";
 import type { SeedProfileConfig } from "./config";
+import { seedAssessmentAccountEmailSet } from "./data";
 import type { SeedContext, SeedEnterprise } from "./types";
 import { seedForumPosts } from "./forum";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines, seedStaffStudentMarks } from "./outcomes";
@@ -32,7 +33,8 @@ export type SeedStepDefinition = {
 export async function buildSeedContext(enterprise: SeedEnterprise, passwordHash: string): Promise<SeedContext> {
   await seedAdminUser(enterprise.id);
   const users = await seedUsers(enterprise.id, passwordHash);
-  const usersByRole = buildUsersByRole(users);
+  const { standardUsers, assessmentAccounts } = splitSeedUsersByParticipation(users);
+  const usersByRole = buildUsersByRole(standardUsers);
   const modules = await seedModules(enterprise.id);
   const templateOwner = usersByRole.adminOrStaff[0];
   const templates = await seedQuestionnaireTemplates(templateOwner?.id);
@@ -43,12 +45,20 @@ export async function buildSeedContext(enterprise: SeedEnterprise, passwordHash:
     enterprise,
     passwordHash,
     users,
+    standardUsers,
+    assessmentAccounts,
     usersByRole,
     modules,
     templates,
     projects,
     teams,
   };
+}
+
+function splitSeedUsersByParticipation(users: SeedContext["users"]) {
+  const standardUsers = users.filter((user) => !seedAssessmentAccountEmailSet.has((user.email ?? "").toLowerCase()));
+  const assessmentAccounts = users.filter((user) => seedAssessmentAccountEmailSet.has((user.email ?? "").toLowerCase()));
+  return { standardUsers, assessmentAccounts };
 }
 
 function buildCoreSeedPlan(_context: SeedContext): SeedStepDefinition[] {
