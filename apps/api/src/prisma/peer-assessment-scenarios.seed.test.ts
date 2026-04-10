@@ -59,7 +59,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       templates: [],
       users: [],
       usersByRole: { students: [] },
-    } as any);
+    } as never);
 
     expect(result).toBeUndefined();
     expect(prismaMock.project.create).not.toHaveBeenCalled();
@@ -72,7 +72,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       templates: [{ id: 500, questionLabels: ["Q1"] }],
       users: [{ id: 99, role: "STAFF" }],
       usersByRole: { students: [{ id: 21 }, { id: 22 }] },
-    } as any);
+    } as never);
 
     expect(result).toEqual({
       assessmentOpenProjectId: expect.any(Number),
@@ -88,7 +88,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       templates: [{ id: 500, questionLabels: ["Q1"] }],
       users: [],
       usersByRole: { students: [{ id: 22 }] },
-    } as any);
+    } as never);
 
     expect(result).toBeUndefined();
     expect(prismaMock.project.create).not.toHaveBeenCalled();
@@ -113,7 +113,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       templates: [{ id: 500, questionLabels: [] }],
       users: [{ id: 7, role: "ADMIN" }],
       usersByRole: { students: [{ id: 21 }, { id: 22 }, { id: 23 }] },
-    } as any);
+    } as never);
 
     expect(result).toEqual({
       assessmentOpenProjectId: 1000,
@@ -142,7 +142,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       templates: [{ id: 500, questionLabels: ["Fallback A", "Fallback B"] }],
       users: [{ id: 7, role: "ADMIN" }],
       usersByRole: { students: [{ id: 0 }, { id: 22 }, { id: 23 }] },
-    } as any);
+    } as never);
 
     expect(prismaMock.peerAssessment.upsert).toHaveBeenCalled();
     const upsertPayload = prismaMock.peerAssessment.upsert.mock.calls[0]?.[0];
@@ -158,7 +158,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       templates: [{ id: 500, questionLabels: ["Q1"] }],
       users: [{ id: 7, role: "ADMIN" }],
       usersByRole: { students: [{ id: 21 }, { id: 22 }] },
-    } as any);
+    } as never);
 
     expect(prismaMock.teamDeadlineOverride.deleteMany).toHaveBeenCalled();
     expect(prismaMock.studentDeadlineOverride.deleteMany).not.toHaveBeenCalled();

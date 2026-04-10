@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Response } from "express";
 
 const mockState = vi.hoisted(() => ({
   service: {
@@ -16,14 +15,7 @@ import {
   joinModuleHandler,
   rotateModuleJoinCodeHandler,
 } from "./controller.js";
-
-function mockRes() {
-  const res: Partial<Response> = {};
-  res.status = vi.fn().mockReturnValue(res);
-  res.json = vi.fn().mockReturnValue(res);
-  res.setHeader = vi.fn().mockReturnValue(res);
-  return res as Response;
-}
+import { createMockResponse, createModuleJoinRequest } from "./test-helpers.js";
 
 describe("moduleJoin controller", registerControllerTests);
 
@@ -43,19 +35,19 @@ function registerControllerTests() {
 
 function registerJoinValidationTest() {
   it("join handler validates auth and request body", async () => {
-    const unauthorized = mockRes();
-    await joinModuleHandler({ body: { code: "ABCD2345" } } as never, unauthorized);
-    expect(unauthorized.status).toHaveBeenCalledWith(401);
+    const unauthorized = createMockResponse();
+    await joinModuleHandler(createModuleJoinRequest({ body: { code: "ABCD2345" } }), unauthorized.res);
+    expect(unauthorized.statusSpy).toHaveBeenCalledWith(401);
 
-    const invalidBody = mockRes();
-    await joinModuleHandler({ user: { sub: 7 }, body: {} } as never, invalidBody);
-    expect(invalidBody.status).toHaveBeenCalledWith(400);
-    expect(invalidBody.json).toHaveBeenCalledWith({ code: "INVALID_REQUEST", error: "code is required" });
+    const invalidBody = createMockResponse();
+    await joinModuleHandler(createModuleJoinRequest({ userSub: 7, body: {} }), invalidBody.res);
+    expect(invalidBody.statusSpy).toHaveBeenCalledWith(400);
+    expect(invalidBody.jsonSpy).toHaveBeenCalledWith({ code: "INVALID_REQUEST", error: "code is required" });
 
-    const invalidNormalized = mockRes();
-    await joinModuleHandler({ user: { sub: 7 }, body: { code: "bad" } } as never, invalidNormalized);
-    expect(invalidNormalized.status).toHaveBeenCalledWith(400);
-    expect(invalidNormalized.json).toHaveBeenCalledWith({ code: "INVALID_CODE", error: "code must be a valid module join code" });
+    const invalidNormalized = createMockResponse();
+    await joinModuleHandler(createModuleJoinRequest({ userSub: 7, body: { code: "bad" } }), invalidNormalized.res);
+    expect(invalidNormalized.statusSpy).toHaveBeenCalledWith(400);
+    expect(invalidNormalized.jsonSpy).toHaveBeenCalledWith({ code: "INVALID_CODE", error: "code must be a valid module join code" });
     expect(mockState.service.joinModuleByCode).not.toHaveBeenCalled();
   });
 }
@@ -73,14 +65,14 @@ function registerJoinServiceMappingTest() {
       });
 
     for (const status of [401, 403, 404, 409]) {
-      const res = mockRes();
-      await joinModuleHandler({ user: { sub: 7 }, body: { code: "ABCD2345" } } as never, res);
-      expect(res.status).toHaveBeenCalledWith(status);
+      const res = createMockResponse();
+      await joinModuleHandler(createModuleJoinRequest({ userSub: 7, body: { code: "ABCD2345" } }), res.res);
+      expect(res.statusSpy).toHaveBeenCalledWith(status);
     }
 
-    const okRes = mockRes();
-    await joinModuleHandler({ user: { sub: 7 }, body: { code: "ABCD2345" } } as never, okRes);
-    expect(okRes.json).toHaveBeenCalledWith({
+    const okRes = createMockResponse();
+    await joinModuleHandler(createModuleJoinRequest({ userSub: 7, body: { code: "ABCD2345" } }), okRes.res);
+    expect(okRes.jsonSpy).toHaveBeenCalledWith({
       moduleId: 3,
       moduleName: "SEGP",
       result: "joined",
@@ -90,13 +82,13 @@ function registerJoinServiceMappingTest() {
 
 function registerReadValidationTest() {
   it("code-read handler validates auth and module id", async () => {
-    const unauthorized = mockRes();
-    await getModuleJoinCodeHandler({ params: { moduleId: "3" } } as never, unauthorized);
-    expect(unauthorized.status).toHaveBeenCalledWith(401);
+    const unauthorized = createMockResponse();
+    await getModuleJoinCodeHandler(createModuleJoinRequest({ moduleId: "3" }), unauthorized.res);
+    expect(unauthorized.statusSpy).toHaveBeenCalledWith(401);
 
-    const invalidModuleId = mockRes();
-    await getModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "abc" } } as never, invalidModuleId);
-    expect(invalidModuleId.status).toHaveBeenCalledWith(400);
+    const invalidModuleId = createMockResponse();
+    await getModuleJoinCodeHandler(createModuleJoinRequest({ userSub: 7, moduleId: "abc" }), invalidModuleId.res);
+    expect(invalidModuleId.statusSpy).toHaveBeenCalledWith(400);
   });
 }
 
@@ -109,10 +101,10 @@ function registerReadFailureTest() {
       error: "Module not found",
     });
 
-    const res = mockRes();
-    await getModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as never, res);
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.setHeader).not.toHaveBeenCalled();
+    const res = createMockResponse();
+    await getModuleJoinCodeHandler(createModuleJoinRequest({ userSub: 7, moduleId: "3" }), res.res);
+    expect(res.statusSpy).toHaveBeenCalledWith(404);
+    expect(res.setHeaderSpy).not.toHaveBeenCalled();
   });
 }
 
@@ -123,22 +115,22 @@ function registerReadSuccessTest() {
       value: { moduleId: 3, joinCode: "ABCD2345" },
     });
 
-    const getRes = mockRes();
-    await getModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as never, getRes);
-    expect(getRes.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store");
-    expect(getRes.json).toHaveBeenCalledWith({ moduleId: 3, joinCode: "ABCD2345" });
+    const getRes = createMockResponse();
+    await getModuleJoinCodeHandler(createModuleJoinRequest({ userSub: 7, moduleId: "3" }), getRes.res);
+    expect(getRes.setHeaderSpy).toHaveBeenCalledWith("Cache-Control", "no-store");
+    expect(getRes.jsonSpy).toHaveBeenCalledWith({ moduleId: 3, joinCode: "ABCD2345" });
   });
 }
 
 function registerRotateValidationTest() {
   it("rotate handler validates auth and module id", async () => {
-    const unauthorized = mockRes();
-    await rotateModuleJoinCodeHandler({ params: { moduleId: "3" } } as never, unauthorized);
-    expect(unauthorized.status).toHaveBeenCalledWith(401);
+    const unauthorized = createMockResponse();
+    await rotateModuleJoinCodeHandler(createModuleJoinRequest({ moduleId: "3" }), unauthorized.res);
+    expect(unauthorized.statusSpy).toHaveBeenCalledWith(401);
 
-    const invalidModuleId = mockRes();
-    await rotateModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "abc" } } as never, invalidModuleId);
-    expect(invalidModuleId.status).toHaveBeenCalledWith(400);
+    const invalidModuleId = createMockResponse();
+    await rotateModuleJoinCodeHandler(createModuleJoinRequest({ userSub: 7, moduleId: "abc" }), invalidModuleId.res);
+    expect(invalidModuleId.statusSpy).toHaveBeenCalledWith(400);
   });
 }
 
@@ -151,10 +143,10 @@ function registerRotateFailureTest() {
       error: "Conflict",
     });
 
-    const res = mockRes();
-    await rotateModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as never, res);
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.setHeader).not.toHaveBeenCalled();
+    const res = createMockResponse();
+    await rotateModuleJoinCodeHandler(createModuleJoinRequest({ userSub: 7, moduleId: "3" }), res.res);
+    expect(res.statusSpy).toHaveBeenCalledWith(409);
+    expect(res.setHeaderSpy).not.toHaveBeenCalled();
   });
 }
 
@@ -165,9 +157,9 @@ function registerRotateSuccessTest() {
       value: { moduleId: 3, joinCode: "WXYZ6789" },
     });
 
-    const rotateRes = mockRes();
-    await rotateModuleJoinCodeHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as never, rotateRes);
-    expect(rotateRes.setHeader).toHaveBeenCalledWith("Cache-Control", "no-store");
-    expect(rotateRes.json).toHaveBeenCalledWith({ moduleId: 3, joinCode: "WXYZ6789" });
+    const rotateRes = createMockResponse();
+    await rotateModuleJoinCodeHandler(createModuleJoinRequest({ userSub: 7, moduleId: "3" }), rotateRes.res);
+    expect(rotateRes.setHeaderSpy).toHaveBeenCalledWith("Cache-Control", "no-store");
+    expect(rotateRes.jsonSpy).toHaveBeenCalledWith({ moduleId: 3, joinCode: "WXYZ6789" });
   });
 }
