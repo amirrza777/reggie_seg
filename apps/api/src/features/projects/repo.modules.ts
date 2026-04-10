@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "../../shared/db.js";
 import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
 import { applyFuzzyFallback } from "../../shared/fuzzyFallback.js";
-import { getModulesForUserImpl } from "./repo.highAuthorship.impl.js";
+import { getModulesForUserImpl } from "./repo.highAuthorship.js";
 import { isAdminScopedRole, type StaffScopeRole } from "./repo.staff-scope.js";
 
 type ModuleAccessRole = "OWNER" | "TEACHING_ASSISTANT" | "ENROLLED" | "ADMIN_ACCESS";

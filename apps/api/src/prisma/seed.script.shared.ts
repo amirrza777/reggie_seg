@@ -39,20 +39,29 @@ export type PrismaMock = {
   userModule: { createMany: ReturnType<typeof vi.fn> };
   teamAllocation: {
     createMany: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
     upsert: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
+    findFirst: ReturnType<typeof vi.fn>;
     findUnique: ReturnType<typeof vi.fn>;
   };
   meeting: {
     findFirst: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
   };
-  meetingAttendance: { createMany: ReturnType<typeof vi.fn> };
-  meetingParticipant: { createMany: ReturnType<typeof vi.fn> };
-  meetingMinutes: { createMany: ReturnType<typeof vi.fn> };
-  meetingComment: { create: ReturnType<typeof vi.fn> };
-  mention: { createMany: ReturnType<typeof vi.fn> };
+  meetingAttendance: { createMany: ReturnType<typeof vi.fn>; deleteMany: ReturnType<typeof vi.fn> };
+  meetingParticipant: { createMany: ReturnType<typeof vi.fn>; deleteMany: ReturnType<typeof vi.fn> };
+  meetingMinutes: { createMany: ReturnType<typeof vi.fn>; deleteMany: ReturnType<typeof vi.fn> };
+  meetingComment: {
+    create: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
+  };
+  mention: { createMany: ReturnType<typeof vi.fn>; deleteMany: ReturnType<typeof vi.fn> };
+  teamWarning: { deleteMany: ReturnType<typeof vi.fn> };
+  teamHealthMessage: { deleteMany: ReturnType<typeof vi.fn>; createMany: ReturnType<typeof vi.fn> };
   peerAssessment: {
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
@@ -119,6 +128,8 @@ function buildPrismaClientMock(prismaMock: PrismaMock) {
     meetingMinutes: prismaMock.meetingMinutes,
     meetingComment: prismaMock.meetingComment,
     mention: prismaMock.mention,
+    teamWarning: prismaMock.teamWarning,
+    teamHealthMessage: prismaMock.teamHealthMessage,
     peerAssessment: prismaMock.peerAssessment,
     peerFeedback: prismaMock.peerFeedback,
     staffStudentMarking: prismaMock.staffStudentMarking,
@@ -158,9 +169,6 @@ export function mockSeedRuntime(prismaMock: PrismaMock, options?: SeedRuntimeOpt
     randSentence: vi.fn().mockReturnValue("Random generated question."),
     randParagraph: vi.fn().mockReturnValue("Random generated paragraph."),
   }));
-  vi.doMock("../../prisma/seed/team-health-warning-scenario.ts", () => ({
-    seedTeamHealthWarningScenario: vi.fn(async () => undefined),
-  }));
   if (options?.enterpriseCount !== undefined) {
     vi.doMock("../../prisma/seed/volumes.ts", async () => {
       const actual = await vi.importActual<typeof import("../../prisma/seed/volumes.ts")>("../../prisma/seed/volumes.ts");
@@ -181,7 +189,7 @@ export function buildPrismaMock(): PrismaMock {
     user: {
       findUnique: vi.fn().mockImplementation((args: any) => {
         const email = args?.where?.enterpriseId_email?.email;
-        if (email === "admin@kcl.ac.uk") return Promise.resolve(null);
+        if (email === "admin@kcl.ac.uk") {return Promise.resolve(null);}
         if (email === "github.staff@example.com" || email === "github.student@example.com") {
           const seen = userLookupCounts.get(email) ?? 0;
           userLookupCounts.set(email, seen + 1);
@@ -204,11 +212,11 @@ export function buildPrismaMock(): PrismaMock {
     },
     module: {
       createMany: vi.fn().mockResolvedValue({ count: 6 }),
-      findFirst: vi.fn().mockResolvedValue({ id: 1 }),
       findMany: vi.fn().mockResolvedValue([
         { id: 1, name: "Software Engineering Group Project" },
         { id: 2, name: "Database Systems" },
       ]),
+      findFirst: vi.fn().mockResolvedValue({ id: 1 }),
     },
     questionnaireTemplate: {
       findFirst: vi.fn().mockResolvedValue(null),
@@ -268,12 +276,14 @@ export function buildPrismaMock(): PrismaMock {
     },
     teamAllocation: {
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       upsert: vi.fn().mockResolvedValue({}),
       findMany: vi.fn().mockResolvedValue([
         { teamId: 10, userId: 2, user: { id: 2, role: "STUDENT" } },
-        { teamId: 10, userId: 3, user: { id: 3, role: "STUDENT" } },
         { teamId: 10, userId: 5, user: { id: 5, role: "ADMIN" } },
+        { teamId: 11, userId: 3, user: { id: 3, role: "STUDENT" } },
       ]),
+      findFirst: vi.fn().mockResolvedValue({ userId: 2 }),
       findUnique: vi.fn().mockResolvedValue(null),
     },
     meeting: {
@@ -283,21 +293,35 @@ export function buildPrismaMock(): PrismaMock {
         { id: 202, title: "Planning", date: new Date(Date.now() + 60_000) },
       ]),
       create: vi.fn().mockImplementation(async () => ({ id: ++meetingIdCounter })),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     meetingAttendance: {
       createMany: vi.fn().mockResolvedValue({ count: 12 }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     meetingParticipant: {
       createMany: vi.fn().mockResolvedValue({ count: 24 }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     meetingMinutes: {
       createMany: vi.fn().mockResolvedValue({ count: 2 }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     meetingComment: {
       create: vi.fn().mockImplementation(async () => ({ id: ++meetingCommentIdCounter })),
+      findMany: vi.fn().mockResolvedValue([]),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     mention: {
       createMany: vi.fn().mockResolvedValue({ count: 4 }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    teamWarning: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    teamHealthMessage: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     peerAssessment: {
       create: vi.fn().mockResolvedValue({ id: 100 }),
@@ -360,8 +384,8 @@ export function buildPrismaMock(): PrismaMock {
       createMany: vi.fn().mockResolvedValue({ count: 3 }),
     },
     $transaction: vi.fn().mockImplementation(async (arg: any) => {
-      if (Array.isArray(arg)) return Promise.all(arg);
-      if (typeof arg === "function") return arg(prismaMock);
+      if (Array.isArray(arg)) {return Promise.all(arg);}
+      if (typeof arg === "function") {return arg(prismaMock);}
       return arg;
     }),
     $disconnect: vi.fn().mockResolvedValue(undefined),

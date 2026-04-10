@@ -21,8 +21,13 @@ const argon2Mock = vi.hoisted(() => ({
   hash: vi.fn(),
 }));
 
+const authServiceMock = vi.hoisted(() => ({
+  requestPasswordReset: vi.fn(),
+}));
+
 vi.mock("argon2", () => ({ default: argon2Mock }));
 vi.mock("../../shared/db.js", () => ({ prisma: prismaMock }));
+vi.mock("../../auth/service.js", () => authServiceMock);
 
 import {
   createEnterpriseUser,
@@ -30,7 +35,7 @@ import {
   removeEnterpriseUser,
   searchEnterpriseUsers,
   updateEnterpriseUser,
-} from "./service.user-management.impl.js";
+} from "./service.user-management.js";
 
 const enterpriseAdminUser = { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } as const;
 const platformAdminUser = { id: 1, enterpriseId: "ent-1", role: "ADMIN" } as const;
@@ -50,7 +55,7 @@ function makeSearchRecord(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
-describe("enterpriseAdmin service.user-management.impl", () => {
+describe("enterpriseAdmin service.user-management", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -84,6 +89,7 @@ describe("enterpriseAdmin service.user-management.impl", () => {
     prismaMock.$transaction.mockImplementation(async (cb: any) => cb(prismaMock));
 
     argon2Mock.hash.mockResolvedValue("hashed-password");
+    authServiceMock.requestPasswordReset.mockResolvedValue(undefined);
   });
 
   it("parses enterprise search filters and validates invalid combinations", () => {
@@ -528,6 +534,7 @@ describe("enterpriseAdmin service.user-management.impl", () => {
       expect.objectContaining({ ok: true, value: expect.objectContaining({ id: 99, email: "new@example.com" }) }),
     );
     expect(argon2Mock.hash).toHaveBeenCalled();
+    expect(authServiceMock.requestPasswordReset).toHaveBeenCalledWith("new@example.com");
   });
 
   it("forbids non-admin removes and handles not-found plus success removal", async () => {

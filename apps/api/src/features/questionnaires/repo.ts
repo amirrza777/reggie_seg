@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import type { IncomingQuestion, QuestionnairePurpose } from "./types.js";
 import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
 import { applyFuzzyFallback } from "../../shared/fuzzyFallback.js";
-import { getMyQuestionnaireTemplatesImpl } from "./repo.getMyQuestionnaireTemplates.impl.js";
+import { getMyQuestionnaireTemplatesImpl } from "./repo.getMyQuestionnaireTemplates.js";
 
 function matchesTemplateSearchQuery(
   template: { id: number; templateName: string; questions?: Array<{ label: string }> },
