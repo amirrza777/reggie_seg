@@ -1,5 +1,5 @@
-import type { ParseResult } from "../../shared/parse.js";
-import { parseIsoDate, parseOptionalIsoDate, parseOptionalTrimmedString } from "../../shared/parse.js";
+import type { ParseResult } from "../../../shared/parse.js";
+import { parseIsoDate, parseOptionalIsoDate, parseOptionalTrimmedString } from "../../../shared/parse.js";
 
 export type ParsedProjectDeadline = {
   taskOpenDate: Date;

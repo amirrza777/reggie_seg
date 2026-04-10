@@ -33,7 +33,7 @@ export {
   getStaffStudentDeadlineOverridesHandler,
   upsertStaffStudentDeadlineOverrideHandler,
   clearStaffStudentDeadlineOverrideHandler,
-} from "./controller.staff-deadlines.js";
+} from "./deadlines/controller.staff-deadlines.js";
 
 export {
   createStaffTeamWarningHandler,
