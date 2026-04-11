@@ -16,6 +16,14 @@ export type AuthResponse = {
   message?: string;
 };
 
+export type EnterpriseAdminInviteState = {
+  mode: "new_account" | "existing_account";
+};
+
+export type GlobalAdminInviteState = {
+  mode: "new_account" | "existing_account";
+};
+
 export type UserProfile = {
   id: number;
   email: string;

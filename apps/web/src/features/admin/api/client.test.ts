@@ -10,6 +10,7 @@ import {
   createEnterprise,
   deleteEnterprise,
   getAdminSummary,
+  inviteGlobalAdmin,
   inviteCurrentEnterpriseAdmin,
   inviteEnterpriseAdmin,
   listEnterpriseUsers,
@@ -157,6 +158,14 @@ describe("admin api client", () => {
   it("sends current-enterprise admin invites", async () => {
     await inviteCurrentEnterpriseAdmin("invite@example.com");
     expect(apiFetchMock).toHaveBeenCalledWith("/admin/invites/enterprise-admin", {
+      method: "POST",
+      body: JSON.stringify({ email: "invite@example.com" }),
+    });
+  });
+
+  it("sends global admin invites", async () => {
+    await inviteGlobalAdmin("invite@example.com");
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/invites/global-admin", {
       method: "POST",
       body: JSON.stringify({ email: "invite@example.com" }),
     });

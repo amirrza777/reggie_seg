@@ -141,3 +141,10 @@ export async function inviteCurrentEnterpriseAdmin(email: string) {
     body: JSON.stringify({ email }),
   });
 }
+
+export async function inviteGlobalAdmin(email: string) {
+  return apiFetch<EnterpriseAdminInviteResponse>("/admin/invites/global-admin", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}

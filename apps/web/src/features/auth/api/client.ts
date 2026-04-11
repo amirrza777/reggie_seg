@@ -1,5 +1,12 @@
 import { apiFetch } from "@/shared/api/http";
-import type { AuthResponse, LoginCredentials, SignupPayload, UserProfile } from "../types";
+import type {
+  AuthResponse,
+  EnterpriseAdminInviteState,
+  GlobalAdminInviteState,
+  LoginCredentials,
+  SignupPayload,
+  UserProfile,
+} from "../types";
 import { setAccessToken, clearAccessToken } from "./session";
 import { ApiError } from "@/shared/api/errors";
 
@@ -33,7 +40,7 @@ export async function signup(payload: SignupPayload) {
 
 export async function acceptEnterpriseAdminInvite(payload: {
   token: string;
-  newPassword: string;
+  newPassword?: string;
   firstName?: string;
   lastName?: string;
 }) {
@@ -46,6 +53,39 @@ export async function acceptEnterpriseAdminInvite(payload: {
     setAccessToken(res.accessToken);
   }
   return res;
+}
+
+export async function getEnterpriseAdminInviteState(token: string) {
+  return apiFetch<EnterpriseAdminInviteState>("/auth/enterprise-admin/state", {
+    method: "POST",
+    auth: false,
+    body: JSON.stringify({ token }),
+  });
+}
+
+export async function acceptGlobalAdminInvite(payload: {
+  token: string;
+  newPassword?: string;
+  firstName?: string;
+  lastName?: string;
+}) {
+  const res = await apiFetch<AuthResponse>("/auth/global-admin/accept", {
+    method: "POST",
+    auth: false,
+    body: JSON.stringify(payload),
+  });
+  if (res.accessToken) {
+    setAccessToken(res.accessToken);
+  }
+  return res;
+}
+
+export async function getGlobalAdminInviteState(token: string) {
+  return apiFetch<GlobalAdminInviteState>("/auth/global-admin/state", {
+    method: "POST",
+    auth: false,
+    body: JSON.stringify({ token }),
+  });
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {

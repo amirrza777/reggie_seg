@@ -6,6 +6,13 @@ type HrefTarget = {
 
 export type SearchParamsReader = Pick<URLSearchParams, "get"> | null;
 
+const staffMarkingPathPatterns = [
+  /^\/staff\/marks(?:\/|$)/,
+  /^\/staff\/modules\/[^/]+\/marks(?:\/|$)/,
+  /^\/staff\/projects\/[^/]+\/teams\/[^/]+\/grading(?:\/|$)/,
+  /^\/staff\/peer-assessments\/module\/[^/]+\/team\/[^/]+(?:\/student\/[^/]+)?(?:\/|$)/,
+];
+
 export function normalizePath(path: string) {
   if (path === "/") {return "/";}
   return path.replace(/\/+$/, "");
@@ -19,7 +26,9 @@ export function isHrefActive(href: string, pathname: string | null, searchParams
   const currentPath = normalizePath(pathname);
 
   const pathMatches =
-    targetPath === "/"
+    targetPath === "/staff/marks"
+      ? isStaffMarkingPath(currentPath)
+      : targetPath === "/"
       ? currentPath === "/"
       : currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
 
@@ -33,6 +42,10 @@ export function isHrefActive(href: string, pathname: string | null, searchParams
   }
 
   return true;
+}
+
+function isStaffMarkingPath(path: string) {
+  return staffMarkingPathPatterns.some((pattern) => pattern.test(path));
 }
 
 export function getBestMatchingHref<T extends HrefTarget>(

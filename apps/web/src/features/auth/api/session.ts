@@ -1,4 +1,4 @@
-const ACCESS_TOKEN_KEY = "tf_access_token";
+export const ACCESS_TOKEN_STORAGE_KEY = "tf_access_token";
 const ACCESS_COOKIE_KEY = "tf_access_token";
 const ACCESS_MAX_AGE = 15 * 60; // keep cookie lifetime aligned with access token TTL (15m)
 export const AUTH_STATE_EVENT = "tf:auth-state";
@@ -29,19 +29,19 @@ function readCookie(name: string): string | null {
 function readStoredAccessToken(): string | null {
   const storage = window.localStorage as { getItem?: (key: string) => string | null };
   if (typeof storage?.getItem !== "function") {return null;}
-  return storage.getItem(ACCESS_TOKEN_KEY);
+  return storage.getItem(ACCESS_TOKEN_STORAGE_KEY);
 }
 
 function writeStoredAccessToken(token: string) {
   const storage = window.localStorage as { setItem?: (key: string, value: string) => void };
   if (typeof storage?.setItem !== "function") {return;}
-  storage.setItem(ACCESS_TOKEN_KEY, token);
+  storage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
 }
 
 function clearStoredAccessToken() {
   const storage = window.localStorage as { removeItem?: (key: string) => void };
   if (typeof storage?.removeItem !== "function") {return;}
-  storage.removeItem(ACCESS_TOKEN_KEY);
+  storage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
 }
 
 function emitAuthState(authenticated: boolean) {

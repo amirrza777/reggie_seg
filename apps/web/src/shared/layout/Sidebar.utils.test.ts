@@ -18,6 +18,15 @@ describe("Sidebar.utils", () => {
     expect(isHrefActive("/staff", null, params)).toBe(false);
   });
 
+  it("treats staff marking routes as active for the marking navigation link", () => {
+    expect(isHrefActive("/staff/marks", "/staff/marks", null)).toBe(true);
+    expect(isHrefActive("/staff/marks", "/staff/modules/14/marks", null)).toBe(true);
+    expect(isHrefActive("/staff/marks", "/staff/projects/2/teams/3/grading", null)).toBe(true);
+    expect(isHrefActive("/staff/marks", "/staff/peer-assessments/module/8/team/5", null)).toBe(true);
+    expect(isHrefActive("/staff/marks", "/staff/peer-assessments/module/8/team/5/student/4", null)).toBe(true);
+    expect(isHrefActive("/staff/marks", "/staff/projects/2/teams/3/teamhealth", null)).toBe(false);
+  });
+
   it("picks the most specific matching href", () => {
     const targets = [
       { href: "/staff" },

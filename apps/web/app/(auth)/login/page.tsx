@@ -1,7 +1,11 @@
 'use client';
 
+import { useEffect } from "react";
 import Link from 'next/link';
+import { useRouter } from "next/navigation";
 import { LoginForm } from '@/features/auth/components/LoginForm';
+import { useUser } from "@/features/auth/useUser";
+import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
 
 const AuthHeader = () => (
   <div className="auth-header">
@@ -27,6 +31,16 @@ const AuthFooter = () => (
 );
 
 export default function LoginPage() {
+  const { user, loading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading || !user) {
+      return;
+    }
+    router.replace(getDefaultSpaceOverviewPath(user));
+  }, [loading, router, user]);
+
   return (
     <div className="auth-card">
       <AuthHeader />

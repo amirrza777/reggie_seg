@@ -293,4 +293,92 @@ describe("AppProviders", () => {
       expect(mockLocation.reload).not.toHaveBeenCalled();
     });
   });
+
+  it("extracts build id from next static script urls when __NEXT_DATA__ is unavailable", async () => {
+    process.env.NODE_ENV = "production";
+    localStorage.setItem("tf_last_build_id", "build-a");
+    delete (window as Window & { __NEXT_DATA__?: { buildId?: string } }).__NEXT_DATA__;
+
+    const script = document.createElement("script");
+    script.setAttribute("src", "/_next/static/build-from-script/pages/index.js");
+    document.body.appendChild(script);
+
+    const unregister = vi.fn().mockResolvedValue(true);
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: { getRegistrations: vi.fn().mockResolvedValue([{ unregister }]) },
+    });
+    Object.defineProperty(window, "caches", {
+      configurable: true,
+      value: { keys: vi.fn().mockResolvedValue(["cache-a"]), delete: vi.fn().mockResolvedValue(true) },
+    });
+
+    render(
+      <AppProviders>
+        <div>child</div>
+      </AppProviders>,
+    );
+
+    await waitFor(() => {
+      expect(mockLocation.reload).toHaveBeenCalledTimes(1);
+    });
+    expect(localStorage.getItem("tf_last_build_id")).toBe("build-from-script");
+
+    script.remove();
+  });
+
+  it("handles cache-clearing api errors without reloading", async () => {
+    process.env.NODE_ENV = "development";
+    localStorage.setItem("tf_last_build_id", "build-a");
+    sessionStorage.setItem("tf_dev_cache_check_at", "0");
+
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: { getRegistrations: vi.fn().mockRejectedValue(new Error("sw failed")) },
+    });
+    Object.defineProperty(window, "caches", {
+      configurable: true,
+      value: { keys: vi.fn().mockRejectedValue(new Error("cache failed")), delete: vi.fn() },
+    });
+
+    render(
+      <AppProviders>
+        <div>child</div>
+      </AppProviders>,
+    );
+
+    await waitFor(() => {
+      expect(mockLocation.reload).not.toHaveBeenCalled();
+    });
+  });
+
+  it("does not throw when storage access fails and falls back to unknown build id", async () => {
+    process.env.NODE_ENV = "production";
+    const badStorage = {
+      getItem: vi.fn(() => {
+        throw new Error("storage get failed");
+      }),
+      setItem: vi.fn(() => {
+        throw new Error("storage set failed");
+      }),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      key: vi.fn(),
+      length: 0,
+    } as unknown as Storage;
+
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: badStorage,
+    });
+    delete (window as Window & { __NEXT_DATA__?: { buildId?: string } }).__NEXT_DATA__;
+
+    expect(() =>
+      render(
+        <AppProviders>
+          <div>child</div>
+        </AppProviders>,
+      ),
+    ).not.toThrow();
+  });
 });

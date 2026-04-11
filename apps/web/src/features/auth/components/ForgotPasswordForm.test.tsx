@@ -17,7 +17,7 @@ describe("ForgotPasswordForm", () => {
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "user@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
     await waitFor(() => expect(resetMock).toHaveBeenCalledWith("user@example.com"));
-    expect(screen.getByText(/reset link has been sent/i)).toBeInTheDocument();
+    expect(await screen.findByText(/reset link has been sent/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /back to log in/i })).toBeInTheDocument();
   });
 

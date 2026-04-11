@@ -99,4 +99,19 @@ describe("AdminLayout", () => {
       { href: "/admin/enterprises", label: "Enterprises", space: "admin" },
     ]);
   });
+
+  it("omits enterprise navigation for non-super admins", async () => {
+    getCurrentUserMock.mockResolvedValue({ email: "admin+staff@kcl.ac.uk" } as Awaited<ReturnType<typeof getCurrentUser>>);
+    isAdminMock.mockReturnValue(true);
+
+    const page = await AdminLayout({ children: <div data-testid="child">child</div> });
+    render(page);
+
+    expect(screen.getByTestId("child")).toBeInTheDocument();
+    const desktopSidebar = sidebarCalls.find((entry) => entry.mode === "desktop");
+    expect(desktopSidebar?.links).toEqual([
+      { href: "/admin", label: "Admin dashboard", space: "admin" },
+      { href: "/enterprise/modules", label: "Module management", space: "admin" },
+    ]);
+  });
 });

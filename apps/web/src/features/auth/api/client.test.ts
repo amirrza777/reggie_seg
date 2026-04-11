@@ -16,6 +16,9 @@ vi.mock("./session", () => ({
 
 import {
   acceptEnterpriseAdminInvite,
+  acceptGlobalAdminInvite,
+  getEnterpriseAdminInviteState,
+  getGlobalAdminInviteState,
   confirmEmailChange,
   deleteAccount,
   getCurrentUser,
@@ -105,6 +108,48 @@ describe("auth api client", () => {
     expect(setAccessTokenMock).toHaveBeenCalledWith("invite-token");
   });
 
+  it("resolves enterprise admin invite state", async () => {
+    apiFetchMock.mockResolvedValue({ mode: "existing_account" });
+
+    await getEnterpriseAdminInviteState("abc123");
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/auth/enterprise-admin/state", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify({ token: "abc123" }),
+    });
+  });
+
+  it("accepts a global admin invite and stores access token", async () => {
+    apiFetchMock.mockResolvedValue({ accessToken: "global-invite-token" });
+
+    await acceptGlobalAdminInvite({
+      token: "abc123",
+      newPassword: "secret-pass",
+      firstName: "Ada",
+      lastName: "Lovelace",
+    });
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/auth/global-admin/accept", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify({ token: "abc123", newPassword: "secret-pass", firstName: "Ada", lastName: "Lovelace" }),
+    });
+    expect(setAccessTokenMock).toHaveBeenCalledWith("global-invite-token");
+  });
+
+  it("resolves global admin invite state", async () => {
+    apiFetchMock.mockResolvedValue({ mode: "existing_account" });
+
+    await getGlobalAdminInviteState("abc123");
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/auth/global-admin/state", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify({ token: "abc123" }),
+    });
+  });
+
   it("submits reset password payload", async () => {
     apiFetchMock.mockResolvedValue(undefined);
     await resetPassword({ token: "abc", newPassword: "new-pass" });
@@ -131,6 +176,24 @@ describe("auth api client", () => {
     expect(token).toBeNull();
   });
 
+  it("clears access token when refresh responds without a token", async () => {
+    apiFetchMock.mockResolvedValue({});
+
+    const token = await refreshAccessToken();
+
+    expect(token).toBeNull();
+    expect(clearAccessTokenMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears access token on unauthorized refresh errors", async () => {
+    apiFetchMock.mockRejectedValue(new ApiError("Unauthorized", { status: 401 }));
+
+    const token = await refreshAccessToken();
+
+    expect(token).toBeNull();
+    expect(clearAccessTokenMock).toHaveBeenCalledTimes(1);
+  });
+
   it("retries getCurrentUser after 401 when refresh succeeds", async () => {
     apiFetchMock
       .mockRejectedValueOnce(new ApiError("Unauthorized", { status: 401 }))
@@ -154,6 +217,13 @@ describe("auth api client", () => {
     expect(user).toBeNull();
   });
 
+  it("rethrows non-401 getCurrentUser errors", async () => {
+    const error = new ApiError("Forbidden", { status: 403 });
+    apiFetchMock.mockRejectedValue(error);
+
+    await expect(getCurrentUser()).rejects.toBe(error);
+  });
+
   it("retries updateProfile after 401 when refresh succeeds", async () => {
     apiFetchMock
       .mockRejectedValueOnce(new ApiError("Unauthorized", { status: 401 }))
@@ -172,6 +242,22 @@ describe("auth api client", () => {
       body: JSON.stringify({ firstName: "Ayan" }),
     });
     expect(result).toEqual({ id: 1, firstName: "Ayan" });
+  });
+
+  it("rethrows non-401 updateProfile errors", async () => {
+    const error = new ApiError("Forbidden", { status: 403 });
+    apiFetchMock.mockRejectedValue(error);
+
+    await expect(updateProfile({ firstName: "Ayan" })).rejects.toBe(error);
+  });
+
+  it("throws original updateProfile error when refresh returns no token", async () => {
+    const unauthorized = new ApiError("Unauthorized", { status: 401 });
+    apiFetchMock
+      .mockRejectedValueOnce(unauthorized)
+      .mockResolvedValueOnce({});
+
+    await expect(updateProfile({ firstName: "Ayan" })).rejects.toBe(unauthorized);
   });
 
   it("calls email change request endpoints", async () => {
@@ -229,6 +315,21 @@ describe("auth api client", () => {
     expect(clearAccessTokenMock).toHaveBeenCalled();
   });
 
+  it("rethrows non-401 deleteAccount errors", async () => {
+    const error = new ApiError("Forbidden", { status: 403 });
+    apiFetchMock.mockRejectedValue(error);
+
+    await expect(deleteAccount({ password: "secret" })).rejects.toBe(error);
+  });
+
+  it("throws unauthorized deleteAccount error when refresh returns no token", async () => {
+    apiFetchMock
+      .mockRejectedValueOnce(new ApiError("Unauthorized", { status: 401 }))
+      .mockResolvedValueOnce({});
+
+    await expect(deleteAccount({ password: "secret" })).rejects.toMatchObject({ status: 401 });
+  });
+
   it("joins enterprise by code", async () => {
     apiFetchMock.mockResolvedValue(undefined);
 
@@ -259,6 +360,21 @@ describe("auth api client", () => {
     });
   });
 
+  it("rethrows non-401 joinEnterpriseByCode errors", async () => {
+    const error = new ApiError("Forbidden", { status: 403 });
+    apiFetchMock.mockRejectedValue(error);
+
+    await expect(joinEnterpriseByCode({ enterpriseCode: "ENT2" })).rejects.toBe(error);
+  });
+
+  it("throws unauthorized joinEnterpriseByCode error when refresh returns no token", async () => {
+    apiFetchMock
+      .mockRejectedValueOnce(new ApiError("Unauthorized", { status: 401 }))
+      .mockResolvedValueOnce({});
+
+    await expect(joinEnterpriseByCode({ enterpriseCode: "ENT2" })).rejects.toMatchObject({ status: 401 });
+  });
+
   it("leaves enterprise", async () => {
     apiFetchMock.mockResolvedValue(undefined);
 
@@ -284,5 +400,29 @@ describe("auth api client", () => {
     expect(apiFetchMock).toHaveBeenNthCalledWith(3, "/auth/enterprise/leave", {
       method: "POST",
     });
+  });
+
+  it("rethrows non-401 leaveEnterprise errors", async () => {
+    const error = new ApiError("Forbidden", { status: 403 });
+    apiFetchMock.mockRejectedValue(error);
+
+    await expect(leaveEnterprise()).rejects.toBe(error);
+  });
+
+  it("throws unauthorized leaveEnterprise error when refresh returns no token", async () => {
+    apiFetchMock
+      .mockRejectedValueOnce(new ApiError("Unauthorized", { status: 401 }))
+      .mockResolvedValueOnce({});
+
+    await expect(leaveEnterprise()).rejects.toMatchObject({ status: 401 });
+  });
+
+  it("clears access token when logout succeeds", async () => {
+    apiFetchMock.mockResolvedValue(undefined);
+
+    await logout();
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/auth/logout", { method: "POST" });
+    expect(clearAccessTokenMock).toHaveBeenCalledTimes(1);
   });
 });

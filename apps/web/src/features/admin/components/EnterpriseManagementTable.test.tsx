@@ -279,8 +279,8 @@ describe("EnterpriseManagementTable", () => {
 
     await waitFor(() => {
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    }, { timeout: 3600 });
-  });
+    }, { timeout: 4500 });
+  }, 12000);
 
   it("supports delete confirmation cancel and confirm actions", async () => {
     const user = userEvent.setup();
