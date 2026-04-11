@@ -57,7 +57,7 @@ export async function createMeetingHandler(req: Request, res: Response) {
       location,
       videoCallLink,
       agenda,
-      participantIds: Array.isArray(participantIds) ? participantIds : undefined,
+      ...(Array.isArray(participantIds) && { participantIds }),
     });
     res.status(201).json(meeting);
   } catch (error: any) {
@@ -90,12 +90,12 @@ export async function updateMeetingHandler(req: Request, res: Response) {
   try {
     const meeting = await editMeeting(meetingId, userId, {
       title,
-      date: date ? new Date(date) : undefined,
       subject,
       location,
       videoCallLink,
       agenda,
-      participantIds: Array.isArray(participantIds) ? participantIds : undefined,
+      ...(date && { date: new Date(date) }),
+      ...(Array.isArray(participantIds) && { participantIds }),
     });
     res.json(meeting);
   } catch (error: any) {

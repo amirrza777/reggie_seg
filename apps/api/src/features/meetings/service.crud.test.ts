@@ -256,6 +256,19 @@ describe("meetings crud service", () => {
     ).rejects.toEqual({ code: "TEAM_ARCHIVED" });
   });
 
+  it("throws MODULE_ARCHIVED when module is archived", async () => {
+    (repo.getTeamMeetingState as any).mockResolvedValue({
+      archivedAt: null,
+      inactivityFlag: "NONE",
+      project: { module: { archivedAt: new Date() } },
+    });
+
+    await expect(
+      addMeeting({ teamId: 1, organiserId: 1, title: "Team Meeting", date: new Date("2026-03-01") })
+    ).rejects.toEqual({ code: "MODULE_ARCHIVED" });
+    expect(repo.createMeeting).not.toHaveBeenCalled();
+  });
+
   it("throws NOT_FOUND from editMeeting when meeting does not exist", async () => {
     (repo.getMeetingById as any).mockResolvedValue(null);
 

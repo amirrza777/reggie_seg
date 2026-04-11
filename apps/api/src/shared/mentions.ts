@@ -59,7 +59,8 @@ export function resolveMentionedMembers<T extends NamedMember>(
   const resolved = new Map<number, T>();
   for (const name of mentionedNames) {
     const matched = (membersByName.get(normalizeName(name)) ?? []).filter((m) => m.id !== authorId);
-    if (matched.length === 1) resolved.set(matched[0].id, matched[0]);
+    const single = matched.length === 1 ? matched[0] : null;
+    if (single) resolved.set(single.id, single);
   }
 
   return [...resolved.values()];
