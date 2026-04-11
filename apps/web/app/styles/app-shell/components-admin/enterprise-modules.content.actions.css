@@ -1,0 +1,79 @@
+
+.enterprise-module-create__filter-toggle--align-end {
+  width: fit-content;
+  margin-inline-start: auto;
+}
+
+.enterprise-module-create__filter-toggle-label {
+  font-size: var(--fs-body-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-strong);
+  line-height: 1.35;
+  flex: 1;
+  min-width: 0;
+}
+
+.enterprise-module-create__filter-switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border: 0;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--border) 75%, var(--surface));
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.enterprise-module-create__filter-switch[aria-checked="true"] {
+  background: var(--status-success, var(--color-fixed-16a34a));
+}
+
+.enterprise-module-create__filter-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-fixed-fff);
+  box-shadow: 0 1px 3px var(--color-fixed-rgb-0-0-0-20);
+  transition: transform 0.2s ease;
+}
+
+.enterprise-module-create__filter-switch[aria-checked="true"]::after {
+  transform: translateX(18px);
+}
+
+.enterprise-module-create__filter-switch:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.enterprise-module-create__filter-switch:focus-visible {
+  outline: 2px solid var(--accent, var(--status-success));
+  outline-offset: 2px;
+}
+
+/* Staff module → Students: matrix table links */
+a.ui-link.staff-module-students-matrix__team-link {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+a.ui-link.staff-module-students-matrix__team-link:hover {
+  text-decoration: underline;
+}
+
+.staff-module-students-matrix__project-head-link {
+  color: inherit;
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+}
+
+.staff-module-students-matrix__project-head-link:hover,
+.staff-module-students-matrix__project-head-link:focus-visible {
+  color: var(--status-info-text, var(--ink-strong));
+  text-decoration: none;
+}

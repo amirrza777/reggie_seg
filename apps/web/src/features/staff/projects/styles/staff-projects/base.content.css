@@ -1,3 +1,3 @@
-@import "./base.content.part1.css";
-@import "./base.content.part2.css";
-@import "./base.content.part3.css";
+@import "./base.content.shell.css";
+@import "./base.content.modules.css";
+@import "./base.content.overview.css";
