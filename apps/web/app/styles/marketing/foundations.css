@@ -57,7 +57,7 @@
   z-index: 2;
 }
 
-@media (max-width: 479px) {
+@media (max-width: 480px) {
   .marketing-shell::before {
     background-image:
       linear-gradient(180deg, var(--color-fixed-rgba-32-173-120-0-28) 0%, transparent 24%),
@@ -73,6 +73,7 @@
     mix-blend-mode: screen;
   }
 }
+
 [data-reveal] {
   --reveal-translate: 22px;
   opacity: 0;
@@ -220,4 +221,26 @@ html.reveal-ready [data-reveal].is-visible {
 .marketing-shell .lede,
 .marketing-shell .muted {
   font-size: var(--landing-body);
+}
+
+/* Short-height layouts (common on landscape phones/tablets):
+   reduce vertical chrome so core content stays visible sooner. */
+@media (max-height: 760px) and (orientation: landscape) {
+  .hero {
+    padding-top: clamp(44px, 9vh, 72px);
+    padding-bottom: clamp(8px, 2vh, 18px);
+  }
+
+  .hero__centerpiece {
+    gap: 12px;
+  }
+
+  .hero__cta-row--hero {
+    margin-top: 10px;
+  }
+
+  .hero__grid {
+    gap: 22px;
+    padding: 20px 0;
+  }
 }

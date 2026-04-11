@@ -338,3 +338,28 @@
   border-color: var(--accent-border);
   box-shadow: none;
 }
+
+@media (max-height: 760px) and (min-width: 861px) {
+  .workspace-shell .help-page {
+    gap: clamp(16px, 2.6vw, 24px);
+    --help-hub-panel-inset: clamp(8px, 1.8vw, 14px);
+  }
+
+  .workspace-shell .help-hub__hero {
+    padding: clamp(16px, 2.2vw, 24px);
+    gap: 12px;
+  }
+
+  .workspace-shell .help-hub__hero h1 {
+    font-size: var(--fs-fixed-clamp-2rem-3vw-2-8rem);
+  }
+
+  .workspace-shell .help-nav {
+    top: 4px;
+    padding: 10px;
+  }
+
+  .workspace-shell .help-hub__card {
+    min-height: 170px;
+  }
+}

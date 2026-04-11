@@ -130,3 +130,31 @@
     width: fit-content;
   }
 }
+
+@media (max-height: 760px) {
+  .peer-assessment-list-intro {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+  }
+
+  .peer-assessment-card {
+    min-height: 110px;
+    padding: 12px;
+    gap: 7px;
+  }
+}
+
+@media (max-height: 560px) {
+  .peer-assessment-list {
+    gap: 8px;
+  }
+
+  .peer-assessment-card {
+    min-height: 102px;
+    padding: 10px;
+  }
+
+  .peer-assessment-card__header {
+    gap: 8px;
+  }
+}

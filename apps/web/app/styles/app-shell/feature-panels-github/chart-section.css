@@ -401,3 +401,36 @@
 .github-chart-section__insight-subtext {
   display: none;
 }
+
+@media (max-height: 760px) and (orientation: landscape) {
+  .github-chart-section {
+    gap: 16px;
+    margin-top: 10px;
+    padding-top: 8px;
+  }
+
+  .github-chart-section__grid {
+    gap: 10px;
+  }
+
+  .github-chart-section__subnav {
+    top: 4px;
+    padding: 6px;
+  }
+
+  .github-chart-section__subnav-btn {
+    min-height: 34px;
+  }
+
+  .github-chart-section__canvas--xl {
+    height: 204px;
+  }
+
+  .github-chart-section__canvas--md {
+    height: 176px;
+  }
+
+  .github-chart-section__canvas--weekly {
+    height: 188px;
+  }
+}

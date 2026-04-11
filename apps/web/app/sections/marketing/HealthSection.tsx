@@ -1,3 +1,5 @@
+import { MarketingPicture } from "./MarketingPicture";
+
 export const HealthSection = () => (
   <section className="section section--muted" id="health">
     <div className="container split split--center" data-reveal-group>
@@ -14,9 +16,13 @@ export const HealthSection = () => (
         </p>
       </div>
       <div className="split__visual split__visual--soft" data-reveal>
-        <div className="visual-placeholder">
-          <p className="eyebrow">Analytics</p>
-          <p className="muted">Slot in your analytics dashboard or trend lines.</p>
+        <div className="split__visual-media">
+          <MarketingPicture
+            index={5}
+            alt="Analytics dashboard with team health trends"
+            pictureClassName="split__visual-picture"
+            imageClassName="split__visual-image"
+          />
         </div>
       </div>
     </div>

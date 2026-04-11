@@ -12,10 +12,17 @@
     "build": "next build",
     "prestart": "node scripts/ensure-next-build.js",
     "start": "next start -p 3001",
-    "lint": "next lint",
+    "lint": "next lint && npm run lint:responsive",
+    "lint:responsive": "node scripts/check-responsive-contract.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "node scripts/run-vitest-coverage.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
+    "test:e2e:responsive": "playwright test e2e/responsive/public-routes.spec.ts",
+    "test:e2e:responsive:auth": "PLAYWRIGHT_AUTH_TESTS=1 PLAYWRIGHT_REQUIRE_API=1 playwright test e2e/responsive/authenticated-routes.spec.ts --workers=1 --retries=1",
+    "test:responsive:sitewide": "npm run lint:responsive && npm run test:e2e:responsive",
+    "test:responsive:sitewide:full": "npm run lint:responsive && npm run test:e2e:responsive && npm run test:e2e:responsive:auth",
     "postinstall": "npm rebuild esbuild",
     "lint:functions": "eslint \"src/**/*.{ts,tsx}\" --max-warnings 0 --ignore-pattern \"**/*.test.*\" --ignore-pattern \"**/*.spec.*\" --ignore-pattern \"**/__tests__/**\" --ignore-pattern \"**/*.test-helpers.*\""
   },
@@ -29,6 +36,7 @@
     "recharts": "^3.8.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.6.1",

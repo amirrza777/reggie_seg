@@ -41,6 +41,7 @@ export default defineConfig({
         "**/node_modules_broken*/**",
         "**/.next/**",
         "**/coverage/**",
+        "src/test-utils/server-only.ts",
       ],
     },
     alias: {

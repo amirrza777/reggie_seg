@@ -151,3 +151,34 @@
     padding: 16px var(--space-panel-content-inset);
   }
 }
+
+@media (max-height: 760px) {
+  .project-list__grid {
+    gap: 14px;
+    margin-top: 10px;
+  }
+
+  .project-card {
+    gap: 10px;
+    padding: 14px var(--space-panel-content-inset);
+  }
+
+  .project-card__footer {
+    padding-top: 10px;
+  }
+}
+
+@media (max-height: 560px) {
+  .project-list__grid {
+    gap: 12px;
+  }
+
+  .project-card {
+    min-height: 140px;
+    padding: 12px var(--space-panel-content-inset);
+  }
+
+  .project-list-empty {
+    padding: 20px 18px;
+  }
+}

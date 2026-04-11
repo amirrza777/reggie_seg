@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { toolkitCards, type ToolkitCardItem } from "../../content/marketing";
+import { MarketingPicture } from "./MarketingPicture";
 
-const ToolkitCard = ({ card }: { card: ToolkitCardItem }) => (
+const ToolkitCard = ({ card, imageIndex }: { card: ToolkitCardItem; imageIndex: number }) => (
   <article className="feature-card" data-reveal>
     <div className="feature-card__visual">
-      <p className="eyebrow">Placeholder</p>
-      <p className="muted">Swap in the real UI later.</p>
+      <MarketingPicture
+        index={imageIndex}
+        alt={`${card.title} interface preview`}
+        pictureClassName="feature-card__picture"
+        imageClassName="feature-card__image"
+      />
     </div>
     <h3>{card.title}</h3>
     <p className="muted">{card.body}</p>
@@ -25,8 +30,8 @@ export const ToolkitSection = () => (
         </p>
       </div>
       <div className="card-grid" data-reveal-group>
-        {toolkitCards.map((card) => (
-          <ToolkitCard key={card.title} card={card} />
+        {toolkitCards.map((card, index) => (
+          <ToolkitCard key={card.title} card={card} imageIndex={index + 6} />
         ))}
       </div>
     </div>

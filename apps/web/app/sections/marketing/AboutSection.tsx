@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MarketingPicture } from "./MarketingPicture";
 
 export const AboutSection = () => (
   <section className="section section--muted" id="about">
@@ -17,9 +18,13 @@ export const AboutSection = () => (
         </div>
       </div>
       <div className="split__visual split__visual--soft" data-reveal>
-        <div className="visual-placeholder">
-          <p className="eyebrow">Flow</p>
-          <p className="muted">Add the peer assessment journey or form UI here.</p>
+        <div className="split__visual-media">
+          <MarketingPicture
+            index={3}
+            alt="Peer assessment workflow screen"
+            pictureClassName="split__visual-picture"
+            imageClassName="split__visual-image"
+          />
         </div>
       </div>
     </div>

@@ -9,6 +9,8 @@ build/
 !.env.example
 .DS_Store
 coverage/
+playwright-report/
+test-results/
 .vscode/
 .next/
 apps/web/.next/

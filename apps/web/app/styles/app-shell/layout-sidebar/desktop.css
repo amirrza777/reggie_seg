@@ -236,7 +236,7 @@
   font-weight: var(--fw-semibold);
 }
 
-@media (max-height: 820px) and (min-width: 1025px) {
+@media (max-height: 820px) and (min-width: 1024px) {
   .app-shell__sidebar {
     padding: 10px 8px;
   }

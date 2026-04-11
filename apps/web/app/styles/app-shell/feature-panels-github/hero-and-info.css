@@ -189,3 +189,26 @@
   line-height: 1.55;
   color: var(--ink);
 }
+
+@media (max-height: 760px) {
+  .github-hero__chips {
+    margin-top: 8px;
+  }
+
+  .github-chart-info__overlay {
+    padding: 12px;
+  }
+
+  .github-chart-info__modal {
+    max-height: 92vh;
+  }
+
+  .github-chart-info__header {
+    padding: 12px 14px;
+  }
+
+  .github-chart-info__body {
+    padding: 14px;
+    gap: 10px;
+  }
+}

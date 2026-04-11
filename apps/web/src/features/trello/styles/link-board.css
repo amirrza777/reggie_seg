@@ -170,3 +170,22 @@
     height: auto;
   }
 }
+
+@media (max-height: 760px) and (orientation: landscape) {
+  .trello-link-board {
+    gap: 12px;
+  }
+
+  .trello-link-board__controls {
+    gap: 10px;
+  }
+
+  .trello-link-board__preview {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .trello-link-board__lists {
+    gap: 10px;
+  }
+}

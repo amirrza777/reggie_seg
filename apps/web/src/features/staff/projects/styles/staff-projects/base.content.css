@@ -33,7 +33,7 @@
   align-items: stretch;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 768px) {
   .staff-module-students__enrollment-grid {
     grid-template-columns: 1fr;
   }
@@ -641,7 +641,7 @@
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
-@media (max-width: 920px) {
+@media (max-width: 1024px) {
   .staff-projects__module-project-head {
     display: grid;
   }

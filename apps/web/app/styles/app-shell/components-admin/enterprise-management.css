@@ -147,3 +147,17 @@
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
 }
+
+@media (max-height: 760px) {
+  .enterprise-management__modal {
+    max-height: 92vh;
+  }
+
+  .enterprise-management__modal-body {
+    gap: 8px;
+  }
+
+  .enterprise-management__modal-table {
+    max-height: min(60vh, 460px);
+  }
+}

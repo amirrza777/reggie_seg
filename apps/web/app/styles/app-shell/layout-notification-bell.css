@@ -52,7 +52,9 @@
   position: absolute;
   right: 0;
   top: calc(100% + 12px);
-  min-width: min(340px, 92vw);
+  width: min(340px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  min-width: 0;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   z-index: 20;
@@ -177,6 +179,7 @@
 .notification-bell__message {
   font-weight: var(--fw-medium);
   color: var(--ink);
+  overflow-wrap: anywhere;
 }
 
 .notification-bell__item--unread .notification-bell__message {
@@ -194,5 +197,31 @@
   .notification-bell__trigger {
     -webkit-backdrop-filter: blur(var(--glass-ui-blur));
     backdrop-filter: blur(var(--glass-ui-blur));
+  }
+}
+
+@media (max-height: 760px) {
+  .notification-bell__dropdown {
+    top: calc(100% + 8px);
+  }
+
+  .notification-bell__list {
+    max-height: min(48vh, 260px);
+  }
+}
+
+@media (max-width: 860px) and (max-aspect-ratio: 1 / 2) {
+  .notification-bell__dropdown {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 60px);
+    right: calc(env(safe-area-inset-right, 0px) + 12px);
+    left: calc(env(safe-area-inset-left, 0px) + 12px);
+    width: auto;
+    max-width: none;
+  }
+
+  .notification-bell__header {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }

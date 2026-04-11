@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MarketingPicture } from "./MarketingPicture";
 
 export const ProductSection = () => (
   <section className="section" id="product">
@@ -21,9 +22,13 @@ export const ProductSection = () => (
         </div>
       </div>
       <div className="split__visual split__visual--frame" data-reveal>
-        <div className="visual-placeholder">
-          <p className="eyebrow">Screenshot</p>
-          <p className="muted">Drop your feedback cycle visual or dashboard here.</p>
+        <div className="split__visual-media">
+          <MarketingPicture
+            index={1}
+            alt="Team Feedback dashboard shown in a MacBook mockup"
+            pictureClassName="split__visual-picture"
+            imageClassName="split__visual-image split__visual-image--product"
+          />
         </div>
       </div>
     </div>

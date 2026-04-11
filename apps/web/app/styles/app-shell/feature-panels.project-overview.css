@@ -330,3 +330,42 @@
 .project-overview-marking__meta {
   line-height: 1.45;
 }
+
+@media (max-height: 760px) and (orientation: landscape) {
+  .project-overview-layout {
+    gap: 12px;
+  }
+
+  .project-overview-hero {
+    padding: 12px;
+  }
+
+  .project-overview-hero__facts {
+    gap: 8px;
+  }
+
+  .project-overview-hero__fact {
+    padding: 10px 12px;
+  }
+
+  .project-overview-schedule__row {
+    padding: 8px 10px;
+  }
+
+  .project-overview-schedule--expanded .project-overview-schedule__row {
+    padding: 12px 14px;
+  }
+
+  .project-overview-info__content-box {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .project-overview-marking {
+    gap: 14px;
+  }
+
+  .project-overview-marking__section + .project-overview-marking__section {
+    padding-top: 14px;
+  }
+}

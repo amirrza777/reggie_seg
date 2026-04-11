@@ -298,3 +298,58 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+
+@media (max-height: 760px) {
+  .github-project-repos-tabs {
+    top: var(--pill-nav-sticky-top, 6px);
+    padding: 8px;
+  }
+
+  .github-project-repos-tabs__row {
+    gap: 6px;
+  }
+
+  .github-project-repos-tabs__btn {
+    min-height: 34px;
+    padding-inline: 10px;
+  }
+
+  .github-repos-tab {
+    padding: 14px;
+  }
+
+  .github-repos-tab__list,
+  .github-repos-tab__helper,
+  .github-repos-tab__table-wrap,
+  .github-repos-tab__pager {
+    margin-top: 8px;
+  }
+
+  .github-repos-tab__subpanel {
+    margin-top: 10px;
+    padding: 10px;
+  }
+
+  .github-project-repos-section__header-card {
+    padding: 12px 14px;
+  }
+}
+
+@media (max-height: 560px) {
+  .github-repos-tab {
+    padding: 12px;
+  }
+
+  .github-repos-tab__summary-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .github-repos-tab__select {
+    min-height: 36px;
+    padding: 7px 9px;
+  }
+
+  .github-project-repos-section {
+    gap: 10px;
+  }
+}

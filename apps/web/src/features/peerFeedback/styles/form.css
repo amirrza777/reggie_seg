@@ -195,3 +195,42 @@
     align-items: flex-start;
   }
 }
+
+@media (max-height: 760px) {
+  .feedbackReviewForm .headerContainer {
+    gap: 12px;
+  }
+
+  .feedbackReviewForm .reviewBox {
+    min-height: 88px;
+    padding: 8px 10px;
+  }
+
+  .feedbackReviewForm .agreementSection {
+    margin-top: 12px;
+  }
+
+  .feedbackReviewForm .answersList {
+    margin: 10px 0;
+    gap: 12px;
+  }
+}
+
+@media (max-height: 560px) {
+  .feedbackReviewForm .reviewBox {
+    min-height: 80px;
+  }
+
+  .feedbackReviewForm .answersList {
+    gap: 10px;
+  }
+
+  .feedbackReviewForm .answerItem {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  .feedbackReviewForm .answerPreviewGroup--rating {
+    gap: 10px;
+  }
+}

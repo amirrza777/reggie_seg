@@ -304,7 +304,7 @@
   }
 }
 
-@media (min-width: 1025px) {
+@media (min-width: 1024px) {
   .workspace-shell .help-hub__tasks-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -314,7 +314,7 @@
   }
 }
 
-@media (min-width: 1220px) {
+@media (min-width: 1280px) {
   .workspace-shell .help-hub__grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
@@ -368,5 +368,38 @@
 
   .workspace-shell .help-playbook__steps {
     padding-left: 30px;
+  }
+}
+
+@media (max-height: 760px) and (min-width: 861px) {
+  .workspace-shell .help-hub__tasks {
+    gap: 10px;
+  }
+
+  .workspace-shell .help-hub__task-link,
+  .workspace-shell .help-hub__result-link {
+    padding: 11px 12px;
+    gap: 4px;
+  }
+
+  .workspace-shell .help-faq__group-toggle {
+    padding: 12px 14px;
+  }
+
+  .workspace-shell .help-faq__group-panel {
+    padding: 0 14px 12px;
+  }
+
+  .workspace-shell .help-playbook__summary {
+    padding: 12px 14px;
+  }
+
+  .workspace-shell .help-playbook__steps {
+    padding: 12px 14px 0 30px;
+    gap: 6px;
+  }
+
+  .workspace-shell .help-playbook__tip {
+    padding: 10px 14px 14px;
   }
 }

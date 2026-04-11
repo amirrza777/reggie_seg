@@ -25,7 +25,7 @@
 }
 
 .split__visual {
-  aspect-ratio: 1 / 1;
+  aspect-ratio: var(--ratio-square);
   display: grid;
   place-items: center;
 }
@@ -42,11 +42,11 @@
 .showcase__frame {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 7;
+  aspect-ratio: var(--ratio-hero);
   border-radius: 20px;
   overflow: hidden;
   border: 1px solid var(--border);
-  background: linear-gradient(135deg, var(--showcase-bg-start), var(--showcase-bg-end));
+  background: transparent;
   display: grid;
   place-items: center;
   box-shadow: 0 30px 80px var(--color-fixed-rgba-0-0-0-0-08);
@@ -56,34 +56,38 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 30% 35%, var(--color-fixed-rgba-32-173-120-0-2), transparent 55%),
-    radial-gradient(circle at 70% 55%, var(--color-fixed-rgba-32-173-120-0-18), transparent 60%),
-    linear-gradient(180deg, var(--color-fixed-rgba-255-255-255-0-7), var(--color-fixed-rgba-255-255-255-0-2));
+  background: none;
   pointer-events: none;
+}
+
+.showcase__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
 }
 
 .showcase__glow {
   position: absolute;
   inset: -18%;
-  background: radial-gradient(circle at 40% 40%, var(--color-fixed-rgba-32-173-120-0-26), transparent 55%),
-    radial-gradient(circle at 70% 60%, var(--color-fixed-rgba-32-173-120-0-18), transparent 60%);
+  background: none;
   filter: none;
-  opacity: 0.68;
+  opacity: 0;
   z-index: 1;
   pointer-events: none;
 }
 
-.showcase__content {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  gap: 6px;
-  text-align: center;
-  color: var(--ink);
-  padding: clamp(18px, 4vw, 32px);
-  background: var(--color-fixed-rgba-255-255-255-0-46);
-  border-radius: 16px;
-  box-shadow: 0 10px 30px var(--color-fixed-rgba-0-0-0-0-04);
+.showcase__picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.showcase__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .visual-placeholder {
@@ -99,6 +103,33 @@
   border-color: var(--visual-placeholder-ink);
   background: var(--visual-placeholder-surface);
   color: var(--muted);
+}
+
+.split__visual-media {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.split__visual-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.split__visual-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.split__visual-image--product {
+  transform: scale(1.4);
+  transform-origin: center;
 }
 
 .split__content {
@@ -232,7 +263,7 @@
   }
 }
 
-@media (min-width: 720px) and (max-width: 1023px) {
+@media (min-width: 768px) and (max-width: 1024px) {
   .card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 16px;
@@ -272,7 +303,7 @@
 
 .feature-card__visual {
   border-radius: 20px;
-  background: var(--feature-card-visual-bg);
+  background: none;
   width: 100%;
   height: clamp(220px, 32vw, 360px);
   max-height: 420px;
@@ -281,7 +312,22 @@
   place-items: center;
   text-align: center;
   color: var(--ink-quiet);
-  padding: 18px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.feature-card__picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.feature-card__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .feature-card .link-ghost {
@@ -304,5 +350,75 @@
 }
 
 .feature-tile__visual {
-  aspect-ratio: 4 / 3;
+  aspect-ratio: var(--ratio-standard);
+}
+
+@media (max-height: 760px) {
+  .split,
+  .feature-highlight {
+    gap: 24px;
+  }
+
+  .usecases {
+    gap: 16px;
+    margin-top: 22px;
+  }
+
+  .usecase-card {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .usecase-card__visual {
+    min-height: 136px;
+    padding: 14px;
+  }
+
+  .feature-highlight__visual {
+    min-height: 300px;
+  }
+
+  .feature-grid {
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .feature-card {
+    gap: 12px;
+  }
+
+  .feature-card__visual {
+    min-height: 168px;
+    height: clamp(200px, 28vw, 320px);
+    padding: 14px;
+  }
+
+  .feature-tile {
+    gap: 10px;
+    padding: 16px;
+  }
+}
+
+@media (max-height: 560px) {
+  .split,
+  .feature-highlight {
+    gap: 20px;
+  }
+
+  .usecase-card__visual {
+    min-height: 120px;
+  }
+
+  .feature-highlight__visual {
+    min-height: 260px;
+  }
+
+  .feature-card__visual {
+    min-height: 150px;
+    height: clamp(180px, 26vw, 280px);
+  }
+
+  .card-grid {
+    row-gap: 24px;
+  }
 }

@@ -1,4 +1,23 @@
 @media (max-width: 860px) {
+  .topbar {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+  }
+
+  .topbar__main {
+    order: 1;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .topbar__actions {
+    order: 2;
+  }
+
+  .topbar__leading {
+    order: 3;
+  }
+
   .space-switcher {
     justify-content: flex-start;
     overflow-x: auto;
@@ -23,17 +42,6 @@
 }
 
 @media (max-width: 640px) {
-  .topbar {
-    justify-content: flex-start;
-    flex-wrap: nowrap;
-  }
-
-  .topbar__main {
-    order: 1;
-    min-width: 0;
-    flex: 1 1 auto;
-  }
-
   .topbar__actions {
     order: 2;
   }

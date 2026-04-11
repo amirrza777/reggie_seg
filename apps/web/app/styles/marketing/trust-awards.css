@@ -91,7 +91,7 @@
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 560px) {
   .logo-marquee {
     --marquee-gap: clamp(28px, 10vw, 48px);
     --marquee-fade: 20%;
@@ -212,5 +212,51 @@
 @media (prefers-color-scheme: dark) {
   .logo-marquee__logo {
     filter: brightness(0) invert(1) opacity(0.92);
+  }
+}
+
+@media (max-height: 760px) {
+  .trust {
+    gap: 20px;
+    padding: clamp(64px, 7vw, 92px) 0 clamp(38px, 5vw, 62px);
+  }
+
+  .logo-marquee {
+    padding: clamp(20px, 3vw, 34px) clamp(16px, 4vw, 32px) clamp(16px, 3vw, 28px);
+  }
+
+  .award__grid {
+    gap: 24px;
+  }
+
+  .award__card {
+    min-height: 272px;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .award__image-placeholder {
+    padding: 14px;
+  }
+}
+
+@media (max-height: 560px) {
+  .trust {
+    gap: 16px;
+    padding: clamp(48px, 6vw, 72px) 0 clamp(28px, 4vw, 48px);
+  }
+
+  .logo-marquee {
+    --marquee-gap: clamp(30px, 9vw, 52px);
+    padding: 14px clamp(12px, 3vw, 20px) 12px;
+  }
+
+  .award__card {
+    min-height: 236px;
+    padding: 12px;
+  }
+
+  .award__footer {
+    padding-top: 4px;
   }
 }

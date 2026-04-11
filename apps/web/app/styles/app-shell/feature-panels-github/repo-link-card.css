@@ -108,3 +108,34 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+
+@media (max-height: 760px) {
+  .github-repo-link-card {
+    padding: clamp(10px, 1.6vh, var(--space-panel-content-inset));
+  }
+
+  .github-repo-link-card__meta-row {
+    margin-top: 6px;
+    gap: 6px;
+  }
+
+  .github-repo-link-card__overview {
+    margin-top: 10px;
+  }
+
+  .github-repo-link-card__stats {
+    margin-top: 10px;
+    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+@media (max-height: 560px) {
+  .github-repo-link-card__stats {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .github-repo-link-card__stat {
+    padding: 8px;
+  }
+}

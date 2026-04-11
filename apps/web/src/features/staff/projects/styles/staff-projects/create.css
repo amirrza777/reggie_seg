@@ -215,3 +215,67 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+@media (max-height: 760px) {
+  .staff-projects__create {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .staff-projects__create-layout {
+    gap: 12px;
+  }
+
+  .staff-projects__create-guide {
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .staff-projects__create-basics {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .staff-projects__deadline {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .staff-projects__deadline-block {
+    gap: 8px;
+  }
+
+  .staff-projects__deadline-preview {
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .staff-projects__textarea {
+    min-height: 120px;
+  }
+}
+
+@media (max-height: 560px) {
+  .staff-projects__create {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .staff-projects__create-layout {
+    gap: 10px;
+  }
+
+  .staff-projects__create-basics-grid,
+  .staff-projects__deadline-grid,
+  .staff-projects__deadline-preview-grid {
+    gap: 10px;
+  }
+
+  .staff-projects__textarea {
+    min-height: 104px;
+  }
+
+  .staff-projects__create-actions {
+    gap: 8px;
+  }
+}

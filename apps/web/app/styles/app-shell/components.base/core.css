@@ -339,3 +339,60 @@
   border-color: var(--status-success-border);
   color: var(--status-success-text);
 }
+
+@media (max-height: 760px) {
+  .card__header {
+    padding-top: 12px;
+    padding-bottom: 8px;
+  }
+
+  .card--has-action .card__header {
+    gap: 10px;
+    padding-top: 12px;
+    padding-bottom: 10px;
+  }
+
+  .card__body {
+    gap: 8px;
+    padding-bottom: 12px;
+  }
+
+  .module-dashboard__brief {
+    gap: 10px;
+  }
+
+  .module-dashboard__panel {
+    min-height: 132px;
+  }
+
+  .module-dashboard__panel--summary {
+    min-height: 118px;
+  }
+
+  .module-dashboard__linked-project-card {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .module-dashboard__linked-project-footer {
+    padding-top: 10px;
+  }
+}
+
+@media (max-height: 560px) {
+  .module-dashboard__panel {
+    min-height: 120px;
+  }
+
+  .module-dashboard__panel--summary {
+    min-height: 108px;
+  }
+
+  .module-dashboard__linked-projects {
+    gap: 10px;
+  }
+
+  .module-dashboard__linked-project-card {
+    flex-basis: clamp(240px, 34vw, 380px);
+  }
+}

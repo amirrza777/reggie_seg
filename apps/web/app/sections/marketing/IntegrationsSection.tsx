@@ -1,12 +1,17 @@
 import Link from "next/link";
+import { MarketingPicture } from "./MarketingPicture";
 
 export const IntegrationsSection = () => (
   <section className="section" id="integrations">
     <div className="container split split--center" data-reveal-group>
       <div className="split__visual split__visual--frame" data-reveal>
-        <div className="visual-placeholder">
-          <p className="eyebrow">Integrations</p>
-          <p className="muted">Show GitHub/Trello connections or sync diagram here.</p>
+        <div className="split__visual-media">
+          <MarketingPicture
+            index={4}
+            alt="Integrations screen showing connected GitHub and Trello tools"
+            pictureClassName="split__visual-picture"
+            imageClassName="split__visual-image"
+          />
         </div>
       </div>
       <div className="split__content split__content--stack" id="sync" data-reveal>

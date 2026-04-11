@@ -8,4 +8,12 @@
     margin: 0 auto;
     max-height: none;
   }
+
+  .app-shell__workspace {
+    scroll-padding-top: 8px;
+  }
+
+  .topbar {
+    gap: 8px;
+  }
 }

@@ -1,0 +1,44 @@
+/* Responsive contract for viewport and component behavior.
+   Use viewport breakpoints for shell/page layout shifts.
+   Prefer container queries for component internals.
+   Keep media aspect-ratio frames on these canonical tokens. */
+
+:root {
+  /* Canonical viewport breakpoints */
+  --bp-xs: 480px;
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+
+  /* Sanctioned app-shell/device-specific cutoffs */
+  --bp-nav-collapse-max: 860px;
+  --bp-nav-desktop-min: 861px;
+  --bp-compact-max: 560px;
+  --bp-short-height-max: 760px;
+  --bp-grid-xl-4-col: 1320px;
+  --bp-grid-xl-5-col: 1700px;
+  --bp-grid-xl-6-col: 2080px;
+
+  /* Canonical media ratios */
+  --ratio-square: 1 / 1;
+  --ratio-standard: 4 / 3;
+  --ratio-wide: 16 / 9;
+  --ratio-hero: 16 / 7;
+}
+
+.ratio-square {
+  aspect-ratio: var(--ratio-square);
+}
+
+.ratio-standard {
+  aspect-ratio: var(--ratio-standard);
+}
+
+.ratio-wide {
+  aspect-ratio: var(--ratio-wide);
+}
+
+.ratio-hero {
+  aspect-ratio: var(--ratio-hero);
+}

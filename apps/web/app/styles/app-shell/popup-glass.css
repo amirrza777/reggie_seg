@@ -17,6 +17,11 @@
   backdrop-filter: blur(20px);
 }
 
+.user-menu__dropdown,
+.notification-bell__dropdown {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
 .ui-toast--success {
   background: color-mix(in srgb, var(--glass-ui-bg) 72%, var(--status-success-soft) 28%);
   border-color: color-mix(in srgb, var(--glass-ui-border) 70%, var(--status-success-border) 30%);
@@ -65,5 +70,12 @@
     border-color: var(--border);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
+  }
+
+  .sidebar__mobile-sheet {
+    background: color-mix(in srgb, var(--surface) 96%, transparent);
+    border-color: var(--glass-ui-border);
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+    backdrop-filter: blur(var(--glass-ui-blur));
   }
 }

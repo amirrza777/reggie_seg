@@ -278,3 +278,43 @@
     font-weight: var(--fw-medium);
     font-size: var(--fs-fixed-0-9em);
 }
+
+@media (max-height: 760px) {
+    .rich-editor__editable {
+        min-height: 120px;
+        padding: 8px 10px;
+    }
+
+    .rich-editor__placeholder {
+        top: 8px;
+        left: 10px;
+    }
+
+    .mention-dropdown {
+        max-height: 180px;
+    }
+
+    .rich-editor__word-count {
+        padding: 3px 10px 5px;
+    }
+}
+
+@media (max-height: 560px) {
+    .rich-editor__toolbar {
+        gap: 3px;
+        padding: 5px 6px;
+    }
+
+    .rich-editor__tool {
+        padding: 3px 6px;
+    }
+
+    .rich-editor__editable {
+        min-height: 104px;
+        line-height: 1.5;
+    }
+
+    .mention-dropdown {
+        max-height: 140px;
+    }
+}

@@ -75,7 +75,9 @@
   position: absolute;
   right: 0;
   top: calc(100% + 12px);
-  min-width: min(320px, 92vw);
+  width: min(320px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  min-width: 0;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   padding: 0;
@@ -215,5 +217,16 @@
   .user-menu__trigger {
     -webkit-backdrop-filter: blur(var(--glass-ui-blur));
     backdrop-filter: blur(var(--glass-ui-blur));
+  }
+}
+
+@media (max-width: 860px) and (max-aspect-ratio: 1 / 2) {
+  .user-menu__dropdown {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 60px);
+    right: calc(env(safe-area-inset-right, 0px) + 12px);
+    left: calc(env(safe-area-inset-left, 0px) + 12px);
+    width: auto;
+    max-width: none;
   }
 }

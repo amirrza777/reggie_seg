@@ -129,3 +129,30 @@
     width: fit-content;
   }
 }
+
+@media (max-height: 760px) {
+  .feedback-list-intro {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+  }
+
+  .feedback-card {
+    min-height: 110px;
+    padding: 12px;
+  }
+}
+
+@media (max-height: 560px) {
+  .feedback-list {
+    gap: 8px;
+  }
+
+  .feedback-card {
+    min-height: 102px;
+    padding: 10px;
+  }
+
+  .feedback-card__header {
+    gap: 8px;
+  }
+}
