@@ -89,8 +89,10 @@ describe("ProjectTrelloCallbackPage", () => {
     await waitFor(() => {
       expect(completeMock).toHaveBeenCalledWith("lt", "tok");
     });
-    expect(screen.getByText(/Trello connected\. Redirecting/i)).toBeInTheDocument();
-    expect(locationStore.hrefAssigned).toBe("/projects/12/trello/board");
+    expect(await screen.findByText(/Trello connected\. Redirecting/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(locationStore.hrefAssigned).toBe("/projects/12/trello/board");
+    });
   });
 
   it("redirects to project trello when returnTo is not a safe path", async () => {
@@ -101,7 +103,9 @@ describe("ProjectTrelloCallbackPage", () => {
 
     render(<ProjectTrelloCallbackPage />);
     await waitFor(() => expect(completeMock).toHaveBeenCalled());
-    expect(locationStore.hrefAssigned).toBe("/projects/12/trello");
+    await waitFor(() => {
+      expect(locationStore.hrefAssigned).toBe("/projects/12/trello");
+    });
   });
 
   it("shows API error message", async () => {
