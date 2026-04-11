@@ -121,4 +121,25 @@ describe("downloadIcs", () => {
 
     createElementSpy.mockRestore();
   });
+
+  it("extracts plain text from lexical agenda in .ics file", () => {
+    const clickMock = vi.fn();
+    const createElementSpy = vi.spyOn(document, "createElement").mockReturnValue({
+      set href(_: string) {},
+      set download(_: string) {},
+      click: clickMock,
+    } as any);
+    globalThis.URL.createObjectURL = vi.fn(() => "blob:mock-url");
+    globalThis.URL.revokeObjectURL = vi.fn();
+
+    const lexicalAgenda = JSON.stringify({
+      root: { children: [{ children: [{ text: "Review sprint", type: "text" }], type: "paragraph" }], type: "root" },
+    });
+
+    downloadIcs(buildMeeting({ agenda: lexicalAgenda }));
+
+    expect(clickMock).toHaveBeenCalled();
+
+    createElementSpy.mockRestore();
+  });
 });

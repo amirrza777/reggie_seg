@@ -1,4 +1,5 @@
 import { buildIcs } from "./ics";
+import { extractPlainText } from "./extractPlainText";
 import type { Meeting } from "../types";
 
 export function buildGoogleUrl(meeting: Meeting): string {
@@ -8,7 +9,7 @@ export function buildGoogleUrl(meeting: Meeting): string {
   const utc = (d: Date) =>
     `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
   const descParts = [];
-  if (meeting.agenda) descParts.push(meeting.agenda);
+  if (meeting.agenda) descParts.push(extractPlainText(meeting.agenda));
   if (meeting.videoCallLink) descParts.push(`Video call: ${meeting.videoCallLink}`);
   const url = new URL("https://calendar.google.com/calendar/render");
   url.searchParams.set("action", "TEMPLATE");
@@ -26,7 +27,7 @@ export function buildOutlookUrl(meeting: Meeting, baseUrl: string): string {
   const iso = (d: Date) =>
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
   const descParts = [];
-  if (meeting.agenda) descParts.push(meeting.agenda);
+  if (meeting.agenda) descParts.push(extractPlainText(meeting.agenda));
   if (meeting.videoCallLink) descParts.push(`Video call: ${meeting.videoCallLink}`);
   const params = new URLSearchParams({ subject: meeting.title, startdt: iso(date), enddt: iso(end) });
   if (meeting.location) params.set("location", meeting.location);
@@ -40,7 +41,7 @@ export function downloadIcs(meeting: Meeting) {
     date: new Date(meeting.date),
     location: meeting.location,
     videoCallLink: meeting.videoCallLink,
-    agenda: meeting.agenda,
+    agenda: meeting.agenda ? extractPlainText(meeting.agenda) : null,
   });
   const blob = new Blob([ics], { type: "text/calendar" });
   const url = URL.createObjectURL(blob);
