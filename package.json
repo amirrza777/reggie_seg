@@ -8,9 +8,12 @@
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
     "@types/passport": "^1.0.17",
+    "husky": "^9.1.7",
     "tsx": "^4.21.0"
   },
   "scripts": {
+    "check:duplicates": "node scripts/check-duplicate-files.mjs",
+    "prepare": "husky",
     "scan:functions": "bash scripts/scan-functions.sh"
   }
 }
