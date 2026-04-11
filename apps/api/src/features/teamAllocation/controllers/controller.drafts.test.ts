@@ -51,6 +51,12 @@ describe("controller.drafts", () => {
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
+  it("returns 400 when listing drafts with invalid project id", async () => {
+    const res = createResponse();
+    await listAllocationDraftsHandler({ user: { sub: 3 }, params: { projectId: "x" } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
   it("lists drafts on success", async () => {
     const req = { user: { sub: 3 }, params: { projectId: "4" } };
     const res = createResponse();
@@ -90,6 +96,20 @@ describe("controller.drafts", () => {
 
   it("returns 400 for invalid draft team id during update", async () => {
     const req = { user: { sub: 3 }, params: { projectId: "4", teamId: "x" }, body: { teamName: "New" } };
+    const res = createResponse();
+    await updateAllocationDraftHandler(req as any, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("returns 401 for update when auth is missing", async () => {
+    const req = { params: { projectId: "4", teamId: "9" }, body: { teamName: "New" } };
+    const res = createResponse();
+    await updateAllocationDraftHandler(req as any, res);
+    expect(res.status).toHaveBeenCalledWith(401);
+  });
+
+  it("returns 400 for update when draft body is invalid", async () => {
+    const req = { user: { sub: 3 }, params: { projectId: "4", teamId: "9" }, body: { teamName: 12 } };
     const res = createResponse();
     await updateAllocationDraftHandler(req as any, res);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -138,11 +158,46 @@ describe("controller.drafts", () => {
     errorSpy.mockRestore();
   });
 
+  it("maps archived update errors through project-write guard", async () => {
+    const req = { user: { sub: 3 }, params: { projectId: "4", teamId: "9" }, body: { teamName: "New" } };
+    const res = createResponse();
+    mocks.sendProjectOrModuleArchivedConflict.mockReturnValueOnce(true);
+    mocks.service.updateAllocationDraftForProject.mockRejectedValueOnce({ code: "PROJECT_ARCHIVED" });
+    await updateAllocationDraftHandler(req as any, res);
+    expect(mocks.sendProjectOrModuleArchivedConflict).toHaveBeenCalled();
+  });
+
   it("returns 400 when approve expectedUpdatedAt is not a string", async () => {
     const req = { user: { sub: 3 }, params: { projectId: "4", teamId: "9" }, body: { expectedUpdatedAt: 12 } };
     const res = createResponse();
     await approveAllocationDraftHandler(req as any, res);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it.each([
+    ["returns 401 for approve when auth is missing", { params: { projectId: "4", teamId: "9" }, body: {} }, 401],
+    [
+      "returns 400 for approve when project id is invalid",
+      { user: { sub: 3 }, params: { projectId: "x", teamId: "9" }, body: {} },
+      400,
+    ],
+    [
+      "returns 400 for approve when team id is invalid",
+      { user: { sub: 3 }, params: { projectId: "4", teamId: "x" }, body: {} },
+      400,
+    ],
+  ])("%s", async (_label, req, expectedStatus) => {
+    const res = createResponse();
+    await approveAllocationDraftHandler(req as any, res);
+    expect(res.status).toHaveBeenCalledWith(expectedStatus);
+  });
+
+  it("returns 201 and payload on successful approve", async () => {
+    const req = { user: { sub: 3 }, params: { projectId: "4", teamId: "9" }, body: {} };
+    const res = createResponse();
+    await approveAllocationDraftHandler(req as any, res);
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith({ approvedTeam: { id: 1 } });
   });
 
   it.each([
@@ -177,6 +232,15 @@ describe("controller.drafts", () => {
     errorSpy.mockRestore();
   });
 
+  it("maps archived approve errors through project-write guard", async () => {
+    const req = { user: { sub: 3 }, params: { projectId: "4", teamId: "9" }, body: {} };
+    const res = createResponse();
+    mocks.sendProjectOrModuleArchivedConflict.mockReturnValueOnce(true);
+    mocks.service.approveAllocationDraftForProject.mockRejectedValueOnce({ code: "PROJECT_ARCHIVED" });
+    await approveAllocationDraftHandler(req as any, res);
+    expect(mocks.sendProjectOrModuleArchivedConflict).toHaveBeenCalled();
+  });
+
   it.each([
     ["INVALID_DRAFT_TEAM_ID", 400],
     ["INVALID_EXPECTED_UPDATED_AT", 400],
@@ -197,6 +261,24 @@ describe("controller.drafts", () => {
     const res = createResponse();
     await deleteAllocationDraftHandler(req as any, res);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it.each([
+    ["returns 401 for delete when auth is missing", { params: { projectId: "4", teamId: "9" }, body: {} }, 401],
+    [
+      "returns 400 for delete when team id is invalid",
+      { user: { sub: 3 }, params: { projectId: "4", teamId: "x" }, body: {} },
+      400,
+    ],
+    [
+      "returns 400 for delete when expectedUpdatedAt body is invalid",
+      { user: { sub: 3 }, params: { projectId: "4", teamId: "9" }, body: { expectedUpdatedAt: 123 } },
+      400,
+    ],
+  ])("%s", async (_label, req, expectedStatus) => {
+    const res = createResponse();
+    await deleteAllocationDraftHandler(req as any, res);
+    expect(res.status).toHaveBeenCalledWith(expectedStatus);
   });
 
   it("returns deleted draft payload on successful delete", async () => {

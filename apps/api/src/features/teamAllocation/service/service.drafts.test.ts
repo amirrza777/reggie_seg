@@ -117,8 +117,20 @@ describe("service allocation drafts", () => {
     await expect(updateAllocationDraftForProject(1, 9, 7, { teamName: " " })).rejects.toEqual({ code: "INVALID_TEAM_NAME" });
   });
 
+  it("updateAllocationDraftForProject rejects non-string teamName", async () => {
+    await expect(updateAllocationDraftForProject(1, 9, 7, { teamName: 12 as any })).rejects.toEqual({
+      code: "INVALID_TEAM_NAME",
+    });
+  });
+
   it("updateAllocationDraftForProject rejects duplicate student ids", async () => {
     await expect(updateAllocationDraftForProject(1, 9, 7, { studentIds: [21, 21] })).rejects.toEqual({
+      code: "INVALID_STUDENT_IDS",
+    });
+  });
+
+  it("updateAllocationDraftForProject rejects non-array studentIds", async () => {
+    await expect(updateAllocationDraftForProject(1, 9, 7, { studentIds: "x" as any })).rejects.toEqual({
       code: "INVALID_STUDENT_IDS",
     });
   });
@@ -174,6 +186,16 @@ describe("service allocation drafts", () => {
     expect(mocks.updateDraftTeam).toHaveBeenCalledWith(7, { teamName: "Blue", studentIds: [21, 22] });
   });
 
+  it("updateAllocationDraftForProject forwards expectedUpdatedAt to update write", async () => {
+    const stamp = "2026-01-01T00:00:00.000Z";
+    const result = await updateAllocationDraftForProject(1, 9, 7, { teamName: "Blue", expectedUpdatedAt: stamp });
+    expect(result.draft).toEqual({ id: 7, teamName: "Blue" });
+    expect(mocks.updateDraftTeam).toHaveBeenCalledWith(7, {
+      teamName: "Blue",
+      expectedUpdatedAt: new Date(stamp),
+    });
+  });
+
   it("approveAllocationDraftForProject rejects invalid draft id", async () => {
     await expect(approveAllocationDraftForProject(1, 9, 0)).rejects.toEqual({ code: "INVALID_DRAFT_TEAM_ID" });
   });
@@ -226,6 +248,12 @@ describe("service allocation drafts", () => {
     expect(mocks.notifyStudentsAboutApprovedDraftTeam).toHaveBeenCalled();
   });
 
+  it("approveAllocationDraftForProject forwards expectedUpdatedAt to approval write", async () => {
+    const stamp = "2026-01-01T00:00:00.000Z";
+    await approveAllocationDraftForProject(1, 9, 7, { expectedUpdatedAt: stamp });
+    expect(mocks.approveDraftTeam).toHaveBeenCalledWith(7, 1, { expectedUpdatedAt: new Date(stamp) });
+  });
+
   it("approveAllocationDraftForProject rejects missing approved rows after write", async () => {
     mocks.approveDraftTeam.mockResolvedValue(null);
     await expect(approveAllocationDraftForProject(1, 9, 7)).rejects.toEqual({ code: "DRAFT_TEAM_NOT_FOUND" });
@@ -275,5 +303,11 @@ describe("service allocation drafts", () => {
     mocks.findDraftTeamById.mockResolvedValue({ ...baseDraft, draftCreatedBy: { id: 1 } });
     const result = await deleteAllocationDraftForProject(1, 9, 7);
     expect(result).toEqual(expect.objectContaining({ deletedDraft: { id: 7, teamName: "Blue" } }));
+  });
+
+  it("deleteAllocationDraftForProject forwards expectedUpdatedAt to delete write", async () => {
+    const stamp = "2026-01-01T00:00:00.000Z";
+    await deleteAllocationDraftForProject(1, 9, 7, { expectedUpdatedAt: stamp });
+    expect(mocks.deleteDraftTeam).toHaveBeenCalledWith(7, { expectedUpdatedAt: new Date(stamp) });
   });
 });

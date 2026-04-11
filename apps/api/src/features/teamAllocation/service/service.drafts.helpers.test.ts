@@ -46,6 +46,12 @@ describe("service.drafts.helpers", () => {
     expect(() => parseExpectedUpdatedAt(raw)).toThrowError();
   });
 
+  it("parseExpectedUpdatedAt parses valid ISO datetimes", () => {
+    const parsed = parseExpectedUpdatedAt("2026-01-02T00:00:00.000Z");
+    expect(parsed).toBeInstanceOf(Date);
+    expect(parsed?.toISOString()).toBe("2026-01-02T00:00:00.000Z");
+  });
+
   it("notifyStudentsAboutManualAllocation sends one email per student", async () => {
     await notifyStudentsAboutManualAllocation(4, "Project", "Blue", [
       { firstName: "Ada", email: "ada@example.com" },
@@ -53,6 +59,15 @@ describe("service.drafts.helpers", () => {
     ]);
     expect(mocks.sendEmail).toHaveBeenCalledTimes(2);
     expect(mocks.sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "ada@example.com" }));
+  });
+
+  it("notifyStudentsAboutManualAllocation falls back to a generic greeting for blank first names", async () => {
+    await notifyStudentsAboutManualAllocation(4, "Project", "Blue", [{ firstName: "  ", email: "ada@example.com" }]);
+    expect(mocks.sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("Hi there,"),
+      }),
+    );
   });
 
   it("notifyStudentsAboutManualAllocation logs failures and continues", async () => {
