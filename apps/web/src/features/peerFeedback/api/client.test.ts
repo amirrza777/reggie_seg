@@ -22,6 +22,7 @@ import {
   getFeedbackReview,
   getFeedbackReviewStatuses,
   getPeerAssessmentsForUser,
+  getPeerAssessmentsReceivedForUser,
   getPeerFeedbackById,
   submitFeedback,
   submitPeerFeedback,
@@ -80,6 +81,19 @@ describe("peer feedback api client wrappers", () => {
     expect(result).toEqual(mapped);
   });
 
+  it("getPeerAssessmentsReceivedForUser fetches list and maps it", async () => {
+    const raw = { data: [{ id: 8 }] };
+    const mapped = [{ id: "8" }];
+    apiFetchMock.mockResolvedValue(raw);
+    mapApiAssessmentsToPeerFeedbacksReceivedMock.mockReturnValue(mapped);
+
+    const result = await getPeerAssessmentsReceivedForUser("4", "1");
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/peer-assessments/projects/1/reviewee/4");
+    expect(mapApiAssessmentsToPeerFeedbacksReceivedMock).toHaveBeenCalledWith(raw);
+    expect(result).toEqual(mapped);
+  });
+
   it("getFeedbackReview fetches review endpoint and normalizes legacy agreement payloads", async () => {
     apiFetchMock.mockResolvedValue({
       id: 99,
@@ -100,6 +114,39 @@ describe("peer feedback api client wrappers", () => {
     });
   });
 
+  it("getFeedbackReview normalizes boundary agreement scores and non-object values", async () => {
+    apiFetchMock.mockResolvedValue({
+      id: 101,
+      agreementsJson: {
+        asBool: true,
+        minScore: { selected: "Unknown", score: 0 },
+        scoreFour: { selected: "Unknown", score: 4 },
+        maxScore: { selected: "Unknown", score: 8 },
+        noScore: { selected: "Unknown" },
+      },
+    });
+
+    const result = await getFeedbackReview("101");
+
+    expect(result.agreementsJson).toEqual({
+      asBool: { selected: "Reasonable", score: 3 },
+      minScore: { selected: "Strongly Disagree", score: 1 },
+      scoreFour: { selected: "Agree", score: 4 },
+      maxScore: { selected: "Strongly Agree", score: 5 },
+      noScore: { selected: "Reasonable", score: 3 },
+    });
+  });
+
+  it("getFeedbackReview returns null agreements for invalid payload shapes", async () => {
+    apiFetchMock.mockResolvedValue({
+      id: 102,
+      agreementsJson: [],
+    });
+
+    const result = await getFeedbackReview("102");
+    expect(result.agreementsJson).toBeNull();
+  });
+
   it("getFeedbackReviewStatuses posts bulk ids and returns status map", async () => {
     apiFetchMock.mockResolvedValue({
       statuses: { "12": true, "13": false },
@@ -112,6 +159,16 @@ describe("peer feedback api client wrappers", () => {
       body: JSON.stringify({ feedbackIds: ["12", "13"] }),
     });
     expect(result).toEqual({ "12": true, "13": false });
+  });
+
+  it("getFeedbackReviewStatuses returns empty object for empty input and missing statuses field", async () => {
+    const empty = await getFeedbackReviewStatuses([]);
+    expect(empty).toEqual({});
+    expect(apiFetchMock).not.toHaveBeenCalled();
+
+    apiFetchMock.mockResolvedValueOnce({});
+    const fallback = await getFeedbackReviewStatuses(["66"]);
+    expect(fallback).toEqual({});
   });
 
   it("submitPeerFeedback posts payload with reviewer and reviewee ids", async () => {
