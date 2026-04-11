@@ -46,7 +46,7 @@ vi.mock("./service.helpers.js", () => ({
   validateAssignmentUsers: mockState.helpers.validateAssignmentUsers,
   isEnterpriseAdminRole: (role: string) => role === "ENTERPRISE_ADMIN" || role === "ADMIN",
 }));
-vi.mock("./service.core.js", () => ({
+vi.mock("./service.shared.js", () => ({
   canManageModuleAccess: mockState.core.canManageModuleAccess,
   mapModuleRecord: mockState.core.mapModuleRecord,
   MODULE_SELECT: { id: true, name: true, _count: true },

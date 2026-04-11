@@ -1,5 +1,5 @@
 import { prisma } from "../../shared/db.js";
-import { canManageModuleAccess } from "./service.core.js";
+import { canManageModuleAccess } from "./service.shared.js";
 import type { EnterpriseUser } from "./types.js";
 
 type ModuleMeetingSettings = {

@@ -1,6 +1,6 @@
 import { prisma } from "../../shared/db.js";
 import { replaceModuleAssignments } from "./service.helpers.js";
-import { MODULE_SELECT } from "./service.core.js";
+import { MODULE_SELECT } from "./service.shared.js";
 import type { ParsedModulePayload } from "./types.js";
 import type { Prisma } from "@prisma/client";
 

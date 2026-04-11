@@ -6,7 +6,7 @@ export {
   parsePositiveIntArray,
 } from "./service.helpers.js";
 
-export { MODULE_SELECT, canManageModuleAccess } from "./service.core.js";
+export { MODULE_SELECT, canManageModuleAccess } from "./service.shared.js";
 
 export {
   getOverview,

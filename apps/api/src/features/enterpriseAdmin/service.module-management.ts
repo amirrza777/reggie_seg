@@ -11,7 +11,7 @@ import {
   canManageModuleAccess,
   mapModuleRecord,
   MODULE_SELECT,
-} from "./service.core.js";
+} from "./service.shared.js";
 import type { EnterpriseUser, ParsedModulePayload } from "./types.js";
 import {
   findManagedModule,
