@@ -58,6 +58,7 @@ export async function fetchProjectById(projectId: number) {
     archivedAt: project.archivedAt,
     moduleId: project.moduleId,
     questionnaireTemplateId: project.questionnaireTemplateId,
+    teamAllocationQuestionnaireTemplateId: project.teamAllocationQuestionnaireTemplateId,
     moduleArchivedAt,
     projectNavFlags: normalizeProjectNavFlagsConfig(project.projectNavFlags),
   };
