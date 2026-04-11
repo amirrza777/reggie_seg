@@ -4,12 +4,14 @@ type EnvSnapshot = {
   NODE_ENV?: string;
   RATE_LIMIT_REDIS_URL?: string;
   RATE_LIMIT_ALLOW_IN_MEMORY?: string;
+  RATE_LIMIT_REQUIRE_REDIS?: string;
 };
 
 const ORIGINAL_ENV: EnvSnapshot = {
   NODE_ENV: process.env.NODE_ENV,
   RATE_LIMIT_REDIS_URL: process.env.RATE_LIMIT_REDIS_URL,
   RATE_LIMIT_ALLOW_IN_MEMORY: process.env.RATE_LIMIT_ALLOW_IN_MEMORY,
+  RATE_LIMIT_REQUIRE_REDIS: process.env.RATE_LIMIT_REQUIRE_REDIS,
 };
 
 function restoreEnv() {
@@ -21,6 +23,9 @@ function restoreEnv() {
 
   if (ORIGINAL_ENV.RATE_LIMIT_ALLOW_IN_MEMORY === undefined) delete process.env.RATE_LIMIT_ALLOW_IN_MEMORY;
   else process.env.RATE_LIMIT_ALLOW_IN_MEMORY = ORIGINAL_ENV.RATE_LIMIT_ALLOW_IN_MEMORY;
+
+  if (ORIGINAL_ENV.RATE_LIMIT_REQUIRE_REDIS === undefined) delete process.env.RATE_LIMIT_REQUIRE_REDIS;
+  else process.env.RATE_LIMIT_REQUIRE_REDIS = ORIGINAL_ENV.RATE_LIMIT_REQUIRE_REDIS;
 }
 
 describe("rateLimit", () => {
@@ -59,10 +64,11 @@ describe("rateLimit", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("falls back to in-memory and warns when RATE_LIMIT_REDIS_URL is not set in production", async () => {
+  it("allows in-memory fallback in production by default when redis url is missing", async () => {
     process.env.NODE_ENV = "production";
     delete process.env.RATE_LIMIT_REDIS_URL;
     delete process.env.RATE_LIMIT_ALLOW_IN_MEMORY;
+    delete process.env.RATE_LIMIT_REQUIRE_REDIS;
 
     const { rateLimit } = await import("./rateLimit.js");
     expect(() =>
@@ -74,10 +80,11 @@ describe("rateLimit", () => {
     ).not.toThrow();
   });
 
-  it("allows in-memory fallback in production when explicitly enabled", async () => {
+  it("requires RATE_LIMIT_REDIS_URL in production when strict redis mode is enabled", async () => {
     process.env.NODE_ENV = "production";
     delete process.env.RATE_LIMIT_REDIS_URL;
-    process.env.RATE_LIMIT_ALLOW_IN_MEMORY = "true";
+    delete process.env.RATE_LIMIT_ALLOW_IN_MEMORY;
+    process.env.RATE_LIMIT_REQUIRE_REDIS = "true";
 
     const { rateLimit } = await import("./rateLimit.js");
     expect(() =>
@@ -86,7 +93,7 @@ describe("rateLimit", () => {
         max: 1,
         prefix: "test",
       }),
-    ).not.toThrow();
+    ).toThrow("RATE_LIMIT_REDIS_URL is required in production");
   });
 
   it("calls next when request is under the rate limit", async () => {

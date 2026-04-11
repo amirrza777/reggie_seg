@@ -47,8 +47,10 @@ const inMemoryStore = new InMemoryRateLimitStore();
 let warnedOnRedisFallback = false;
 
 function allowInMemoryRateLimitFallback() {
+  if (process.env.RATE_LIMIT_ALLOW_IN_MEMORY === "true") {return true;}
+  if (process.env.RATE_LIMIT_ALLOW_IN_MEMORY === "false") {return false;}
   if (process.env.NODE_ENV !== "production") {return true;}
-  return process.env.RATE_LIMIT_ALLOW_IN_MEMORY === "true";
+  return process.env.RATE_LIMIT_REQUIRE_REDIS !== "true";
 }
 
 function warnRedisFallback(reason: string) {
@@ -103,6 +105,9 @@ function resolveStoreFromEnv(): RateLimitStore {
 
   const redisUrl = process.env.RATE_LIMIT_REDIS_URL?.trim();
   if (!redisUrl) {
+    if (!allowInMemoryRateLimitFallback()) {
+      throw new Error("RATE_LIMIT_REDIS_URL is required in production");
+    }
     warnRedisFallback("RATE_LIMIT_REDIS_URL is not set, using in-memory store");
     envSelectedStore = inMemoryStore;
     return envSelectedStore;

@@ -11,6 +11,7 @@ export default defineConfig({
       reporter: ["text", "html", "lcov"],
       reportsDirectory: "coverage",
       reportOnFailure: true,
+      exclude: ["scripts/**", "eslint.config.js", "vitest.config.ts"],
       thresholds: {
         lines: 100,
         functions: 100,

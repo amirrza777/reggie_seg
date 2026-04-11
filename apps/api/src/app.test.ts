@@ -64,6 +64,10 @@ describe("app module", () => {
     expect(allowedLocal.status).toBe(200);
     expect(allowedLocal.headers["access-control-allow-origin"]).toBe("http://localhost:3001");
 
+    const allowedAlternateLocalPort = await request(app).get("/health").set("Origin", "http://localhost:3002");
+    expect(allowedAlternateLocalPort.status).toBe(200);
+    expect(allowedAlternateLocalPort.headers["access-control-allow-origin"]).toBe("http://localhost:3002");
+
     const allowedPreview = await request(app)
       .get("/health")
       .set("Origin", "https://reggie-abc123-amirrza777s-projects.vercel.app");

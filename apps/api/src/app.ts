@@ -40,11 +40,18 @@ app.use((req, _res, next) => {
 
 const allowedOrigins = [
   "http://localhost:3001",
+  "http://localhost:3002",
   "http://localhost:5173",
   "http://127.0.0.1:3001",
+  "http://127.0.0.1:3002",
   "http://127.0.0.1:5173",
   ...(process.env.APP_BASE_URL ? [process.env.APP_BASE_URL.replace(/\/$/, "")] : []),
-  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()) : []),
+  ...(process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean)
+    : []),
 ];
 
 // Allow Vercel preview deployment URLs for this project (e.g. reggie-abc123-amirrza777s-projects.vercel.app)
