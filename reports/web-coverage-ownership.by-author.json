@@ -1,0 +1,3236 @@
+{
+  "generatedAt": "2026-04-11T11:00:19.434Z",
+  "totals": {
+    "all": 316,
+    "requires_full_testing": 120,
+    "finish_testing": 196
+  },
+  "byAuthor": [
+    {
+      "author": "Ayan Mamun",
+      "requires_full_testing": 12,
+      "finish_testing": 103,
+      "files": [
+        {
+          "file": "apps/web/middleware.ts",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 90,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/providers.tsx",
+          "category": "finish_testing",
+          "lp": 85.83333333333333,
+          "fp": 100,
+          "bp": 84.61538461538461,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(admin)/layout.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 80,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(app)/layout.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 91.8918918918919,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(app)/profile/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/analytics/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 96.66666666666667,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/dashboard/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 92.95774647887323,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/marks/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 98,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/modules/[moduleId]/manage/page.tsx",
+          "category": "finish_testing",
+          "lp": 96.15384615384616,
+          "fp": 100,
+          "bp": 84,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/modules/[moduleId]/projects/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 90.625,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/peer-assessments/module/[id]/team/[teamId]/student/[studentId]/page.tsx",
+          "category": "finish_testing",
+          "lp": 92.14285714285714,
+          "fp": 100,
+          "bp": 94.11764705882352,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/grading/MarkingStudentList.tsx",
+          "category": "finish_testing",
+          "lp": 98.27586206896551,
+          "fp": 100,
+          "bp": 87.5,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/peer-feedback/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 95.74468085106383,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/repositories/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 88.23529411764706,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/(enterprise)/enterprise/modules/[id]/edit/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 90.9090909090909,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/app/components/FaqAccordion.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 95.23809523809523,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/admin/api/client.ts",
+          "category": "finish_testing",
+          "lp": 98.1981981981982,
+          "fp": 93.75,
+          "bp": 97.72727272727273,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/admin/components/AdminWorkspaceSummary.tsx",
+          "category": "finish_testing",
+          "lp": 91.44736842105263,
+          "fp": 60,
+          "bp": 85.71428571428571,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/admin/components/AuditLogModal.tsx",
+          "category": "finish_testing",
+          "lp": 33.198380566801625,
+          "fp": 20,
+          "bp": 50,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/admin/components/EnterpriseManagementTable.tsx",
+          "category": "finish_testing",
+          "lp": 98.79518072289156,
+          "fp": 100,
+          "bp": 96.15384615384616,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/admin/components/UserManagementTable.tsx",
+          "category": "finish_testing",
+          "lp": 96.91358024691358,
+          "fp": 100,
+          "bp": 93.80530973451327,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/admin/components/useEnterpriseManagementState.ts",
+          "category": "finish_testing",
+          "lp": 95.47038327526133,
+          "fp": 100,
+          "bp": 94.18604651162791,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/admin/components/useEnterpriseUserManagementState.actions.ts",
+          "category": "finish_testing",
+          "lp": 98.91304347826086,
+          "fp": 100,
+          "bp": 98.21428571428571,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/admin/components/userManagementRows.tsx",
+          "category": "finish_testing",
+          "lp": 92.7536231884058,
+          "fp": 87.5,
+          "bp": 96.55172413793103,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/auth/context.tsx",
+          "category": "finish_testing",
+          "lp": 97.40259740259741,
+          "fp": 100,
+          "bp": 91.30434782608695,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/auth/api/client.ts",
+          "category": "finish_testing",
+          "lp": 87.97814207650273,
+          "fp": 100,
+          "bp": 70.73170731707317,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/auth/api/session.ts",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 65.625,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/auth/components/AcceptEnterpriseAdminInviteForm.tsx",
+          "category": "finish_testing",
+          "lp": 96.92307692307692,
+          "fp": 100,
+          "bp": 93.33333333333333,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/auth/components/EnterpriseAccessRecoveryPanel.tsx",
+          "category": "finish_testing",
+          "lp": 98.27586206896551,
+          "fp": 100,
+          "bp": 100,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/auth/components/ForgotPasswordForm.tsx",
+          "category": "finish_testing",
+          "lp": 94.73684210526315,
+          "fp": 100,
+          "bp": 76.92307692307693,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/auth/components/RegisterForm.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 95.65217391304348,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/auth/components/ResetPasswordForm.tsx",
+          "category": "finish_testing",
+          "lp": 92.22222222222223,
+          "fp": 100,
+          "bp": 88,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/auth/components/UserMenu.tsx",
+          "category": "finish_testing",
+          "lp": 88.33333333333333,
+          "fp": 82.35294117647058,
+          "bp": 78.57142857142857,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/api/client.ts",
+          "category": "finish_testing",
+          "lp": 95.74468085106383,
+          "fp": 95.45454545454545,
+          "bp": 100,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/components/EnterpriseFeatureFlagsCard.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/components/EnterpriseFeatureFlagsPanel.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 92.3076923076923,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/components/EnterpriseModuleAccessSection.content.tsx",
+          "category": "finish_testing",
+          "lp": 99,
+          "fp": 100,
+          "bp": 82.35294117647058,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/components/EnterpriseModuleManager.tsx",
+          "category": "finish_testing",
+          "lp": 98.36065573770492,
+          "fp": 90.9090909090909,
+          "bp": 91.07142857142857,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/components/EnterpriseOverviewSummary.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 98.52941176470588,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/components/EnterpriseUserManagementPanel.tsx",
+          "category": "finish_testing",
+          "lp": 99.56896551724138,
+          "fp": 100,
+          "bp": 91.66666666666666,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/components/enterpriseOverviewSummary.logic.ts",
+          "category": "finish_testing",
+          "lp": 99.644128113879,
+          "fp": 100,
+          "bp": 93.93939393939394,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/components/useEnterpriseModuleAccessBuckets.ts",
+          "category": "finish_testing",
+          "lp": 99.28057553956835,
+          "fp": 100,
+          "bp": 95.3125,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/components/useEnterpriseModuleCreateFormState.ts",
+          "category": "finish_testing",
+          "lp": 96.52996845425868,
+          "fp": 100,
+          "bp": 78.82352941176471,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/reports/components/ForumReportsTable.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/forum/components/DiscussionForumClient.tree.ts",
+          "category": "finish_testing",
+          "lp": 94.64285714285714,
+          "fp": 100,
+          "bp": 89.36170212765957,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/forum/components/DiscussionForumClient.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 95.65217391304348,
+          "bp": 90.1639344262295,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/forum/components/DiscussionForumPostThread.menu.tsx",
+          "category": "finish_testing",
+          "lp": 95.83333333333334,
+          "fp": 100,
+          "bp": 94.11764705882352,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/forum/components/DiscussionForumPostThread.tsx",
+          "category": "finish_testing",
+          "lp": 99.33333333333333,
+          "fp": 100,
+          "bp": 97.67441860465115,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/forum/components/ForumSettingsCard.tsx",
+          "category": "finish_testing",
+          "lp": 98.58156028368793,
+          "fp": 100,
+          "bp": 95.23809523809523,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/forum/components/StudentForumReportsCard.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubContributorCard.tsx",
+          "category": "finish_testing",
+          "lp": 99.17355371900827,
+          "fp": 50,
+          "bp": 88,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubDonutChartCard.tsx",
+          "category": "finish_testing",
+          "lp": 93.10344827586206,
+          "fp": 33.33333333333333,
+          "bp": 71.42857142857143,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubProjectReposBranchesTab.tsx",
+          "category": "finish_testing",
+          "lp": 86.18421052631578,
+          "fp": 100,
+          "bp": 34.78260869565217,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubProjectReposClient.sections.tsx",
+          "category": "finish_testing",
+          "lp": 95.96774193548387,
+          "fp": 100,
+          "bp": 89.65517241379311,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubProjectReposClient.tsx",
+          "category": "finish_testing",
+          "lp": 62.9156010230179,
+          "fp": 25,
+          "bp": 58.18181818181818,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubProjectReposConfigurationsTab.tsx",
+          "category": "finish_testing",
+          "lp": 92.5925925925926,
+          "fp": 100,
+          "bp": 80,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubProjectReposMyCommitsTab.tsx",
+          "category": "finish_testing",
+          "lp": 86.99186991869918,
+          "fp": 100,
+          "bp": 44,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubProjectReposRepositoriesTab.tsx",
+          "category": "finish_testing",
+          "lp": 92,
+          "fp": 36.36363636363637,
+          "bp": 82.35294117647058,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubRepoChartsDashboard.CommitTimelineChart.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 33.33333333333333,
+          "bp": 100,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/github/components/useGithubProjectReposLiveData.ts",
+          "category": "finish_testing",
+          "lp": 80.86124401913875,
+          "fp": 62.5,
+          "bp": 67.46987951807229,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/meetings/components/CommentInput.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 90.9090909090909,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/meetings/components/MeetingBreadcrumbs.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 66.66666666666666,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/meetings/components/MeetingList.tsx",
+          "category": "finish_testing",
+          "lp": 98.23529411764706,
+          "fp": 100,
+          "bp": 86.66666666666667,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/modules/moduleDashboardData.ts",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 91.66666666666666,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/ModuleAccessSearchSection.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/ModuleDashboardSections.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/ModuleJoinCodeBanner.tsx",
+          "category": "finish_testing",
+          "lp": 67.1875,
+          "fp": 16.666666666666664,
+          "bp": 37.5,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/ModuleList.tsx",
+          "category": "finish_testing",
+          "lp": 99.5575221238938,
+          "fp": 100,
+          "bp": 93.13725490196079,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/moduleSetup/ModuleGuidanceSection.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 86.66666666666667,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/notifications/components/NotificationBell.tsx",
+          "category": "finish_testing",
+          "lp": 98.57142857142858,
+          "fp": 100,
+          "bp": 96.15384615384616,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/TeamFormationPanel.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/questionnaires/components/EditQuestionnaireClient.tsx",
+          "category": "finish_testing",
+          "lp": 98.37962962962963,
+          "fp": 95.83333333333334,
+          "bp": 97.1590909090909,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/questionnaires/components/NewQuestionnaireClient.tsx",
+          "category": "finish_testing",
+          "lp": 99.44444444444444,
+          "fp": 90.47619047619048,
+          "bp": 97.77777777777777,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/questionnaires/components/questionnaireList.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 87.5,
+          "bp": 83.87096774193549,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/dashboard/components/StaffActivityDonutChart.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 93.75,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffAllocationDraftsPanel.tsx",
+          "category": "finish_testing",
+          "lp": 66.0377358490566,
+          "fp": 18.181818181818183,
+          "bp": 68.88888888888889,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffCustomisedAllocationPanel.step1.tsx",
+          "category": "finish_testing",
+          "lp": 94.28571428571428,
+          "fp": 40,
+          "bp": 82.05128205128204,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffModuleProjectCard.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectBreadcrumbs.tsx",
+          "category": "finish_testing",
+          "lp": 96.875,
+          "fp": 100,
+          "bp": 95.08196721311475,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.templates.ts",
+          "category": "finish_testing",
+          "lp": 90.9090909090909,
+          "fp": 100,
+          "bp": 55.55555555555556,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.tsx",
+          "category": "finish_testing",
+          "lp": 92.82296650717703,
+          "fp": 80,
+          "bp": 67.5,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectsModuleList.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 97.5609756097561,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffRandomAllocationPreview.tsx",
+          "category": "finish_testing",
+          "lp": 89.43661971830986,
+          "fp": 66.66666666666666,
+          "bp": 92.45283018867924,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffStudentDeadlineOverridesPanel.tsx",
+          "category": "finish_testing",
+          "lp": 94.07894736842105,
+          "fp": 70,
+          "bp": 72.6027397260274,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffTeamCard.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffTeamDeadlineProfileControl.tsx",
+          "category": "finish_testing",
+          "lp": 97.36842105263158,
+          "fp": 100,
+          "bp": 88.46153846153845,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/navBasePath.ts",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 92.85714285714286,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/useCustomisedAllocation.ts",
+          "category": "finish_testing",
+          "lp": 89.69072164948454,
+          "fp": 50,
+          "bp": 73.58490566037736,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/trello/components/ConfigureTrelloContent.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 98,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/trello/views/TrelloSummaryView/SummaryCardsByStatusChart.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 75,
+          "bp": 100,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/features/trello/views/TrelloSummaryView/SummaryCumulativeChart.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 90,
+          "bp": 100,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/featureFlags.ts",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 96.55172413793103,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/animation/ScrollReveal.tsx",
+          "category": "finish_testing",
+          "lp": 97.04433497536947,
+          "fp": 100,
+          "bp": 93.61702127659575,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/api/env.ts",
+          "category": "finish_testing",
+          "lp": 94.5945945945946,
+          "fp": 100,
+          "bp": 80,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/api/http.ts",
+          "category": "finish_testing",
+          "lp": 74.84662576687117,
+          "fp": 83.33333333333334,
+          "bp": 65.38461538461539,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/auth/default-space.ts",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 92.85714285714286,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/auth/session.ts",
+          "category": "finish_testing",
+          "lp": 21.666666666666668,
+          "fp": 33.33333333333333,
+          "bp": 100,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/layout/Header.tsx",
+          "category": "finish_testing",
+          "lp": 98.0544747081712,
+          "fp": 100,
+          "bp": 96.72131147540983,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/layout/NavigationPrefetch.tsx",
+          "category": "finish_testing",
+          "lp": 97.75280898876404,
+          "fp": 100,
+          "bp": 94.73684210526315,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/layout/Sidebar.utils.ts",
+          "category": "finish_testing",
+          "lp": 97.43589743589743,
+          "fp": 100,
+          "bp": 93.54838709677419,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/layout/SidebarDesktopNav.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/layout/SpaceSwitcher.tsx",
+          "category": "finish_testing",
+          "lp": 97.33333333333334,
+          "fp": 100,
+          "bp": 93.33333333333333,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/layout/sidebarDerivedState.ts",
+          "category": "finish_testing",
+          "lp": 96.66666666666667,
+          "fp": 100,
+          "bp": 90.2439024390244,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/layout/useSidebarState.ts",
+          "category": "finish_testing",
+          "lp": 97.72727272727273,
+          "fp": 100,
+          "bp": 92.10526315789474,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/lib/pagination.ts",
+          "category": "finish_testing",
+          "lp": 92.3076923076923,
+          "fp": 100,
+          "bp": 92.85714285714286,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/lib/search.ts",
+          "category": "finish_testing",
+          "lp": 96.95431472081218,
+          "fp": 100,
+          "bp": 90.65420560747664,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/ui/AnchorLink.tsx",
+          "category": "finish_testing",
+          "lp": 93.54838709677419,
+          "fp": 100,
+          "bp": 93.33333333333333,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/ui/AutoGrowTextarea.tsx",
+          "category": "finish_testing",
+          "lp": 96.875,
+          "fp": 100,
+          "bp": 94.11764705882352,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/ui/ChartTooltipContent.tsx",
+          "category": "finish_testing",
+          "lp": 98.3739837398374,
+          "fp": 100,
+          "bp": 95.23809523809523,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/ui/FeatureRouteSkeletons.staff.tsx",
+          "category": "finish_testing",
+          "lp": 86.82926829268293,
+          "fp": 90,
+          "bp": 100,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/ui/ForumConversationTree.tsx",
+          "category": "finish_testing",
+          "lp": 97.43589743589743,
+          "fp": 100,
+          "bp": 90.9090909090909,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/ui/PerformanceSummaryCard.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/ui/Skeleton.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 90,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/shared/ui/usePieCursorTooltip.ts",
+          "category": "finish_testing",
+          "lp": 96.80851063829788,
+          "fp": 100,
+          "bp": 93.93939393939394,
+          "author": "Ayan Mamun"
+        },
+        {
+          "file": "apps/web/src/test-utils/server-only.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ayan Mamun"
+        }
+      ],
+      "total": 115
+    },
+    {
+      "author": "CP-KCL",
+      "requires_full_testing": 53,
+      "finish_testing": 21,
+      "files": [
+        {
+          "file": "apps/web/app/(app)/profile/trello/callback/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/trello/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/trello/board/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/trello/configure/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/trello/graphs/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/modules/[moduleId]/layout.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/modules/[moduleId]/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/modules/[moduleId]/staff/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/modules/[moduleId]/staff/access/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/modules/[moduleId]/students/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/modules/[moduleId]/students/access/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/layout.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 95.23809523809523,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/manage/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/layout.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/peer-assessment/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 94.73684210526315,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/peer-assessment/[studentId]/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 98.14814814814815,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/team/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/warnings/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/archive/components/ArchiveManager.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/archive/components/ArchiveNavigation.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/archive/components/ArchiveTable.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/archive/components/ArchiveTableHintButtons.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/archive/hooks/useArchiveManager.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/archive/lib/archiveEmptyMessages.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 100,
+          "bp": 100,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/archive/lib/archiveMessages.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/archive/lib/archivePillNav.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/archive/lib/archiveScopes.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 100,
+          "bp": 100,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/archive/lib/archiveTableRows.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/components/EnterpriseModuleCreateForm.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 93.44262295081968,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/staffModuleWorkspaceAccess.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/staffModuleWorkspaceLayoutData.ts",
+          "category": "finish_testing",
+          "lp": 52.22222222222223,
+          "fp": 100,
+          "bp": 100,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/api/client.ts",
+          "category": "finish_testing",
+          "lp": 88.57142857142857,
+          "fp": 80,
+          "bp": 100,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/ArchivedProjectScopeBanner.tsx",
+          "category": "finish_testing",
+          "lp": 22.58064516129032,
+          "fp": 100,
+          "bp": 28.57142857142857,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/ModuleDashboard.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/ModuleWorkspaceNav.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/StaffModuleStudentProjectMatrix.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/StaffModuleWorkspaceArchivedBanner.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/StaffModuleWorkspaceHero.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/moduleSetup/ModuleStaffAccessSection.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/moduleSetup/StaffModuleAccessChangesReview.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/moduleSetup/StaffModuleAccessForm.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/moduleSetup/StaffModuleAccessTwoColumnSection.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/moduleSetup/StaffModuleStudentAccessForm.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/moduleSetup/index.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/moduleSetup/moduleGuidanceDefaults.ts",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 50,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/modules/lib/moduleSetupInitialSelection.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/projects/lib/resolveStudentProjectWorkspaceCapability.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/projects/workspace/ProjectWorkspaceCanEditContext.tsx",
+          "category": "finish_testing",
+          "lp": 61.111111111111114,
+          "fp": 50,
+          "bp": 100,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffPeerMemberDualProgressGrid.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffPeerStudentAssessmentsPanel.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectManageFormCollapsible.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectSectionNavGate.tsx",
+          "category": "finish_testing",
+          "lp": 88.88888888888889,
+          "fp": 100,
+          "bp": 33.33333333333333,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectsWorkspacePageHeader.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 33.33333333333333,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/manage/StaffProjectManageDangerZone.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/manage/StaffProjectManageSectionAlerts.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/manage/StaffProjectManageSetupContext.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/manage/StaffProjectManageSetupSections.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/manage/sections/StaffProjectManageArchiveOrDeleteSection.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/manage/sections/StaffProjectManageFeatureFlagsSection.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/manage/sections/StaffProjectManageForumSection.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/manage/sections/StaffProjectManageProjectNameSection.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/manage/sections/StaffProjectManageWarningsSection.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/lib/staffModuleProjectsPageData.ts",
+          "category": "finish_testing",
+          "lp": 4.761904761904762,
+          "fp": 0,
+          "bp": 100,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/lib/staffProjectWorkspaceAggregates.ts",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 40,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/lib/staffTeamContext.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/warnings/components/ConfigureWarningPanel.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 96.36363636363636,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/warnings/components/WarningRulesReadOnlySummary.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/trello/components/BoardCard.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 94.44444444444444,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/trello/components/CardDistributionGraph.tsx",
+          "category": "finish_testing",
+          "lp": 99.54954954954955,
+          "fp": 88.88888888888889,
+          "bp": 91.35802469135803,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/trello/components/ProjectTrelloContent.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 75,
+          "bp": 95.45454545454545,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/trello/lib/summaryChartData.ts",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 95.83333333333334,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/trello/views/TrelloBoardView.tsx",
+          "category": "finish_testing",
+          "lp": 99.61977186311786,
+          "fp": 90.9090909090909,
+          "bp": 87.91208791208791,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/trello/views/TrelloLinkAccountView.tsx",
+          "category": "finish_testing",
+          "lp": 97.22222222222221,
+          "fp": 100,
+          "bp": 90.9090909090909,
+          "author": "CP-KCL"
+        },
+        {
+          "file": "apps/web/src/features/trello/views/TrelloLinkBoardView.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 96.34146341463415,
+          "author": "CP-KCL"
+        }
+      ],
+      "total": 74
+    },
+    {
+      "author": "Ali Demir",
+      "requires_full_testing": 19,
+      "finish_testing": 16,
+      "files": [
+        {
+          "file": "apps/web/app/(app)/projects/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/layout.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/deadlines/page.tsx",
+          "category": "finish_testing",
+          "lp": 96.15384615384616,
+          "fp": 100,
+          "bp": 100,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/meetings/page.tsx",
+          "category": "finish_testing",
+          "lp": 86.66666666666667,
+          "fp": 100,
+          "bp": 56.25,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/peer-assessments/page.tsx",
+          "category": "finish_testing",
+          "lp": 96.69421487603306,
+          "fp": 100,
+          "bp": 100,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/peer-feedback/page.tsx",
+          "category": "finish_testing",
+          "lp": 95.23809523809523,
+          "fp": 100,
+          "bp": 100,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/page.tsx",
+          "category": "finish_testing",
+          "lp": 78.19383259911893,
+          "fp": 92.3076923076923,
+          "bp": 73.58490566037736,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/peer-feedback/[studentId]/FeedbackEvidenceBrowser.tsx",
+          "category": "finish_testing",
+          "lp": 95.54140127388536,
+          "fp": 83.33333333333334,
+          "bp": 63.04347826086957,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/peer-feedback/[studentId]/page.tsx",
+          "category": "finish_testing",
+          "lp": 97.45762711864407,
+          "fp": 100,
+          "bp": 86.95652173913044,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/teamhealth/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 92.98245614035088,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerAssessment/utils.ts",
+          "category": "finish_testing",
+          "lp": 94.54545454545455,
+          "fp": 100,
+          "bp": 55.00000000000001,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerAssessment/api/client.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerAssessment/api/mapper.ts",
+          "category": "finish_testing",
+          "lp": 80.41237113402062,
+          "fp": 85.71428571428571,
+          "bp": 50,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerAssessment/components/PeerAssessmentForm.tsx",
+          "category": "finish_testing",
+          "lp": 89.75265017667844,
+          "fp": 75,
+          "bp": 86.17021276595744,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerAssessment/components/PeerAssessmentTitleWithInfo.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerAssessment/components/PeerListView.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerFeedback/api/client.ts",
+          "category": "finish_testing",
+          "lp": 89.87341772151899,
+          "fp": 90,
+          "bp": 70.37037037037037,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerFeedback/api/mapper.ts",
+          "category": "finish_testing",
+          "lp": 67.3469387755102,
+          "fp": 77.77777777777779,
+          "bp": 52.702702702702695,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerFeedback/components/FeedbackListView.tsx",
+          "category": "finish_testing",
+          "lp": 88.88888888888889,
+          "fp": 100,
+          "bp": 80,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerFeedback/components/FeedbackReviewForm.tsx",
+          "category": "finish_testing",
+          "lp": 86.46153846153845,
+          "fp": 83.33333333333334,
+          "bp": 76.22950819672131,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerFeedback/components/PeerFeedbackTitleWithInfo.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/navFlags.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/api/client.ts",
+          "category": "finish_testing",
+          "lp": 75.0853242320819,
+          "fp": 77.14285714285715,
+          "bp": 87.5,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/ProjectList.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/ProjectOverviewDashboard.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/ProjectTeamHealthPanels.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/ProjectTeamHealthTitleWithInfo.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/ProjectTeamList.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/TeamHealthMessagePanel.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectNavFlagsPanel.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/team-health/components/StaffSignalLookbackSelect.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/team-health/components/StaffTeamHealthMessageReviewPanel.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/team-health/components/StaffTeamWarningReviewPanel.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/shared/lib/dateFormatter.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/shared/ui/TitleWithInfoModal.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        }
+      ],
+      "total": 35
+    },
+    {
+      "author": "seyidalitunjay",
+      "requires_full_testing": 4,
+      "finish_testing": 18,
+      "files": [
+        {
+          "file": "apps/web/app/(admin)/admin/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/peer-assessments/module/[id]/team/[teamId]/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/team-allocation/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 66.66666666666666,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/app/(auth)/forgot-password/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/app/(auth)/register/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/projects/api/teamAllocation.ts",
+          "category": "finish_testing",
+          "lp": 74.71264367816092,
+          "fp": 80,
+          "bp": 90.32258064516128,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/questionnaires/purpose.ts",
+          "category": "finish_testing",
+          "lp": 55.55555555555556,
+          "fp": 100,
+          "bp": 66.66666666666666,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/peerAssessments/components/StaffMarkingCard.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 94.23076923076923,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffAllocationModesPanel.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 94.11764705882352,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffCustomisedAllocationPanel.step2.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 33.33333333333333,
+          "bp": 90.9090909090909,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffCustomisedAllocationPanel.step3.tsx",
+          "category": "finish_testing",
+          "lp": 89.44723618090453,
+          "fp": 50,
+          "bp": 88.88888888888889,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffManualAllocationPanel.tsx",
+          "category": "finish_testing",
+          "lp": 86.39240506329115,
+          "fp": 83.33333333333334,
+          "bp": 81.3953488372093,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.create-deadlines.ts",
+          "category": "finish_testing",
+          "lp": 58.620689655172406,
+          "fp": 75,
+          "bp": 75,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.deadline-form.tsx",
+          "category": "finish_testing",
+          "lp": 86.93693693693693,
+          "fp": 18.75,
+          "bp": 41.66666666666667,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.student-picker.tsx",
+          "category": "finish_testing",
+          "lp": 96.875,
+          "fp": 33.33333333333333,
+          "bp": 66.66666666666666,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.submit.ts",
+          "category": "finish_testing",
+          "lp": 69.01408450704226,
+          "fp": 100,
+          "bp": 44.44444444444444,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/allocationDraftEvents.ts",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 50,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/customisedAllocation.utils.ts",
+          "category": "finish_testing",
+          "lp": 85.47486033519553,
+          "fp": 100,
+          "bp": 75.67567567567568,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/useCustomisedAllocationLoading.ts",
+          "category": "finish_testing",
+          "lp": 97.10144927536231,
+          "fp": 100,
+          "bp": 70.83333333333334,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/useStaffAllocationDraftsPanel.ts",
+          "category": "finish_testing",
+          "lp": 50,
+          "fp": 35.294117647058826,
+          "bp": 70.45454545454545,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/useStaffProjectCreatePanel.ts",
+          "category": "finish_testing",
+          "lp": 79.62264150943396,
+          "fp": 33.33333333333333,
+          "bp": 74.07407407407408,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/useStaffRandomAllocationPreview.ts",
+          "category": "finish_testing",
+          "lp": 82.85714285714286,
+          "fp": 86.66666666666667,
+          "bp": 53.333333333333336,
+          "author": "seyidalitunjay"
+        }
+      ],
+      "total": 22
+    },
+    {
+      "author": "AndresZacchi",
+      "requires_full_testing": 13,
+      "finish_testing": 7,
+      "files": [
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/page.tsx",
+          "category": "finish_testing",
+          "lp": 97.46835443037975,
+          "fp": 100,
+          "bp": 75.75757575757575,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/discussion/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/repos/page.tsx",
+          "category": "finish_testing",
+          "lp": 51.42857142857142,
+          "fp": 100,
+          "bp": 16.666666666666664,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/team/page.tsx",
+          "category": "finish_testing",
+          "lp": 87.5,
+          "fp": 100,
+          "bp": 83.72093023255815,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/trello/callback/page.tsx",
+          "category": "finish_testing",
+          "lp": 92.85714285714286,
+          "fp": 100,
+          "bp": 82.6086956521739,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/discussion/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/questionnaires/[id]/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/help/HelpFaqSearch.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/help/HelpNav.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/help/HelpNavGate.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/help/HelpSectionScroll.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/help/HelpTopQuestions.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/help/layout.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/help/faqs/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/app/sections/marketing/FaqSection.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 91.66666666666666,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/reports/api/client.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/CustomAllocationWaitingBoard.tsx",
+          "category": "finish_testing",
+          "lp": 13.333333333333334,
+          "fp": 0,
+          "bp": 100,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/TeamAllocationQuestionnaireCard.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/src/features/questionnaires/api/client.ts",
+          "category": "finish_testing",
+          "lp": 91.83673469387756,
+          "fp": 100,
+          "bp": 50,
+          "author": "AndresZacchi"
+        },
+        {
+          "file": "apps/web/src/shared/animation/HomeSectionScroll.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "AndresZacchi"
+        }
+      ],
+      "total": 20
+    },
+    {
+      "author": "Matthew Kelsey",
+      "requires_full_testing": 4,
+      "finish_testing": 15,
+      "files": [
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/team-meetings/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 92.85714285714286,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/components/EnterpriseModuleAccessSection.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 84.21052631578947,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/features/meetings/components/AddToCalendarDropdown.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 85.71428571428571,
+          "bp": 100,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/features/meetings/components/CommentSection.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 96.875,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/features/meetings/components/CreateMeetingForm.tsx",
+          "category": "finish_testing",
+          "lp": 99.06976744186046,
+          "fp": 95.45454545454545,
+          "bp": 98.11320754716981,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/features/meetings/components/MeetingAttendanceContent.tsx",
+          "category": "finish_testing",
+          "lp": 89.0909090909091,
+          "fp": 100,
+          "bp": 95.23809523809523,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/features/meetings/components/MeetingDetail.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 79.48717948717949,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/features/meetings/components/MeetingEditContent.tsx",
+          "category": "finish_testing",
+          "lp": 84.21052631578947,
+          "fp": 100,
+          "bp": 93.33333333333333,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/features/meetings/components/MeetingEditForm.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 92.3076923076923,
+          "bp": 94.87179487179486,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/features/meetings/components/MeetingMinutesContent.tsx",
+          "category": "finish_testing",
+          "lp": 86.15384615384616,
+          "fp": 100,
+          "bp": 95.45454545454545,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/features/meetings/components/MeetingsPageContent.tsx",
+          "category": "finish_testing",
+          "lp": 96.7032967032967,
+          "fp": 100,
+          "bp": 94.11764705882352,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/features/staff/meetings/components/AttendanceTable.tsx",
+          "category": "finish_testing",
+          "lp": 97.53086419753086,
+          "fp": 100,
+          "bp": 85.71428571428571,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/features/staff/meetings/components/MeetingList.tsx",
+          "category": "finish_testing",
+          "lp": 97.10144927536231,
+          "fp": 100,
+          "bp": 90.32258064516128,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/shared/layout/SidebarMobileNav.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/shared/ui/AppleIcon.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/shared/ui/MicrosoftIcon.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/shared/ui/OutlookIcon.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/shared/ui/RichTextEditor.tsx",
+          "category": "finish_testing",
+          "lp": 99.51456310679612,
+          "fp": 100,
+          "bp": 89.0625,
+          "author": "Matthew Kelsey"
+        },
+        {
+          "file": "apps/web/src/shared/ui/RichTextViewer.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 76.92307692307693,
+          "author": "Matthew Kelsey"
+        }
+      ],
+      "total": 19
+    },
+    {
+      "author": "Ali Mohammed",
+      "requires_full_testing": 7,
+      "finish_testing": 11,
+      "files": [
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/grading/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 97.14285714285714,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/create/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 89.28571428571429,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/questionnaires/[id]/edit/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/questionnaires/new/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/repos/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/api/client.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubChartCard.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 50,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubProjectReposClient.styles.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 100,
+          "bp": 100,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubRepoChartsDashboard.helpers.ts",
+          "category": "finish_testing",
+          "lp": 86.18090452261306,
+          "fp": 78.57142857142857,
+          "bp": 77.04918032786885,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubRepoChartsDashboard.styles.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubRepoChartsDashboard.tsx",
+          "category": "finish_testing",
+          "lp": 86.4406779661017,
+          "fp": 52.94117647058824,
+          "bp": 66.66666666666666,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubRepoLinkCard.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 80.43478260869566,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubSectionContainer.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 50,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/StaffProjectReposReadOnlyClient.tsx",
+          "category": "finish_testing",
+          "lp": 94.3609022556391,
+          "fp": 66.66666666666666,
+          "bp": 83.33333333333334,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/useGithubProjectReposAutoRefresh.ts",
+          "category": "finish_testing",
+          "lp": 91.91919191919192,
+          "fp": 100,
+          "bp": 74.19354838709677,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.deadlines.ts",
+          "category": "finish_testing",
+          "lp": 98.24561403508771,
+          "fp": 100,
+          "bp": 94.44444444444444,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.sections.tsx",
+          "category": "finish_testing",
+          "lp": 99.67845659163987,
+          "fp": 52.17391304347826,
+          "bp": 81.48148148148148,
+          "author": "Ali Mohammed"
+        }
+      ],
+      "total": 18
+    },
+    {
+      "author": "amirrza777",
+      "requires_full_testing": 8,
+      "finish_testing": 2,
+      "files": [
+        {
+          "file": "apps/web/app/(app)/calendar/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "amirrza777"
+        },
+        {
+          "file": "apps/web/app/(app)/dashboard/page.tsx",
+          "category": "finish_testing",
+          "lp": 76.47058823529412,
+          "fp": 50,
+          "bp": 25,
+          "author": "amirrza777"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/archive/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "amirrza777"
+        },
+        {
+          "file": "apps/web/app/(auth)/google/success/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "amirrza777"
+        },
+        {
+          "file": "apps/web/app/(auth)/reset-password/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "amirrza777"
+        },
+        {
+          "file": "apps/web/app/api/auth/google-callback/route.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "amirrza777"
+        },
+        {
+          "file": "apps/web/src/features/archive/api/client.ts",
+          "category": "finish_testing",
+          "lp": 38.46153846153847,
+          "fp": 0,
+          "bp": 100,
+          "author": "amirrza777"
+        },
+        {
+          "file": "apps/web/src/features/calendar/api/client.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "amirrza777"
+        },
+        {
+          "file": "apps/web/src/features/calendar/components/CalendarGrid.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "amirrza777"
+        },
+        {
+          "file": "apps/web/src/features/calendar/components/UpcomingList.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "amirrza777"
+        }
+      ],
+      "total": 10
+    },
+    {
+      "author": "Maksym Byelko (k23156666)",
+      "requires_full_testing": 0,
+      "finish_testing": 3,
+      "files": [
+        {
+          "file": "apps/web/app/(app)/modules/[moduleId]/page.tsx",
+          "category": "finish_testing",
+          "lp": 92,
+          "fp": 100,
+          "bp": 68.18181818181817,
+          "author": "Maksym Byelko (k23156666)"
+        },
+        {
+          "file": "apps/web/src/features/enterprise/components/ModuleJoinCodeCard.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 94.44444444444444,
+          "author": "Maksym Byelko (k23156666)"
+        },
+        {
+          "file": "apps/web/src/features/modules/components/StudentModulesOverviewClient.tsx",
+          "category": "finish_testing",
+          "lp": 97.33333333333334,
+          "fp": 100,
+          "bp": 93.47826086956522,
+          "author": "Maksym Byelko (k23156666)"
+        }
+      ],
+      "total": 3
+    }
+  ],
+  "likelyUserAuthors": [
+    {
+      "author": "Ali Demir",
+      "requires_full_testing": 19,
+      "finish_testing": 16,
+      "files": [
+        {
+          "file": "apps/web/app/(app)/projects/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/layout.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/deadlines/page.tsx",
+          "category": "finish_testing",
+          "lp": 96.15384615384616,
+          "fp": 100,
+          "bp": 100,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/meetings/page.tsx",
+          "category": "finish_testing",
+          "lp": 86.66666666666667,
+          "fp": 100,
+          "bp": 56.25,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/peer-assessments/page.tsx",
+          "category": "finish_testing",
+          "lp": 96.69421487603306,
+          "fp": 100,
+          "bp": 100,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/projects/[projectId]/peer-feedback/page.tsx",
+          "category": "finish_testing",
+          "lp": 95.23809523809523,
+          "fp": 100,
+          "bp": 100,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/page.tsx",
+          "category": "finish_testing",
+          "lp": 78.19383259911893,
+          "fp": 92.3076923076923,
+          "bp": 73.58490566037736,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/peer-feedback/[studentId]/FeedbackEvidenceBrowser.tsx",
+          "category": "finish_testing",
+          "lp": 95.54140127388536,
+          "fp": 83.33333333333334,
+          "bp": 63.04347826086957,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/peer-feedback/[studentId]/page.tsx",
+          "category": "finish_testing",
+          "lp": 97.45762711864407,
+          "fp": 100,
+          "bp": 86.95652173913044,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/teamhealth/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 92.98245614035088,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerAssessment/utils.ts",
+          "category": "finish_testing",
+          "lp": 94.54545454545455,
+          "fp": 100,
+          "bp": 55.00000000000001,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerAssessment/api/client.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerAssessment/api/mapper.ts",
+          "category": "finish_testing",
+          "lp": 80.41237113402062,
+          "fp": 85.71428571428571,
+          "bp": 50,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerAssessment/components/PeerAssessmentForm.tsx",
+          "category": "finish_testing",
+          "lp": 89.75265017667844,
+          "fp": 75,
+          "bp": 86.17021276595744,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerAssessment/components/PeerAssessmentTitleWithInfo.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerAssessment/components/PeerListView.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerFeedback/api/client.ts",
+          "category": "finish_testing",
+          "lp": 89.87341772151899,
+          "fp": 90,
+          "bp": 70.37037037037037,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerFeedback/api/mapper.ts",
+          "category": "finish_testing",
+          "lp": 67.3469387755102,
+          "fp": 77.77777777777779,
+          "bp": 52.702702702702695,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerFeedback/components/FeedbackListView.tsx",
+          "category": "finish_testing",
+          "lp": 88.88888888888889,
+          "fp": 100,
+          "bp": 80,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerFeedback/components/FeedbackReviewForm.tsx",
+          "category": "finish_testing",
+          "lp": 86.46153846153845,
+          "fp": 83.33333333333334,
+          "bp": 76.22950819672131,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/peerFeedback/components/PeerFeedbackTitleWithInfo.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/navFlags.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/api/client.ts",
+          "category": "finish_testing",
+          "lp": 75.0853242320819,
+          "fp": 77.14285714285715,
+          "bp": 87.5,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/ProjectList.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/ProjectOverviewDashboard.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/ProjectTeamHealthPanels.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/ProjectTeamHealthTitleWithInfo.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/ProjectTeamList.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/projects/components/TeamHealthMessagePanel.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectNavFlagsPanel.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/team-health/components/StaffSignalLookbackSelect.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/team-health/components/StaffTeamHealthMessageReviewPanel.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/team-health/components/StaffTeamWarningReviewPanel.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/shared/lib/dateFormatter.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        },
+        {
+          "file": "apps/web/src/shared/ui/TitleWithInfoModal.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Demir"
+        }
+      ],
+      "total": 35
+    },
+    {
+      "author": "seyidalitunjay",
+      "requires_full_testing": 4,
+      "finish_testing": 18,
+      "files": [
+        {
+          "file": "apps/web/app/(admin)/admin/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/peer-assessments/module/[id]/team/[teamId]/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/team-allocation/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 66.66666666666666,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/app/(auth)/forgot-password/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/app/(auth)/register/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/projects/api/teamAllocation.ts",
+          "category": "finish_testing",
+          "lp": 74.71264367816092,
+          "fp": 80,
+          "bp": 90.32258064516128,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/questionnaires/purpose.ts",
+          "category": "finish_testing",
+          "lp": 55.55555555555556,
+          "fp": 100,
+          "bp": 66.66666666666666,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/peerAssessments/components/StaffMarkingCard.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 94.23076923076923,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffAllocationModesPanel.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 94.11764705882352,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffCustomisedAllocationPanel.step2.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 33.33333333333333,
+          "bp": 90.9090909090909,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffCustomisedAllocationPanel.step3.tsx",
+          "category": "finish_testing",
+          "lp": 89.44723618090453,
+          "fp": 50,
+          "bp": 88.88888888888889,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffManualAllocationPanel.tsx",
+          "category": "finish_testing",
+          "lp": 86.39240506329115,
+          "fp": 83.33333333333334,
+          "bp": 81.3953488372093,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.create-deadlines.ts",
+          "category": "finish_testing",
+          "lp": 58.620689655172406,
+          "fp": 75,
+          "bp": 75,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.deadline-form.tsx",
+          "category": "finish_testing",
+          "lp": 86.93693693693693,
+          "fp": 18.75,
+          "bp": 41.66666666666667,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.student-picker.tsx",
+          "category": "finish_testing",
+          "lp": 96.875,
+          "fp": 33.33333333333333,
+          "bp": 66.66666666666666,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.submit.ts",
+          "category": "finish_testing",
+          "lp": 69.01408450704226,
+          "fp": 100,
+          "bp": 44.44444444444444,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/allocationDraftEvents.ts",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 50,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/customisedAllocation.utils.ts",
+          "category": "finish_testing",
+          "lp": 85.47486033519553,
+          "fp": 100,
+          "bp": 75.67567567567568,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/useCustomisedAllocationLoading.ts",
+          "category": "finish_testing",
+          "lp": 97.10144927536231,
+          "fp": 100,
+          "bp": 70.83333333333334,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/useStaffAllocationDraftsPanel.ts",
+          "category": "finish_testing",
+          "lp": 50,
+          "fp": 35.294117647058826,
+          "bp": 70.45454545454545,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/useStaffProjectCreatePanel.ts",
+          "category": "finish_testing",
+          "lp": 79.62264150943396,
+          "fp": 33.33333333333333,
+          "bp": 74.07407407407408,
+          "author": "seyidalitunjay"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/useStaffRandomAllocationPreview.ts",
+          "category": "finish_testing",
+          "lp": 82.85714285714286,
+          "fp": 86.66666666666667,
+          "bp": 53.333333333333336,
+          "author": "seyidalitunjay"
+        }
+      ],
+      "total": 22
+    },
+    {
+      "author": "Ali Mohammed",
+      "requires_full_testing": 7,
+      "finish_testing": 11,
+      "files": [
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/[projectId]/teams/[teamId]/grading/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 97.14285714285714,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/projects/create/page.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 89.28571428571429,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/questionnaires/[id]/edit/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/questionnaires/new/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/app/(app)/staff/repos/page.tsx",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/api/client.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubChartCard.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 50,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubProjectReposClient.styles.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 100,
+          "bp": 100,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubRepoChartsDashboard.helpers.ts",
+          "category": "finish_testing",
+          "lp": 86.18090452261306,
+          "fp": 78.57142857142857,
+          "bp": 77.04918032786885,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubRepoChartsDashboard.styles.ts",
+          "category": "requires_full_testing",
+          "lp": 0,
+          "fp": 0,
+          "bp": 0,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubRepoChartsDashboard.tsx",
+          "category": "finish_testing",
+          "lp": 86.4406779661017,
+          "fp": 52.94117647058824,
+          "bp": 66.66666666666666,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubRepoLinkCard.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 80.43478260869566,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/GithubSectionContainer.tsx",
+          "category": "finish_testing",
+          "lp": 100,
+          "fp": 100,
+          "bp": 50,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/StaffProjectReposReadOnlyClient.tsx",
+          "category": "finish_testing",
+          "lp": 94.3609022556391,
+          "fp": 66.66666666666666,
+          "bp": 83.33333333333334,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/github/components/useGithubProjectReposAutoRefresh.ts",
+          "category": "finish_testing",
+          "lp": 91.91919191919192,
+          "fp": 100,
+          "bp": 74.19354838709677,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.deadlines.ts",
+          "category": "finish_testing",
+          "lp": 98.24561403508771,
+          "fp": 100,
+          "bp": 94.44444444444444,
+          "author": "Ali Mohammed"
+        },
+        {
+          "file": "apps/web/src/features/staff/projects/components/StaffProjectCreatePanel.sections.tsx",
+          "category": "finish_testing",
+          "lp": 99.67845659163987,
+          "fp": 52.17391304347826,
+          "bp": 81.48148148148148,
+          "author": "Ali Mohammed"
+        }
+      ],
+      "total": 18
+    }
+  ]
+}
