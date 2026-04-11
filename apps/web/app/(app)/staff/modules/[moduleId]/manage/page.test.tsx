@@ -195,6 +195,24 @@ describe("StaffModuleManagePage", () => {
     expect(redirectMock).toHaveBeenLastCalledWith("/enterprise/modules/11/edit");
   });
 
+  it("redirects enterprise editors to enterprise module edit page", async () => {
+    loadStaffModuleWorkspaceContextMock.mockResolvedValueOnce({
+      ...baseContext,
+      moduleRecord: { id: "11", title: "CS11", accountRole: "TEACHING_ASSISTANT" },
+    });
+    resolveStaffModuleWorkspaceAccessMock.mockReturnValueOnce(
+      { enterpriseModuleEditor: true, isArchived: false } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>,
+    );
+
+    await expect(
+      StaffModuleManagePage({
+        params: Promise.resolve({ moduleId: "11" }),
+      }),
+    ).rejects.toBeInstanceOf(RedirectSentinel);
+
+    expect(redirectMock).toHaveBeenLastCalledWith("/enterprise/modules/11/edit");
+  });
+
   it("renders manage page and passes created join code to module form", async () => {
     const page = await StaffModuleManagePage({
       params: Promise.resolve({ moduleId: "11" }),
@@ -216,5 +234,27 @@ describe("StaffModuleManagePage", () => {
     expect(form).toHaveAttribute("data-join-code", "JOIN123");
     expect(form).toHaveAttribute("data-created", "true");
     expect(form).toHaveAttribute("data-success-redirect", "/staff/modules/11");
+  });
+
+  it("renders archived helper text and omits create action when module is archived", async () => {
+    resolveStaffModuleWorkspaceAccessMock.mockReturnValueOnce(
+      { enterpriseModuleEditor: false, isArchived: true } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>,
+    );
+
+    const page = await StaffModuleManagePage({
+      params: Promise.resolve({ moduleId: "11" }),
+      searchParams: Promise.resolve({ created: "0" }),
+    });
+
+    render(page);
+
+    expect(
+      screen.getByText(
+        'This module is archived and read-only. To make changes, unarchive using the "Archive or delete module" section at the bottom of this page.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Create project" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("module-form")).toHaveAttribute("data-join-code", "");
+    expect(screen.getByTestId("module-form")).toHaveAttribute("data-created", "false");
   });
 });

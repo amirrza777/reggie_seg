@@ -50,6 +50,7 @@ const installSearchMock = (dataset: ModuleRecord[]) => {
 
 describe("EnterpriseModuleManager", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
     installSearchMock([moduleRecord]);
   });

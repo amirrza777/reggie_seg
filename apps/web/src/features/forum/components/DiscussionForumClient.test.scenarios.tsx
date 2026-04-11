@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useUser } from "@/features/auth/useUser";
 import {
   createDiscussionPost,
@@ -51,6 +51,7 @@ const getDiscussionPostsMock = vi.mocked(getDiscussionPosts);
 const reactToDiscussionPostMock = vi.mocked(reactToDiscussionPost);
 const reportDiscussionPostMock = vi.mocked(reportDiscussionPost);
 const updateDiscussionPostMock = vi.mocked(updateDiscussionPost);
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
 function makePost(overrides: Record<string, unknown> = {}) {
   return {
@@ -72,6 +73,7 @@ function makePost(overrides: Record<string, unknown> = {}) {
 describe("DiscussionForumClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     useUserMock.mockReturnValue({
       user: {
         id: 1,
@@ -84,6 +86,10 @@ describe("DiscussionForumClient", () => {
       },
       loading: false,
     } as ReturnType<typeof useUser>);
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it("keeps replies collapsed by default and re-collapses nested threads when parent is hidden", async () => {
@@ -614,7 +620,9 @@ describe("DiscussionForumClient", () => {
     fireEvent.click(within(article).getByRole("button", { name: "Post actions" }));
     expect(within(article).getByRole("button", { name: "Edit" })).toBeInTheDocument();
 
-    document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    act(() => {
+      document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    });
     await waitFor(() => {
       expect(within(article).queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
     });
@@ -721,7 +729,9 @@ describe("DiscussionForumClient", () => {
     const pointerListenerEntry = addEventListenerSpy.mock.calls.find(([eventName]) => eventName === "pointerdown");
     const pointerListener = pointerListenerEntry?.[1] as ((event: PointerEvent) => void) | undefined;
     expect(pointerListener).toBeDefined();
-    pointerListener?.({ target: null } as unknown as PointerEvent);
+    act(() => {
+      pointerListener?.({ target: null } as unknown as PointerEvent);
+    });
 
     await waitFor(() => {
       expect(within(article).queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();

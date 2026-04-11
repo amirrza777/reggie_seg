@@ -60,6 +60,31 @@ describe("GithubProjectReposClient sections", () => {
       />,
     );
     expect(screen.getByTestId("repo-link-1")).toHaveTextContent("personal");
+
+    rerender(
+      <GithubProjectReposMyCodeActivitySection
+        loading={false}
+        connection={{ connected: true, account: { login: "alim" } as any }}
+        links={[]}
+        coverageByLinkId={{}}
+        latestSnapshotByLinkId={{}}
+      />,
+    );
+    expect(screen.getByText(/link a repository first to view personal code activity/i)).toBeInTheDocument();
+  });
+
+  it("renders loading state for my-code section", () => {
+    render(
+      <GithubProjectReposMyCodeActivitySection
+        loading
+        connection={{ connected: true, account: { login: "alim" } as any }}
+        links={[]}
+        coverageByLinkId={{}}
+        latestSnapshotByLinkId={{}}
+      />,
+    );
+
+    expect(screen.getByText("Loading personal analytics...")).toBeInTheDocument();
   });
 
   it("shows config tab only when the connection is missing or app install is required", () => {
@@ -88,6 +113,16 @@ describe("GithubProjectReposClient sections", () => {
         {...props}
         connection={{ connected: true, account: { login: "alim" } as any }}
         needsGithubAppInstall={false}
+      />,
+    );
+    expect(screen.queryByTestId("config-tab")).not.toBeInTheDocument();
+
+    rerender(
+      <GithubProjectReposTeamCodeActivitySection
+        {...props}
+        workspaceReadOnly
+        connection={null}
+        needsGithubAppInstall
       />,
     );
     expect(screen.queryByTestId("config-tab")).not.toBeInTheDocument();

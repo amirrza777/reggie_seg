@@ -6,6 +6,7 @@ import { StaffStudentsBarChart } from "./StaffStudentsBarChart";
 let lastBarChartProps: Record<string, unknown> | null = null;
 let lastTooltipProps: Record<string, unknown> | null = null;
 let lastBarProps: Record<string, unknown> | null = null;
+let lastYAxisProps: Record<string, unknown> | null = null;
 
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => <div data-testid="responsive-container">{children}</div>,
@@ -15,7 +16,10 @@ vi.mock("recharts", () => ({
   },
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   XAxis: () => <div data-testid="x-axis" />,
-  YAxis: () => <div data-testid="y-axis" />,
+  YAxis: (props: Record<string, unknown>) => {
+    lastYAxisProps = props;
+    return <div data-testid="y-axis" />;
+  },
   Tooltip: (props: Record<string, unknown>) => {
     lastTooltipProps = props;
     return <div data-testid="tooltip" />;
@@ -31,6 +35,7 @@ describe("StaffStudentsBarChart", () => {
     lastBarChartProps = null;
     lastTooltipProps = null;
     lastBarProps = null;
+    lastYAxisProps = null;
   });
 
   it("renders an empty-state message when there are no projects", () => {
@@ -39,9 +44,9 @@ describe("StaffStudentsBarChart", () => {
     expect(screen.queryByTestId("bar-chart")).not.toBeInTheDocument();
   });
 
-  it("renders chart data with truncated labels and tooltip formatter behavior", () => {
+  it("renders chart data with wider labels and tooltip formatter behavior", () => {
     const projects = [
-      { name: "A very very long project name", students: 12 },
+      { name: "A long project name that should still fit", students: 12 },
       { name: "Project Two", students: 8 },
       { name: "Project Three", students: 7 },
       { name: "Project Four", students: 5 },
@@ -62,9 +67,10 @@ describe("StaffStudentsBarChart", () => {
 
     const chartData = (lastBarChartProps?.data ?? []) as Array<{ name: string; label: string; students: number }>;
     expect(chartData).toHaveLength(5);
-    expect(chartData[0].name).toBe("A very very long project name");
-    expect(chartData[0].label.endsWith("…")).toBe(true);
-    expect(chartData[0].label).toHaveLength(19);
+    expect(chartData[0].name).toBe("A long project name that should still fit");
+    expect(chartData[0].label.endsWith("…")).toBe(false);
+    expect(lastYAxisProps?.width).toBeGreaterThan(180);
+    expect(lastYAxisProps?.width).toBeLessThan(280);
 
     const formatter = lastTooltipProps?.formatter as
       | ((value: number, name: string, entry: { payload?: { name?: string } }) => [number, string])
@@ -76,5 +82,31 @@ describe("StaffStudentsBarChart", () => {
 
     expect(lastBarProps?.dataKey).toBe("students");
     expect(lastBarProps?.fill).toBe("#6366f1");
+  });
+
+  it("truncates very long labels and falls back when canvas measurement fails", () => {
+    vi.spyOn(window.navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0");
+    const createElementOriginal = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tagName: string, options?: ElementCreationOptions) => {
+      if (tagName === "canvas") {
+        throw new Error("canvas unavailable");
+      }
+      return createElementOriginal(tagName as any, options as any);
+    });
+
+    render(
+      <StaffStudentsBarChart
+        projects={[
+          {
+            name: "This project title is intentionally long enough to trigger the truncation branch in chart labels",
+            students: 4,
+          },
+        ]}
+      />,
+    );
+
+    const chartData = (lastBarChartProps?.data ?? []) as Array<{ label: string }>;
+    expect(chartData[0]?.label.endsWith("…")).toBe(true);
+    expect(lastYAxisProps?.width).toBeGreaterThanOrEqual(140);
   });
 });

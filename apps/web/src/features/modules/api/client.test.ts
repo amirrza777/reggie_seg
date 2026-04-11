@@ -6,7 +6,13 @@ vi.mock("@/shared/api/http", () => ({
   apiFetch: (...args: unknown[]) => apiFetchMock(...args),
 }));
 
-import { getModuleStaffList, getModuleStudentProjectMatrix, joinModuleByCode, listModules } from "./client";
+import {
+  getModuleStaffList,
+  getModuleStudentProjectMatrix,
+  getModuleStudents,
+  joinModuleByCode,
+  listModules,
+} from "./client";
 
 describe("modules api client", () => {
   beforeEach(() => {
@@ -65,6 +71,16 @@ describe("modules api client", () => {
     apiFetchMock.mockResolvedValue(payload);
     const result = await getModuleStudentProjectMatrix(5);
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules/5/student-project-matrix");
+    expect(result).toEqual(payload);
+  });
+
+  it("fetches module students for enterprise management", async () => {
+    const payload = { students: [] };
+    apiFetchMock.mockResolvedValue(payload);
+
+    const result = await getModuleStudents(42);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/modules/42/students");
     expect(result).toEqual(payload);
   });
 });

@@ -108,4 +108,18 @@ describe("StaffTeamDeadlineProfileControl", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByTestId("confirm-modal")).not.toBeInTheDocument();
   });
+
+  it("renders archived read-only state and prevents profile changes", async () => {
+    const user = userEvent.setup();
+    render(<StaffTeamDeadlineProfileControl teamId={19} initialProfile="STANDARD" readOnly />);
+
+    expect(screen.getByText("This module is archived; the deadline profile cannot be changed.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Standard" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "MCF" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "MCF" }));
+
+    expect(screen.queryByTestId("confirm-modal")).not.toBeInTheDocument();
+    expect(updateStaffTeamDeadlineProfileMock).not.toHaveBeenCalled();
+  });
 });

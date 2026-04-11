@@ -59,12 +59,12 @@ async function selectQuestionnaire(questionnaireId = 101) {
 }
 
 async function previewTeams() {
-  fireEvent.click(screen.getByRole("button", { name: /preview customised teams/i }));
+  fireEvent.click(screen.getByRole("button", { name: /preview customised teams|generating preview/i }));
   await waitFor(() => {
     expect(previewCustomAllocationMock).toHaveBeenCalled();
   });
   await waitFor(() => {
-    expect(screen.getByRole("button", { name: /preview customised teams/i })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /confirm allocation/i })).toBeEnabled();
   });
 }
 

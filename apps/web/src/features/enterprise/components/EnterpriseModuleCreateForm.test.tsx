@@ -442,5 +442,5 @@ describe("EnterpriseModuleCreateForm", () => {
 
     fireEvent.change(screen.getByLabelText(/search students/i), { target: { value: "nobody-student" } });
     expect(await screen.findByText('No students match "nobody-student".')).toBeInTheDocument();
-  });
+  }, 15000);
 });

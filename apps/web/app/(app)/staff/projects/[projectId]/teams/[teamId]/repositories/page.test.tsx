@@ -57,6 +57,18 @@ describe("StaffRepositoriesSectionPage", () => {
     expect(screen.getByText("unable to load teams")).toBeInTheDocument();
   });
 
+  it("shows generic load error when thrown value is not an Error instance", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 3, isStaff: true, role: "STAFF" } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getStaffProjectTeamsMock.mockRejectedValue("boom");
+
+    const page = await StaffRepositoriesSectionPage({
+      params: Promise.resolve({ projectId: "8", teamId: "4" }),
+    });
+    render(page);
+
+    expect(screen.getByText("Failed to load repositories.")).toBeInTheDocument();
+  });
+
   it("shows team-not-found message when team id is missing from project data", async () => {
     getCurrentUserMock.mockResolvedValue({ id: 4, isStaff: true, role: "STAFF" } as Awaited<ReturnType<typeof getCurrentUser>>);
     getStaffProjectTeamsMock.mockResolvedValue({
@@ -86,5 +98,20 @@ describe("StaffRepositoriesSectionPage", () => {
 
     expect(screen.getByTestId("repos-client")).toHaveAttribute("data-project-name", "Project Nova");
     expect(screen.getByTestId("repos-client")).toHaveAttribute("data-team-name", "Team Luna");
+  });
+
+  it("renders team member count using allocations length when present", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 9, isStaff: true, role: "STAFF" } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getStaffProjectTeamsMock.mockResolvedValue({
+      project: { id: 15, name: "Project Nova", moduleId: 33 },
+      teams: [{ id: 44, teamName: "Team Luna", allocations: [{ id: 1 }, { id: 2 }, { id: 3 }] }],
+    } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
+
+    const page = await StaffRepositoriesSectionPage({
+      params: Promise.resolve({ projectId: "15", teamId: "44" }),
+    });
+    render(page);
+
+    expect(screen.getByText("Team: Team Luna · 3 on this team")).toBeInTheDocument();
   });
 });
