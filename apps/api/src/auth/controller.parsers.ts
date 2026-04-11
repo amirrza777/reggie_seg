@@ -21,7 +21,7 @@ type UpdateProfileBody = {
 };
 type AcceptEnterpriseAdminInviteBody = {
   token: string;
-  newPassword: string;
+  newPassword?: string;
   firstName?: string;
   lastName?: string;
 };
@@ -234,15 +234,19 @@ export function parseJoinEnterpriseBody(body: unknown): ParseResult<JoinEnterpri
 }
 
 export function parseAcceptEnterpriseAdminInviteBody(body: unknown): ParseResult<AcceptEnterpriseAdminInviteBody> {
-  const parsedBody = parseBodyRecord(body, "token and newPassword required");
+  const parsedBody = parseBodyRecord(body, "token required");
   if (!parsedBody.ok) {
     return parsedBody;
   }
 
   const token = parseTrimmedString(parsedBody.value.token, "token");
-  const newPassword = parseTrimmedString(parsedBody.value.newPassword, "newPassword");
-  if (!token.ok || !newPassword.ok) {
-    return fail("token and newPassword required");
+  if (!token.ok) {
+    return fail("token required");
+  }
+
+  const newPassword = parseOptionalTrimmedString(parsedBody.value.newPassword, "newPassword");
+  if (!newPassword.ok) {
+    return fail("Invalid newPassword");
   }
 
   const firstName = parseOptionalTrimmedString(parsedBody.value.firstName, "firstName");
@@ -256,8 +260,22 @@ export function parseAcceptEnterpriseAdminInviteBody(body: unknown): ParseResult
 
   return ok({
     token: token.value,
-    newPassword: newPassword.value,
+    ...(newPassword.value !== undefined ? { newPassword: newPassword.value } : {}),
     ...(firstName.value !== undefined ? { firstName: firstName.value } : {}),
     ...(lastName.value !== undefined ? { lastName: lastName.value } : {}),
   });
+}
+
+export function parseEnterpriseAdminInviteTokenBody(body: unknown): ParseResult<{ token: string }> {
+  const parsedBody = parseBodyRecord(body, "token required");
+  if (!parsedBody.ok) {
+    return parsedBody;
+  }
+
+  const token = parseTrimmedString(parsedBody.value.token, "token");
+  if (!token.ok) {
+    return fail("token required");
+  }
+
+  return ok({ token: token.value });
 }

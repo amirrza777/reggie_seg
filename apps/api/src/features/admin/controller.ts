@@ -18,6 +18,7 @@ import {
   getAuditLogs,
   getSummary,
   inviteEnterpriseAdmin,
+  inviteGlobalAdmin,
   listEnterpriseUsers,
   listEnterprises,
   listUsers,
@@ -120,6 +121,23 @@ export async function inviteCurrentEnterpriseAdminHandler(req: AdminRequest, res
     return res.status(400).json({ error: "Enterprise context is required" });
   }
   return processEnterpriseAdminInvite(req, res, enterpriseId, "invite current enterprise admin");
+}
+
+export async function inviteGlobalAdminHandler(req: AdminRequest, res: Response) {
+  const parsedBody = parseInviteEnterpriseAdminBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+
+  try {
+    const result = await inviteGlobalAdmin(
+      { email: parsedBody.value.email },
+      req.adminUser,
+    );
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    return res.status(201).json(result.value);
+  } catch (err) {
+    console.error("invite global admin error", err);
+    return res.status(500).json({ error: "Could not send global admin invite" });
+  }
 }
 
 export async function listEnterpriseUsersHandler(req: AdminRequest, res: Response) {

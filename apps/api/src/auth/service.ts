@@ -22,10 +22,17 @@ const REMOVED_USERS_ENTERPRISE_NAME = process.env.REMOVED_USERS_ENTERPRISE_NAME 
 const SUPER_ADMIN_EMAIL = (process.env.SUPER_ADMIN_EMAIL ?? "admin@kcl.ac.uk").toLowerCase();
 
 type User = { id: number; email: string; role: Role };
-type TokenPayload = { sub: number; email: string; admin?: boolean };
+type TokenPayload = { sub: number; email: string; admin?: boolean; issuedAtSeconds?: number };
 type EnterpriseAdminInviteTokenRecord = {
   id: number;
   enterpriseId: string;
+  email: string;
+  revoked: boolean;
+  usedAt: Date | null;
+  expiresAt: Date;
+};
+type GlobalAdminInviteTokenRecord = {
+  id: number;
   email: string;
   revoked: boolean;
   usedAt: Date | null;
@@ -48,6 +55,32 @@ type EnterpriseAdminInviteTokenDelegate = {
     data: { revoked: true; usedAt: Date; acceptedByUserId: number };
   }) => Promise<unknown>;
 };
+type GlobalAdminInviteTokenDelegate = {
+  findUnique: (args: { where: { tokenHash: string } }) => Promise<GlobalAdminInviteTokenRecord | null>;
+  update: (args: {
+    where: { id: number };
+    data: { revoked: boolean; usedAt: Date; acceptedByUserId: number };
+  }) => Promise<unknown>;
+  updateMany: (args: {
+    where: {
+      email: string;
+      revoked: false;
+      usedAt: null;
+      id: { not: number };
+    };
+    data: { revoked: true; usedAt: Date; acceptedByUserId: number };
+  }) => Promise<unknown>;
+};
+type NormalizedInviteAcceptanceInput = {
+  firstName?: string;
+  lastName?: string;
+  newPassword?: string;
+};
+type InviteEmailAccount = {
+  id: number;
+  email: string;
+  enterpriseCode: string | null;
+};
 const bootstrapAdminEmail = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
 const bootstrapAdminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
@@ -59,6 +92,228 @@ function getEnterpriseAdminInviteTokenModel(client: unknown): EnterpriseAdminInv
     );
   }
   return model;
+}
+
+function getGlobalAdminInviteTokenModel(client: unknown): GlobalAdminInviteTokenDelegate {
+  const model = (client as { globalAdminInviteToken?: GlobalAdminInviteTokenDelegate })?.globalAdminInviteToken;
+  if (!model) {
+    throw new Error(
+      "Prisma Client is out of date (missing `globalAdminInviteToken` delegate). Run `npx prisma generate` in apps/api and restart the API."
+    );
+  }
+  return model;
+}
+
+async function resolveActiveEnterpriseAdminInvite(token: string, client: unknown = prisma) {
+  const normalizedToken = extractHexToken(token);
+  const tokenHash = hashToken(normalizedToken);
+  const inviteModel = getEnterpriseAdminInviteTokenModel(client);
+  const invite = await inviteModel.findUnique({ where: { tokenHash } });
+  if (!invite) {throw { code: "INVALID_ENTERPRISE_ADMIN_INVITE" };}
+  if (invite.revoked || invite.usedAt) {throw { code: "USED_ENTERPRISE_ADMIN_INVITE" };}
+  if (invite.expiresAt < new Date()) {throw { code: "EXPIRED_ENTERPRISE_ADMIN_INVITE" };}
+  return invite;
+}
+
+async function resolveActiveGlobalAdminInvite(token: string, client: unknown = prisma) {
+  const normalizedToken = extractHexToken(token);
+  const tokenHash = hashToken(normalizedToken);
+  const inviteModel = getGlobalAdminInviteTokenModel(client);
+  const invite = await inviteModel.findUnique({ where: { tokenHash } });
+  if (!invite) {throw { code: "INVALID_GLOBAL_ADMIN_INVITE" };}
+  if (invite.revoked || invite.usedAt) {throw { code: "USED_GLOBAL_ADMIN_INVITE" };}
+  if (invite.expiresAt < new Date()) {throw { code: "EXPIRED_GLOBAL_ADMIN_INVITE" };}
+  return invite;
+}
+
+function normalizeInviteAcceptanceInput(params: {
+  firstName?: string;
+  lastName?: string;
+  newPassword?: string;
+}): NormalizedInviteAcceptanceInput {
+  const trimmedFirstName = params.firstName?.trim();
+  const trimmedLastName = params.lastName?.trim();
+  const trimmedPassword = params.newPassword?.trim();
+  return {
+    ...(trimmedFirstName && trimmedFirstName.length > 0 ? { firstName: trimmedFirstName } : {}),
+    ...(trimmedLastName && trimmedLastName.length > 0 ? { lastName: trimmedLastName } : {}),
+    ...(trimmedPassword && trimmedPassword.length > 0 ? { newPassword: trimmedPassword } : {}),
+  };
+}
+
+async function assertInviteExistingAccountAccess(params: {
+  tx: Prisma.TransactionClient;
+  inviteEmail: string;
+  authenticatedUserId?: number;
+  existingAccountFound: boolean;
+}) {
+  if (!params.existingAccountFound) {
+    return;
+  }
+  if (!params.authenticatedUserId) {
+    throw { code: "AUTH_REQUIRED_FOR_EXISTING_ACCOUNT" };
+  }
+  const authenticatedUser = await params.tx.user.findUnique({
+    where: { id: params.authenticatedUserId },
+    select: { id: true, email: true },
+  });
+  if (!authenticatedUser || authenticatedUser.email.toLowerCase() !== params.inviteEmail.toLowerCase()) {
+    throw { code: "INVITE_EMAIL_MISMATCH" };
+  }
+}
+
+function assertInvitePasswordForNewAccount(params: { existingAccountFound: boolean; newPassword?: string }) {
+  if (!params.existingAccountFound && !params.newPassword) {
+    throw { code: "PASSWORD_REQUIRED_FOR_NEW_ACCOUNT" };
+  }
+}
+
+async function revokeUserSessions(tx: Prisma.TransactionClient, userId: number) {
+  await tx.refreshToken.updateMany({
+    where: {
+      userId,
+      revoked: false,
+    },
+    data: {
+      revoked: true,
+    },
+  });
+}
+
+async function finalizeEnterpriseInviteAcceptance(params: {
+  inviteModel: EnterpriseAdminInviteTokenDelegate;
+  inviteId: number;
+  acceptedByUserId: number;
+  enterpriseId: string;
+  email: string;
+}) {
+  const now = new Date();
+  await params.inviteModel.update({
+    where: { id: params.inviteId },
+    data: {
+      revoked: true,
+      usedAt: now,
+      acceptedByUserId: params.acceptedByUserId,
+    },
+  });
+  await params.inviteModel.updateMany({
+    where: {
+      enterpriseId: params.enterpriseId,
+      email: params.email,
+      revoked: false,
+      usedAt: null,
+      id: { not: params.inviteId },
+    },
+    data: {
+      revoked: true,
+      usedAt: now,
+      acceptedByUserId: params.acceptedByUserId,
+    },
+  });
+}
+
+async function finalizeGlobalInviteAcceptance(params: {
+  inviteModel: GlobalAdminInviteTokenDelegate;
+  inviteId: number;
+  acceptedByUserId: number;
+  email: string;
+}) {
+  const now = new Date();
+  await params.inviteModel.update({
+    where: { id: params.inviteId },
+    data: {
+      revoked: true,
+      usedAt: now,
+      acceptedByUserId: params.acceptedByUserId,
+    },
+  });
+  await params.inviteModel.updateMany({
+    where: {
+      email: params.email,
+      revoked: false,
+      usedAt: null,
+      id: { not: params.inviteId },
+    },
+    data: {
+      revoked: true,
+      usedAt: now,
+      acceptedByUserId: params.acceptedByUserId,
+    },
+  });
+}
+
+async function resolveInviteEmailAccount(
+  email: string,
+  client: Pick<typeof prisma, "user"> = prisma,
+): Promise<{ mode: "new_account" | "existing_account"; existing: InviteEmailAccount | null }> {
+  const emailMatchCount = await client.user.count({ where: { email } });
+  if (emailMatchCount > 1) {
+    throw { code: "AMBIGUOUS_EMAIL_ACCOUNT" };
+  }
+  const existing = await client.user.findFirst({
+    where: { email },
+    select: { id: true, email: true, enterprise: { select: { code: true } } },
+  });
+  return {
+    mode: existing ? "existing_account" : "new_account",
+    existing: existing
+      ? {
+        id: existing.id,
+        email: existing.email,
+        enterpriseCode: existing.enterprise?.code ?? null,
+      }
+      : null,
+  };
+}
+
+function isHoldingEnterpriseCode(code: string | null | undefined) {
+  return (code ?? "").toUpperCase() === REMOVED_USERS_ENTERPRISE_CODE;
+}
+
+function assertGlobalInviteAccountEligibility(existingAccount: InviteEmailAccount | null) {
+  if (!existingAccount) {
+    return;
+  }
+  if (!isHoldingEnterpriseCode(existingAccount.enterpriseCode)) {
+    throw { code: "EMAIL_ALREADY_USED_IN_ENTERPRISE_ACCOUNT" };
+  }
+}
+
+export async function getEnterpriseAdminInviteState(params: { token: string }) {
+  const invite = await resolveActiveEnterpriseAdminInvite(params.token);
+  const existing = await prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId: invite.enterpriseId, email: invite.email } },
+    select: { id: true },
+  });
+  const crossEnterpriseExisting = existing
+    ? null
+    : await prisma.user.findFirst({
+      where: {
+        email: invite.email,
+        enterpriseId: { not: invite.enterpriseId },
+      },
+      select: {
+        id: true,
+        enterprise: { select: { code: true } },
+      },
+    });
+  const isHoldingEnterpriseAccount =
+    crossEnterpriseExisting?.enterprise?.code?.toUpperCase() === REMOVED_USERS_ENTERPRISE_CODE;
+  if (crossEnterpriseExisting && !isHoldingEnterpriseAccount) {
+    throw { code: "EMAIL_ALREADY_USED_IN_OTHER_ENTERPRISE" };
+  }
+  return {
+    mode: existing || crossEnterpriseExisting ? "existing_account" as const : "new_account" as const,
+  };
+}
+
+export async function getGlobalAdminInviteState(params: { token: string }) {
+  const invite = await resolveActiveGlobalAdminInvite(params.token);
+  const account = await resolveInviteEmailAccount(invite.email);
+  assertGlobalInviteAccountEligibility(account.existing);
+  return {
+    mode: account.mode,
+  };
 }
 
 /** Registers a sign up. */
@@ -90,25 +345,13 @@ export async function signUp(data: {
 /** Accepts an enterprise-admin invite token and signs in the account. */
 export async function acceptEnterpriseAdminInvite(params: {
   token: string;
-  newPassword: string;
+  newPassword?: string;
   firstName?: string;
   lastName?: string;
+  authenticatedUserId?: number;
 }) {
-  const normalizedToken = extractHexToken(params.token);
-  const tokenHash = hashToken(normalizedToken);
-  const inviteModel = getEnterpriseAdminInviteTokenModel(prisma);
-  const invite = await inviteModel.findUnique({ where: { tokenHash } });
-  if (!invite) {throw { code: "INVALID_ENTERPRISE_ADMIN_INVITE" };}
-  if (invite.revoked || invite.usedAt) {throw { code: "USED_ENTERPRISE_ADMIN_INVITE" };}
-
-  const now = new Date();
-  if (invite.expiresAt < now) {throw { code: "EXPIRED_ENTERPRISE_ADMIN_INVITE" };}
-
-  const trimmedFirstName = params.firstName?.trim();
-  const trimmedLastName = params.lastName?.trim();
-  const firstName = trimmedFirstName && trimmedFirstName.length > 0 ? trimmedFirstName : undefined;
-  const lastName = trimmedLastName && trimmedLastName.length > 0 ? trimmedLastName : undefined;
-  const passwordHash = await argon2.hash(params.newPassword);
+  const invite = await resolveActiveEnterpriseAdminInvite(params.token);
+  const normalizedInput = normalizeInviteAcceptanceInput(params);
 
   const user = await prisma.$transaction(async (tx) => {
     const txInviteModel = getEnterpriseAdminInviteTokenModel(tx);
@@ -134,15 +377,24 @@ export async function acceptEnterpriseAdminInvite(params: {
       throw { code: "EMAIL_ALREADY_USED_IN_OTHER_ENTERPRISE" };
     }
 
+    const existingAccount = existing ?? crossEnterpriseExisting;
+    await assertInviteExistingAccountAccess({
+      tx,
+      inviteEmail: invite.email,
+      authenticatedUserId: params.authenticatedUserId,
+      existingAccountFound: Boolean(existingAccount),
+    });
+    assertInvitePasswordForNewAccount({
+      existingAccountFound: Boolean(existingAccount),
+      newPassword: normalizedInput.newPassword,
+    });
+
     const acceptedUser = existing
       ? await tx.user.update({
         where: { id: existing.id },
         data: {
           role: "ENTERPRISE_ADMIN",
           active: true,
-          passwordHash,
-          ...(firstName !== undefined ? { firstName } : {}),
-          ...(lastName !== undefined ? { lastName } : {}),
         },
       })
       : crossEnterpriseExisting
@@ -153,53 +405,85 @@ export async function acceptEnterpriseAdminInvite(params: {
             blockedEnterpriseId: null,
             role: "ENTERPRISE_ADMIN",
             active: true,
-            passwordHash,
-            ...(firstName !== undefined ? { firstName } : {}),
-            ...(lastName !== undefined ? { lastName } : {}),
           },
         })
       : await tx.user.create({
         data: {
           enterpriseId: invite.enterpriseId,
           email: invite.email,
-          firstName: firstName ?? "",
-          lastName: lastName ?? "",
-          passwordHash,
+          firstName: normalizedInput.firstName ?? "",
+          lastName: normalizedInput.lastName ?? "",
+          passwordHash: await argon2.hash(normalizedInput.newPassword as string),
           role: "ENTERPRISE_ADMIN",
         },
       });
 
-    await tx.refreshToken.updateMany({
-      where: {
-        userId: acceptedUser.id,
-        revoked: false,
-      },
-      data: {
-        revoked: true,
-      },
+    await revokeUserSessions(tx, acceptedUser.id);
+    await finalizeEnterpriseInviteAcceptance({
+      inviteModel: txInviteModel,
+      inviteId: invite.id,
+      acceptedByUserId: acceptedUser.id,
+      enterpriseId: invite.enterpriseId,
+      email: invite.email,
+    });
+    return acceptedUser;
+  });
+
+  return issueTokens({ id: user.id, email: user.email, role: user.role });
+}
+
+/** Accepts a global-admin invite token and signs in the account. */
+export async function acceptGlobalAdminInvite(params: {
+  token: string;
+  newPassword?: string;
+  firstName?: string;
+  lastName?: string;
+  authenticatedUserId?: number;
+}) {
+  const invite = await resolveActiveGlobalAdminInvite(params.token);
+  const normalizedInput = normalizeInviteAcceptanceInput(params);
+
+  const user = await prisma.$transaction(async (tx) => {
+    const txInviteModel = getGlobalAdminInviteTokenModel(tx);
+    const account = await resolveInviteEmailAccount(invite.email, tx);
+    const existing = account.existing;
+    assertGlobalInviteAccountEligibility(existing);
+    await assertInviteExistingAccountAccess({
+      tx,
+      inviteEmail: invite.email,
+      authenticatedUserId: params.authenticatedUserId,
+      existingAccountFound: account.mode === "existing_account",
+    });
+    assertInvitePasswordForNewAccount({
+      existingAccountFound: account.mode === "existing_account",
+      newPassword: normalizedInput.newPassword,
     });
 
-    await txInviteModel.update({
-      where: { id: invite.id },
-      data: {
-        revoked: true,
-        usedAt: now,
-        acceptedByUserId: acceptedUser.id,
-      },
-    });
-    await txInviteModel.updateMany({
-      where: {
-        enterpriseId: invite.enterpriseId,
-        email: invite.email,
-        revoked: false,
-        usedAt: null,
-        id: { not: invite.id },
-      },
-      data: {
-        revoked: true,
-        usedAt: now,
-        acceptedByUserId: acceptedUser.id,
-      },
+    const acceptedUser = existing
+      ? await tx.user.update({
+        where: { id: existing.id },
+        data: {
+          role: "ADMIN",
+          active: true,
+        },
+      })
+      : await tx.user.create({
+        data: {
+          enterpriseId: await resolveRemovedUsersEnterpriseId(tx),
+          email: invite.email,
+          firstName: normalizedInput.firstName ?? "",
+          lastName: normalizedInput.lastName ?? "",
+          passwordHash: await argon2.hash(normalizedInput.newPassword as string),
+          role: "ADMIN",
+        },
+      });
+
+    await revokeUserSessions(tx, acceptedUser.id);
+    await finalizeGlobalInviteAcceptance({
+      inviteModel: txInviteModel,
+      inviteId: invite.id,
+      acceptedByUserId: acceptedUser.id,
+      email: invite.email,
     });
     return acceptedUser;
   });
@@ -284,7 +568,7 @@ export async function refreshTokens(refreshToken: string) {
   } catch {
     throw { code: "INVALID_REFRESH_TOKEN" };
   }
-  const valid = await validateRefreshToken(payload.sub, refreshToken);
+  const valid = await validateRefreshToken(payload.sub, refreshToken, payload.issuedAtSeconds);
   if (!valid) {throw { code: "INVALID_REFRESH_TOKEN" };}
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
   if (!user) {throw { code: "INVALID_REFRESH_TOKEN" };}
@@ -739,8 +1023,12 @@ export async function issueTokensForUser(userId: number, email: string) {
 }
 
 /** Validates that a refresh token belongs to the user and is still active. */
-export async function validateRefreshTokenSession(userId: number, token: string) {
-  return validateRefreshToken(userId, token);
+export async function validateRefreshTokenSession(userId: number, token: string, issuedAtSeconds?: number) {
+  const tokenIssuedAtSeconds =
+    typeof issuedAtSeconds === "number" && Number.isInteger(issuedAtSeconds) && issuedAtSeconds > 0
+      ? issuedAtSeconds
+      : verifyRefresh(token).issuedAtSeconds;
+  return validateRefreshToken(userId, token, tokenIssuedAtSeconds);
 }
 
 async function verifyPasswordHash(passwordHash: string, password: string) {
@@ -804,13 +1092,44 @@ async function saveRefresh(userId: number, token: string, accessToken: string) {
   return { accessToken, refreshToken: token };
 }
 
-async function validateRefreshToken(userId: number, token: string) {
+async function validateRefreshToken(userId: number, token: string, issuedAtSeconds?: number) {
+  const where = { userId, revoked: false, expiresAt: { gt: new Date() } } as const;
+  const boundedTake = 25;
+
+  if (typeof issuedAtSeconds === "number" && Number.isInteger(issuedAtSeconds) && issuedAtSeconds > 0) {
+    const issuedAtMs = issuedAtSeconds * 1000;
+    const issuedAtToleranceMs = 2 * 60 * 60 * 1000;
+    const issuedAtCandidates = await prisma.refreshToken.findMany({
+      where: {
+        ...where,
+        createdAt: {
+          gte: new Date(issuedAtMs - issuedAtToleranceMs),
+          lte: new Date(issuedAtMs + issuedAtToleranceMs),
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    });
+    for (const rt of issuedAtCandidates) {
+      if (await argon2.verify(rt.hashedToken, token)) {
+        return true;
+      }
+    }
+    if (issuedAtCandidates.length > 0) {
+      return false;
+    }
+  }
+
   const records = await prisma.refreshToken.findMany({
-    where: { userId, revoked: false, expiresAt: { gt: new Date() } },
+    where,
     orderBy: { createdAt: "desc" },
-    take: 5,
+    take: boundedTake,
   });
-  for (const rt of records) {if (await argon2.verify(rt.hashedToken, token)) {return true;}}
+  for (const rt of records) {
+    if (await argon2.verify(rt.hashedToken, token)) {
+      return true;
+    }
+  }
   return false;
 }
 
@@ -833,11 +1152,18 @@ function verifyRefresh(token: string) {
   if (typeof payload.email !== "string" || payload.email.length === 0) {
     throw new Error("Invalid refresh token email");
   }
+  const parsedIssuedAt =
+    typeof payload.iat === "number"
+      ? payload.iat
+      : typeof payload.iat === "string"
+        ? Number.parseInt(payload.iat, 10)
+        : Number.NaN;
 
   return {
     sub: parsedSub,
     email: payload.email,
     ...(typeof payload.admin === "boolean" ? { admin: payload.admin } : {}),
+    ...(Number.isInteger(parsedIssuedAt) && parsedIssuedAt > 0 ? { issuedAtSeconds: parsedIssuedAt } : {}),
   };
 }
 

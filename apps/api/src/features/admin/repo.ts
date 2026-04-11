@@ -107,6 +107,14 @@ export function findUserByEmail(email: string) {
   });
 }
 
+export function listUsersByEmail(email: string) {
+  return prisma.user.findMany({
+    where: { email },
+    select: { id: true, enterpriseId: true, role: true, enterprise: { select: { code: true } } },
+    orderBy: { id: "asc" },
+  });
+}
+
 export function updateUser(id: number, data: Prisma.UserUpdateInput) {
   return prisma.user.update({ where: { id }, data, select: ADMIN_USER_SELECT });
 }
@@ -140,6 +148,42 @@ export function createEnterpriseAdminInviteToken(input: {
     return inviteTokenModel.create({
       data: {
         enterpriseId: input.enterpriseId,
+        email: input.email,
+        tokenHash: input.tokenHash,
+        invitedByUserId: input.invitedByUserId,
+        expiresAt: input.expiresAt,
+      },
+      select: { id: true, email: true, expiresAt: true },
+    });
+  });
+}
+
+export function createGlobalAdminInviteToken(input: {
+  email: string;
+  tokenHash: string;
+  invitedByUserId: number;
+  expiresAt: Date;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const inviteTokenModel = (tx as any).globalAdminInviteToken;
+    if (!inviteTokenModel) {
+      throw new Error(
+        "Prisma Client is out of date (missing `globalAdminInviteToken` delegate). Run `npx prisma generate` in apps/api and restart the API."
+      );
+    }
+
+    await inviteTokenModel.updateMany({
+      where: {
+        email: input.email,
+        revoked: false,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: { revoked: true },
+    });
+
+    return inviteTokenModel.create({
+      data: {
         email: input.email,
         tokenHash: input.tokenHash,
         invitedByUserId: input.invitedByUserId,

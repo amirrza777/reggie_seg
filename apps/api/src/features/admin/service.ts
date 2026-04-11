@@ -377,9 +377,20 @@ export async function inviteEnterpriseAdmin(
   if (existingUser && (existingUser.role === "ADMIN" || existingUser.role === "ENTERPRISE_ADMIN")) {
     return { ok: false as const, status: 409, error: "User already has enterprise admin access" };
   }
-  const globalEmailMatch = await repo.findUserByEmail(normalizedEmail);
-  const isHoldingEnterpriseAccount = globalEmailMatch?.enterprise?.code === REMOVED_USERS_ENTERPRISE_CODE;
-  if (globalEmailMatch && globalEmailMatch.enterpriseId !== input.enterpriseId && !isHoldingEnterpriseAccount) {
+  const allEmailMatches = await repo.listUsersByEmail(normalizedEmail);
+  const crossEnterpriseMatches = allEmailMatches.filter((user) => user.enterpriseId !== input.enterpriseId);
+  if (!existingUser && crossEnterpriseMatches.length > 1) {
+    return {
+      ok: false as const,
+      status: 409,
+      error: "Multiple accounts use this email. Invite a different email.",
+    };
+  }
+  if (
+    crossEnterpriseMatches.some(
+      (user) => (user.enterprise?.code?.toUpperCase() ?? "") !== REMOVED_USERS_ENTERPRISE_CODE,
+    )
+  ) {
     return {
       ok: false as const,
       status: 409,
@@ -425,6 +436,86 @@ export async function inviteEnterpriseAdmin(
   if (actorId) {
     await recordAuditLog({ userId: actorId, enterpriseId: input.enterpriseId, action: "USER_UPDATED" });
   }
+
+  return {
+    ok: true as const,
+    value: {
+      email: normalizedEmail,
+      expiresAt,
+    },
+  };
+}
+
+export async function inviteGlobalAdmin(
+  input: { email: string },
+  actor?: { id?: number; enterpriseId?: string; email?: string },
+) {
+  const actorId = actor?.id;
+  if (!actorId) {
+    return { ok: false as const, status: 401, error: "Not authenticated" };
+  }
+  if (!isSuperAdminActor(actor)) {
+    return { ok: false as const, status: 403, error: "Only the super admin can invite global admins." };
+  }
+
+  const normalizedEmail = input.email.trim().toLowerCase();
+  if (!normalizedEmail) {
+    return { ok: false as const, status: 400, error: "Email is required" };
+  }
+  if (!ENTERPRISE_INVITE_EMAIL_REGEX.test(normalizedEmail)) {
+    return { ok: false as const, status: 400, error: "Email must be a valid email address" };
+  }
+
+  const existingUsers = await repo.listUsersByEmail(normalizedEmail);
+  if (existingUsers.some((user) => user.role === "ADMIN")) {
+    return { ok: false as const, status: 409, error: "User already has global admin access" };
+  }
+  if (existingUsers.length > 1) {
+    return { ok: false as const, status: 409, error: "Multiple accounts use this email. Invite a different email." };
+  }
+  if (
+    existingUsers.some((user) => (user.enterprise?.code?.toUpperCase() ?? "") !== REMOVED_USERS_ENTERPRISE_CODE)
+  ) {
+    return {
+      ok: false as const,
+      status: 409,
+      error: "This email already belongs to an enterprise account. Use a different email.",
+    };
+  }
+
+  const token = randomBytes(32).toString("hex");
+  const tokenHash = hashInviteToken(token);
+  const expiresAt = new Date(Date.now() + ENTERPRISE_ADMIN_INVITE_TTL_MS);
+  await repo.createGlobalAdminInviteToken({
+    email: normalizedEmail,
+    tokenHash,
+    invitedByUserId: actorId,
+    expiresAt,
+  });
+
+  const acceptUrl = `${appBaseUrl}/accept-global-admin-invite?token=${token}`;
+  const safeAcceptUrl = escapeHtml(acceptUrl);
+  const text = [
+    "Team Feedback global admin invitation",
+    "",
+    "Role: Global Admin",
+    "",
+    "This access allows you to manage platform users, enterprises, and enterprise-level admin access.",
+    "",
+    `Accept your invite: ${acceptUrl}`,
+    "",
+    "This link can only be used once and expires in 7 days.",
+    "You are receiving this because this email address was entered for global admin access.",
+    "If you were not expecting this invite, you can ignore this email.",
+  ].join("\n");
+  await sendEmail({
+    to: normalizedEmail,
+    subject: "Global admin invite",
+    text,
+    html: `<p><strong>Team Feedback global admin invitation</strong></p><p><strong>Role:</strong> Global Admin</p><p>This access allows you to manage platform users, enterprises, and enterprise-level admin access.</p><p><a href="${safeAcceptUrl}">Accept your invite</a></p><p>This link can only be used once and expires in 7 days.</p><p>You are receiving this because this email address was entered for global admin access.</p><p>If you were not expecting this invite, you can ignore this email.</p>`,
+  });
+
+  await recordAuditLog({ userId: actorId, enterpriseId: actor.enterpriseId, action: "USER_UPDATED" });
 
   return {
     ok: true as const,

@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   getAuditLogs: vi.fn(),
   getSummary: vi.fn(),
   inviteEnterpriseAdmin: vi.fn(),
+  inviteGlobalAdmin: vi.fn(),
   listEnterpriseUsers: vi.fn(),
   listEnterprises: vi.fn(),
   listUsers: vi.fn(),
@@ -53,6 +54,7 @@ vi.mock("./service.js", () => ({
   getAuditLogs: mocks.getAuditLogs,
   getSummary: mocks.getSummary,
   inviteEnterpriseAdmin: mocks.inviteEnterpriseAdmin,
+  inviteGlobalAdmin: mocks.inviteGlobalAdmin,
   listEnterpriseUsers: mocks.listEnterpriseUsers,
   listEnterprises: mocks.listEnterprises,
   listUsers: mocks.listUsers,
@@ -71,6 +73,7 @@ import {
   getSummaryHandler,
   inviteCurrentEnterpriseAdminHandler,
   inviteEnterpriseAdminHandler,
+  inviteGlobalAdminHandler,
   listAuditLogsHandler,
   listEnterpriseUsersHandler,
   listEnterprisesHandler,
@@ -110,6 +113,10 @@ describe("admin controller", () => {
     mocks.getSummary.mockResolvedValue({ users: 1 });
     mocks.parseInviteEnterpriseAdminBody.mockReturnValue({ ok: true, value: { email: "invite@example.com" } });
     mocks.inviteEnterpriseAdmin.mockResolvedValue({
+      ok: true,
+      value: { email: "invite@example.com", expiresAt: new Date("2026-04-15T00:00:00.000Z") },
+    });
+    mocks.inviteGlobalAdmin.mockResolvedValue({
       ok: true,
       value: { email: "invite@example.com", expiresAt: new Date("2026-04-15T00:00:00.000Z") },
     });
@@ -287,6 +294,33 @@ describe("admin controller", () => {
     mocks.inviteEnterpriseAdmin.mockRejectedValueOnce(new Error("smtp down"));
     const failRes = createRes();
     await inviteCurrentEnterpriseAdminHandler(req, failRes);
+    expect(failRes.status).toHaveBeenCalledWith(500);
+  });
+
+  it("handles global-admin invite validation and service outcomes", async () => {
+    const req = {
+      adminUser: { enterpriseId: "ent-1", id: 1, email: "admin@kcl.ac.uk" },
+      body: { email: "invite@example.com" },
+    } as any;
+
+    const okRes = createRes();
+    await inviteGlobalAdminHandler(req, okRes);
+    expect(mocks.inviteGlobalAdmin).toHaveBeenCalledWith({ email: "invite@example.com" }, req.adminUser);
+    expect(okRes.status).toHaveBeenCalledWith(201);
+
+    mocks.parseInviteEnterpriseAdminBody.mockReturnValueOnce({ ok: false, error: "email must be a string" });
+    const badBodyRes = createRes();
+    await inviteGlobalAdminHandler(req, badBodyRes);
+    expect(badBodyRes.status).toHaveBeenCalledWith(400);
+
+    mocks.inviteGlobalAdmin.mockResolvedValueOnce({ ok: false, status: 403, error: "Forbidden" });
+    const forbiddenRes = createRes();
+    await inviteGlobalAdminHandler(req, forbiddenRes);
+    expect(forbiddenRes.status).toHaveBeenCalledWith(403);
+
+    mocks.inviteGlobalAdmin.mockRejectedValueOnce(new Error("smtp down"));
+    const failRes = createRes();
+    await inviteGlobalAdminHandler(req, failRes);
     expect(failRes.status).toHaveBeenCalledWith(500);
   });
 

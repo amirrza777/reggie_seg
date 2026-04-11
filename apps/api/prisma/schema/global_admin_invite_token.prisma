@@ -1,0 +1,16 @@
+model GlobalAdminInviteToken {
+  id               Int      @id @default(autoincrement())
+  email            String
+  tokenHash        String   @unique
+  invitedByUserId  Int
+  acceptedByUserId Int?
+  revoked          Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  usedAt           DateTime?
+  expiresAt        DateTime
+  invitedByUser    User     @relation("GlobalAdminInviteSentBy", fields: [invitedByUserId], references: [id], onDelete: Restrict)
+  acceptedByUser   User?    @relation("GlobalAdminInviteAcceptedBy", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([expiresAt])
+}

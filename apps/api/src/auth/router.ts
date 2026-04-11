@@ -2,6 +2,9 @@ import { Router, type Request, type Response } from "express";
 import passport from "passport";
 import {
   acceptEnterpriseAdminInviteHandler,
+  acceptGlobalAdminInviteHandler,
+  getEnterpriseAdminInviteStateHandler,
+  getGlobalAdminInviteStateHandler,
   signupHandler,
   loginHandler,
   refreshHandler,
@@ -29,6 +32,11 @@ const enterpriseAdminInviteAcceptLimiter = rateLimit({
   max: 10,
   prefix: "auth:enterprise-admin-invite-accept",
 });
+const globalAdminInviteAcceptLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  prefix: "auth:global-admin-invite-accept",
+});
 
 const router = Router();
 const googleEnabled = configureGoogle();
@@ -43,7 +51,10 @@ type GoogleCallbackRequest = Request & {
 };
 
 router.post("/signup", signupLimiter, signupHandler);
-router.post("/enterprise-admin/accept", enterpriseAdminInviteAcceptLimiter, acceptEnterpriseAdminInviteHandler);
+router.post("/enterprise-admin/state", enterpriseAdminInviteAcceptLimiter, getEnterpriseAdminInviteStateHandler);
+router.post("/enterprise-admin/accept", enterpriseAdminInviteAcceptLimiter, optionalAuth, acceptEnterpriseAdminInviteHandler);
+router.post("/global-admin/state", globalAdminInviteAcceptLimiter, getGlobalAdminInviteStateHandler);
+router.post("/global-admin/accept", globalAdminInviteAcceptLimiter, optionalAuth, acceptGlobalAdminInviteHandler);
 router.post("/login", loginLimiter, loginHandler);
 router.post("/refresh", refreshHandler);
 router.post("/logout", logoutHandler);

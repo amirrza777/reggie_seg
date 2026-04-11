@@ -43,6 +43,11 @@ export const prismaMock = {
     update: vi.fn(),
     updateMany: vi.fn(),
   },
+  globalAdminInviteToken: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  },
   moduleLead: {
     deleteMany: vi.fn(),
   },
@@ -175,6 +180,9 @@ export function setupAuthServiceTestDefaults() {
   prismaMock.enterpriseAdminInviteToken.findUnique.mockResolvedValue(null);
   prismaMock.enterpriseAdminInviteToken.update.mockResolvedValue({ id: 1 });
   prismaMock.enterpriseAdminInviteToken.updateMany.mockResolvedValue({ count: 1 });
+  prismaMock.globalAdminInviteToken.findUnique.mockResolvedValue(null);
+  prismaMock.globalAdminInviteToken.update.mockResolvedValue({ id: 1 });
+  prismaMock.globalAdminInviteToken.updateMany.mockResolvedValue({ count: 1 });
 
   prismaMock.moduleLead.deleteMany.mockResolvedValue({ count: 0 });
   prismaMock.moduleTeachingAssistant.deleteMany.mockResolvedValue({ count: 0 });

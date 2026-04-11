@@ -3,6 +3,10 @@ import type { Response } from "express";
 
 const serviceMocks = {
   signUp: vi.fn(),
+  getEnterpriseAdminInviteState: vi.fn(),
+  getGlobalAdminInviteState: vi.fn(),
+  acceptEnterpriseAdminInvite: vi.fn(),
+  acceptGlobalAdminInvite: vi.fn(),
   login: vi.fn(),
   refreshTokens: vi.fn(),
   logout: vi.fn(),

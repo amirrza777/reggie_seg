@@ -1,6 +1,9 @@
 import type { Request, Response } from "express";
 import {
   acceptEnterpriseAdminInvite,
+  acceptGlobalAdminInvite,
+  getEnterpriseAdminInviteState,
+  getGlobalAdminInviteState,
   signUp,
   login,
   refreshTokens,
@@ -21,6 +24,7 @@ import type { AuthRequest } from "./middleware.js";
 import { prisma } from "../shared/db.js";
 import {
   parseAcceptEnterpriseAdminInviteBody,
+  parseEnterpriseAdminInviteTokenBody,
   parseConfirmEmailChangeBody,
   parseDeleteAccountBody,
   parseForgotPasswordBody,
@@ -126,7 +130,10 @@ async function resolveAuthenticatedUserId(req: AuthRequest): Promise<number | nu
   }
   try {
     const payload = verifyRefreshToken(refreshToken);
-    const valid = await validateRefreshTokenSession(payload.sub, refreshToken);
+    const valid =
+      typeof payload.issuedAtSeconds === "number"
+        ? await validateRefreshTokenSession(payload.sub, refreshToken, payload.issuedAtSeconds)
+        : await validateRefreshTokenSession(payload.sub, refreshToken);
     if (!valid) {
       return null;
     }
@@ -180,14 +187,18 @@ export async function signupHandler(req: Request, res: Response) {
 }
 
 /** Handles requests for enterprise-admin invite acceptance. */
-export async function acceptEnterpriseAdminInviteHandler(req: Request, res: Response) {
+export async function acceptEnterpriseAdminInviteHandler(req: AuthRequest, res: Response) {
   const parsedBody = parseAcceptEnterpriseAdminInviteBody(req.body);
   if (!parsedBody.ok) {
     return res.status(400).json({ error: parsedBody.error });
   }
 
   try {
-    const tokens = await acceptEnterpriseAdminInvite(parsedBody.value);
+    const authenticatedUserId = await resolveAuthenticatedUserId(req);
+    const tokens = await acceptEnterpriseAdminInvite({
+      ...parsedBody.value,
+      ...(authenticatedUserId ? { authenticatedUserId } : {}),
+    });
     setRefreshCookie(res, tokens.refreshToken);
     return res.json({ accessToken: tokens.accessToken });
   } catch (error: unknown) {
@@ -205,7 +216,121 @@ export async function acceptEnterpriseAdminInviteHandler(req: Request, res: Resp
     if (code === "EMAIL_ALREADY_USED_IN_OTHER_ENTERPRISE") {
       return res.status(409).json({ error: "This email is already used in another enterprise." });
     }
+    if (code === "AUTH_REQUIRED_FOR_EXISTING_ACCOUNT") {
+      return res.status(401).json({ error: "Sign in with the invited email to continue." });
+    }
+    if (code === "INVITE_EMAIL_MISMATCH") {
+      return res.status(403).json({ error: "This invite can only be accepted by the invited email account." });
+    }
+    if (code === "PASSWORD_REQUIRED_FOR_NEW_ACCOUNT") {
+      return res.status(400).json({ error: "Create a password to accept this invite." });
+    }
     return respondWithErrorDetail(res, 500, "accept enterprise admin invite failed", error);
+  }
+}
+
+/** Handles requests for enterprise-admin invite state resolution. */
+export async function getEnterpriseAdminInviteStateHandler(req: Request, res: Response) {
+  const parsedBody = parseEnterpriseAdminInviteTokenBody(req.body);
+  if (!parsedBody.ok) {
+    return res.status(400).json({ error: parsedBody.error });
+  }
+
+  try {
+    return res.json(await getEnterpriseAdminInviteState(parsedBody.value));
+  } catch (error: unknown) {
+    console.error("resolve enterprise admin invite state error", error);
+    const code = getErrorCode(error);
+    if (code === "INVALID_ENTERPRISE_ADMIN_INVITE") {
+      return res.status(400).json({ error: "Invalid invite token" });
+    }
+    if (code === "USED_ENTERPRISE_ADMIN_INVITE") {
+      return res.status(400).json({ error: "Invite token has already been used" });
+    }
+    if (code === "EXPIRED_ENTERPRISE_ADMIN_INVITE") {
+      return res.status(400).json({ error: "Invite token has expired" });
+    }
+    if (code === "EMAIL_ALREADY_USED_IN_OTHER_ENTERPRISE") {
+      return res.status(409).json({ error: "This email is already used in another enterprise." });
+    }
+    return respondWithErrorDetail(res, 500, "resolve enterprise admin invite state failed", error);
+  }
+}
+
+/** Handles requests for global-admin invite acceptance. */
+export async function acceptGlobalAdminInviteHandler(req: AuthRequest, res: Response) {
+  const parsedBody = parseAcceptEnterpriseAdminInviteBody(req.body);
+  if (!parsedBody.ok) {
+    return res.status(400).json({ error: parsedBody.error });
+  }
+
+  try {
+    const authenticatedUserId = await resolveAuthenticatedUserId(req);
+    const tokens = await acceptGlobalAdminInvite({
+      ...parsedBody.value,
+      ...(authenticatedUserId ? { authenticatedUserId } : {}),
+    });
+    setRefreshCookie(res, tokens.refreshToken);
+    return res.json({ accessToken: tokens.accessToken });
+  } catch (error: unknown) {
+    console.error("accept global admin invite error", error);
+    const code = getErrorCode(error);
+    if (code === "INVALID_GLOBAL_ADMIN_INVITE") {
+      return res.status(400).json({ error: "Invalid invite token" });
+    }
+    if (code === "USED_GLOBAL_ADMIN_INVITE") {
+      return res.status(400).json({ error: "Invite token has already been used" });
+    }
+    if (code === "EXPIRED_GLOBAL_ADMIN_INVITE") {
+      return res.status(400).json({ error: "Invite token has expired" });
+    }
+    if (code === "AMBIGUOUS_EMAIL_ACCOUNT") {
+      return res.status(409).json({ error: "Multiple accounts use this email. Contact support to consolidate access." });
+    }
+    if (code === "EMAIL_ALREADY_USED_IN_ENTERPRISE_ACCOUNT") {
+      return res.status(409).json({ error: "This email already belongs to an enterprise account." });
+    }
+    if (code === "AUTH_REQUIRED_FOR_EXISTING_ACCOUNT") {
+      return res.status(401).json({ error: "Sign in with the invited email to continue." });
+    }
+    if (code === "INVITE_EMAIL_MISMATCH") {
+      return res.status(403).json({ error: "This invite can only be accepted by the invited email account." });
+    }
+    if (code === "PASSWORD_REQUIRED_FOR_NEW_ACCOUNT") {
+      return res.status(400).json({ error: "Create a password to accept this invite." });
+    }
+    return respondWithErrorDetail(res, 500, "accept global admin invite failed", error);
+  }
+}
+
+/** Handles requests for global-admin invite state resolution. */
+export async function getGlobalAdminInviteStateHandler(req: Request, res: Response) {
+  const parsedBody = parseEnterpriseAdminInviteTokenBody(req.body);
+  if (!parsedBody.ok) {
+    return res.status(400).json({ error: parsedBody.error });
+  }
+
+  try {
+    return res.json(await getGlobalAdminInviteState(parsedBody.value));
+  } catch (error: unknown) {
+    console.error("resolve global admin invite state error", error);
+    const code = getErrorCode(error);
+    if (code === "INVALID_GLOBAL_ADMIN_INVITE") {
+      return res.status(400).json({ error: "Invalid invite token" });
+    }
+    if (code === "USED_GLOBAL_ADMIN_INVITE") {
+      return res.status(400).json({ error: "Invite token has already been used" });
+    }
+    if (code === "EXPIRED_GLOBAL_ADMIN_INVITE") {
+      return res.status(400).json({ error: "Invite token has expired" });
+    }
+    if (code === "AMBIGUOUS_EMAIL_ACCOUNT") {
+      return res.status(409).json({ error: "Multiple accounts use this email. Contact support to consolidate access." });
+    }
+    if (code === "EMAIL_ALREADY_USED_IN_ENTERPRISE_ACCOUNT") {
+      return res.status(409).json({ error: "This email already belongs to an enterprise account." });
+    }
+    return respondWithErrorDetail(res, 500, "resolve global admin invite state failed", error);
   }
 }
 

@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./controller.js", () => ({
   signupHandler: vi.fn(),
+  getEnterpriseAdminInviteStateHandler: vi.fn(),
   acceptEnterpriseAdminInviteHandler: vi.fn(),
+  getGlobalAdminInviteStateHandler: vi.fn(),
+  acceptGlobalAdminInviteHandler: vi.fn(),
   loginHandler: vi.fn(),
   refreshHandler: vi.fn(),
   logoutHandler: vi.fn(),
@@ -68,7 +71,10 @@ describe("auth router", () => {
     expect(routes).toEqual(
       expect.arrayContaining([
         { path: "/signup", methods: { post: true } },
+        { path: "/enterprise-admin/state", methods: { post: true } },
         { path: "/enterprise-admin/accept", methods: { post: true } },
+        { path: "/global-admin/state", methods: { post: true } },
+        { path: "/global-admin/accept", methods: { post: true } },
         { path: "/login", methods: { post: true } },
         { path: "/refresh", methods: { post: true } },
         { path: "/logout", methods: { post: true } },

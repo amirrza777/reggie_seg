@@ -20,6 +20,7 @@ vi.mock("../../shared/db.js", () => ({
     team: { count: vi.fn() },
     meeting: { count: vi.fn() },
     refreshToken: { updateMany: vi.fn() },
+    globalAdminInviteToken: { updateMany: vi.fn(), create: vi.fn() },
     featureFlag: { findMany: vi.fn(), update: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
     enterprise: { findMany: vi.fn(), findUnique: vi.fn(), count: vi.fn(), delete: vi.fn(), create: vi.fn() },
     auditLog: { deleteMany: vi.fn() },
@@ -76,6 +77,12 @@ beforeEach(() => {
   (prisma.user.findFirst as any).mockResolvedValue(null);
   (prisma.user.update as any).mockResolvedValue({ id: 2, email: "u@x.com", role: "STAFF", active: true });
   (prisma.refreshToken.updateMany as any).mockResolvedValue({ count: 1 });
+  (prisma.globalAdminInviteToken.updateMany as any).mockResolvedValue({ count: 0 });
+  (prisma.globalAdminInviteToken.create as any).mockResolvedValue({
+    id: 1,
+    email: "invite@example.com",
+    expiresAt: new Date("2026-04-15T00:00:00.000Z"),
+  });
 
   (prisma.featureFlag.findMany as any).mockResolvedValue([]);
   (prisma.featureFlag.update as any).mockResolvedValue({ key: "peer_feedback", label: "Peer feedback", enabled: true });
@@ -113,6 +120,7 @@ describe("admin router enterprise and audit routes", () => {
   const searchEnterprises = getRouteHandler("get", "/enterprises/search");
   const createEnterprise = getRouteHandler("post", "/enterprises");
   const inviteCurrentEnterpriseAdmin = getRouteHandler("post", "/invites/enterprise-admin");
+  const inviteGlobalAdmin = getRouteHandler("post", "/invites/global-admin");
   const inviteEnterpriseAdmin = getRouteHandler("post", "/enterprises/:enterpriseId/invites/enterprise-admin");
   const listEnterpriseUsers = getRouteHandler("get", "/enterprises/:enterpriseId/users");
   const patchEnterpriseUser = getRouteHandler("patch", "/enterprises/:enterpriseId/users/:id");
@@ -351,6 +359,42 @@ describe("admin router enterprise and audit routes", () => {
     expect((res.status as any)).toHaveBeenCalledWith(400);
     expect((res.json as any)).toHaveBeenCalledWith({ error: "Email must be a valid email address" });
     expect(prisma.enterprise.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid global-admin invite emails before token creation", async () => {
+    const res = mockRes();
+
+    await inviteGlobalAdmin(
+      { body: { email: "not-an-email" }, adminUser: { id: 1, email: "admin@kcl.ac.uk", enterpriseId: "ent-1" } } as any,
+      res,
+    );
+
+    expect((res.status as any)).toHaveBeenCalledWith(400);
+    expect((res.json as any)).toHaveBeenCalledWith({ error: "Email must be a valid email address" });
+    expect(prisma.globalAdminInviteToken.create).not.toHaveBeenCalled();
+  });
+
+  it("creates a global-admin invite token and response payload for eligible emails", async () => {
+    const res = mockRes();
+
+    await inviteGlobalAdmin(
+      { body: { email: "invite@example.com" }, adminUser: { id: 1, email: "admin@kcl.ac.uk", enterpriseId: "ent-1" } } as any,
+      res,
+    );
+
+    expect(prisma.globalAdminInviteToken.updateMany).toHaveBeenCalled();
+    expect(prisma.globalAdminInviteToken.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          email: "invite@example.com",
+          invitedByUserId: 1,
+        }),
+      }),
+    );
+    expect((res.status as any)).toHaveBeenCalledWith(201);
+    expect((res.json as any)).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "invite@example.com" }),
+    );
   });
 
   it("rejects current-enterprise invites when admin enterprise context is missing", async () => {

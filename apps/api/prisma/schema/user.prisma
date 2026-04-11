@@ -36,6 +36,8 @@ model User {
   emailChangeTokens        EmailChangeToken[]
   enterpriseAdminInvitesSent     EnterpriseAdminInviteToken[] @relation("EnterpriseAdminInviteSentBy")
   enterpriseAdminInvitesAccepted EnterpriseAdminInviteToken[] @relation("EnterpriseAdminInviteAcceptedBy")
+  globalAdminInvitesSent         GlobalAdminInviteToken[]     @relation("GlobalAdminInviteSentBy")
+  globalAdminInvitesAccepted     GlobalAdminInviteToken[]     @relation("GlobalAdminInviteAcceptedBy")
 
   trelloToken           String?
   trelloMemberId        String?

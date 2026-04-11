@@ -3,6 +3,7 @@ import {
   parseAcceptEnterpriseAdminInviteBody,
   parseConfirmEmailChangeBody,
   parseDeleteAccountBody,
+  parseEnterpriseAdminInviteTokenBody,
   parseForgotPasswordBody,
   parseJoinEnterpriseBody,
   parseLoginBody,
@@ -83,7 +84,26 @@ describe("auth controller parsers", () => {
     });
     expect(parseAcceptEnterpriseAdminInviteBody({})).toEqual({
       ok: false,
-      error: "token and newPassword required",
+      error: "token required",
+    });
+    expect(parseAcceptEnterpriseAdminInviteBody({ token: "abc" })).toEqual({
+      ok: true,
+      value: { token: "abc" },
+    });
+    expect(parseAcceptEnterpriseAdminInviteBody({ token: "abc", newPassword: 42 })).toEqual({
+      ok: false,
+      error: "Invalid newPassword",
+    });
+  });
+
+  it("parses enterprise-admin invite token payload", () => {
+    expect(parseEnterpriseAdminInviteTokenBody({ token: " abc " })).toEqual({
+      ok: true,
+      value: { token: "abc" },
+    });
+    expect(parseEnterpriseAdminInviteTokenBody({})).toEqual({
+      ok: false,
+      error: "token required",
     });
   });
 
