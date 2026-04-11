@@ -26,6 +26,60 @@ describe("enterpriseAdmin user-management routes", () => {
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
+  it.each([
+    ["search", searchUsers, { query: {} }],
+    ["create", createUser, { body: { email: "x@example.com" } }],
+    ["update", updateUser, { params: { id: "1" }, body: {} }],
+    ["delete", removeUser, { params: { id: "1" } }],
+  ])("returns 500 for missing enterprise context (%s)", async (_label, handler, req) => {
+    const res = mockRes();
+    await handler(req as any, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+  it.each([
+    [
+      "search parser rejects invalid pagination",
+      searchUsers,
+      { enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, query: { page: "0" } },
+    ],
+    [
+      "create parser rejects invalid body shape",
+      createUser,
+      { enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, body: [] },
+    ],
+    [
+      "update parser rejects invalid user id",
+      updateUser,
+      {
+        enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
+        params: { id: "abc" },
+        body: { role: "STAFF" },
+      },
+    ],
+    [
+      "update parser rejects invalid role payload",
+      updateUser,
+      {
+        enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
+        params: { id: "17" },
+        body: { role: "NOPE" },
+      },
+    ],
+    [
+      "delete parser rejects invalid user id",
+      removeUser,
+      {
+        enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
+        params: { id: "0" },
+      },
+    ],
+  ])("%s", async (_label, handler, req) => {
+    const res = mockRes();
+    await handler(req as any, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
   it("returns paginated enterprise users for enterprise admin", async () => {
     (prisma.user.count as any).mockResolvedValueOnce(1);
     (prisma.user.findMany as any).mockResolvedValueOnce([
