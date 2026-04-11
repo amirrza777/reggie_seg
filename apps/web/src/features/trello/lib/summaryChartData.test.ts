@@ -72,6 +72,29 @@ describe("summaryChartData", () => {
     expect(max).toBe(today);
   });
 
+  it("getSummaryWeekRange reduces earliest and latest across several action date keys", () => {
+    const [min, max] = getSummaryWeekRange(
+      { "2025-03-01": [], "2025-01-01": [], "2025-02-01": [] },
+      "2025-01-15",
+      "2025-04-01",
+    );
+    expect(min).toBe("2025-01-01");
+    expect(max).toBe("2025-04-01");
+  });
+
+  it("getSummaryWeekRange drops empty date keys and handles only-latest vs deadlineEnd", () => {
+    const [min, max] = getSummaryWeekRange(
+      { "": [], "2025-04-01": [] } as Record<string, unknown>,
+      undefined,
+      "2025-03-01",
+    );
+    expect(min).toBe("2025-04-01");
+    expect(max).toBe("2025-04-01");
+
+    const [, maxPickLatest] = getSummaryWeekRange({ "2025-08-01": [] }, "2025-01-01", "2025-03-01");
+    expect(maxPickLatest).toBe("2025-08-01");
+  });
+
   it("buildSummaryChartData maps points and empty chart domain", () => {
     const points: CumulativeByWeekPoint[] = [
       {

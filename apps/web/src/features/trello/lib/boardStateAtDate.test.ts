@@ -44,6 +44,27 @@ describe("boardStateAtDate", () => {
     expect(onJan31.l1?.map((c) => c.id)).toEqual(["c1"]);
   });
 
+  it("getBoardStateAtDate skips replayed card ids that are not on the current board", () => {
+    const cardsByList: Record<string, TrelloCard[]> = { l2: [card] };
+    const actionsByDate: Record<string, TrelloBoardAction[]> = {
+      "2024-03-02": [
+        {
+          id: "u",
+          type: "updateCard",
+          date: "2024-03-02T12:00:00.000Z",
+          data: {
+            card: { id: "ghost" },
+            listBefore: { id: "l2" },
+            listAfter: { id: "l1" },
+          },
+        } as TrelloBoardAction,
+      ],
+    };
+    const out = getBoardStateAtDate(cardsByList, actionsByDate, "2024-03-01");
+    expect(out.l2?.map((c) => c.id)).toEqual(["c1"]);
+    expect(out.l1 ?? []).toHaveLength(0);
+  });
+
   it("getBoardStateAtDate ignores actions without card id or non-matching update shapes", () => {
     const cardsByList: Record<string, TrelloCard[]> = { l2: [card] };
     const actionsByDate: Record<string, TrelloBoardAction[]> = {

@@ -15,6 +15,7 @@ import {
   getMyTrelloProfile,
   mergeSectionConfigWithDefaults,
   getDefaultStatusForListName,
+  rawBoardToBoardView,
 } from "./client";
 
 vi.mock("@/shared/api/http", () => ({
@@ -114,6 +115,17 @@ describe("trello api client", () => {
     });
   });
 
+  it("getTeamBoard uses empty lists when board.lists is undefined", async () => {
+    const board = { id: "b1", members: [], url: "" };
+    apiFetchMock.mockResolvedValue({ board, sectionConfig: {} } as any);
+    const result = await getTeamBoard(3);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.view.board.lists).toBeUndefined();
+      expect(Object.keys(result.view.cardsByList)).toHaveLength(0);
+    }
+  });
+
   it("getTeamBoard coerces non-object sectionConfig to empty object", async () => {
     const board = {
       id: "b1",
@@ -198,6 +210,41 @@ describe("trello api client", () => {
       Done: "completed",
       Custom: "work_in_progress",
     });
+  });
+
+  it("mergeSectionConfigWithDefaults treats non-object saved config as empty", () => {
+    expect(mergeSectionConfigWithDefaults(["Todo"], null as any)).toEqual({ Todo: "work_in_progress" });
+    expect(mergeSectionConfigWithDefaults(["Todo"], undefined)).toEqual({ Todo: "work_in_progress" });
+    expect(mergeSectionConfigWithDefaults(["Todo"], "bad" as any)).toEqual({ Todo: "work_in_progress" });
+  });
+
+  it("rawBoardToBoardView tolerates missing optional arrays and buckets cards by list", () => {
+    const view = rawBoardToBoardView({
+      id: "b",
+      name: "B",
+      lists: [{ id: "l1", name: "Todo" }],
+      cards: [
+        { id: "c1", name: "One", idList: "l1" },
+        { id: "c2", name: "Two", idList: "l1" },
+      ],
+      actions: [
+        { id: "a2", type: "commentCard", date: "2025-01-02T12:00:00.000Z", data: {} },
+        { id: "a1", type: "commentCard", date: "2025-01-01T12:00:00.000Z", data: {} },
+      ],
+    } as any);
+    expect(view.cardsByList.l1).toHaveLength(2);
+    expect(view.actionsByDate["2025-01-02"]?.[0]?.id).toBe("a2");
+    expect(view.listNamesById.l1).toBe("Todo");
+  });
+
+  it("rawBoardToBoardView uses empty members when members omitted", () => {
+    const view = rawBoardToBoardView({
+      id: "b",
+      name: "B",
+      lists: [],
+      cards: [{ id: "c1", name: "C", idList: "l1" }],
+    } as any);
+    expect(view.cardsByList.l1?.[0]?.members ?? []).toEqual([]);
   });
 
   it("getDefaultStatusForListName maps backlog and completed names", () => {

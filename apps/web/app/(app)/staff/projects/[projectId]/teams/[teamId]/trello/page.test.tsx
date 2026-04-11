@@ -67,6 +67,16 @@ describe("StaffTrelloSectionPage", () => {
     expect(screen.getByText("team load failed")).toBeInTheDocument();
   });
 
+  it("renders generic project load message when rejection is not an Error", async () => {
+    getCurrentUserMock.mockResolvedValue(staffUser);
+    getStaffProjectTeamsMock.mockRejectedValue("offline");
+
+    const page = await StaffTrelloSectionPage({ params: Promise.resolve({ projectId: "21", teamId: "9" }) });
+    render(page);
+
+    expect(screen.getByText("Failed to load project team data.")).toBeInTheDocument();
+  });
+
   it("renders missing-team fallback when team id is not in project", async () => {
     getCurrentUserMock.mockResolvedValue(staffUser);
     getStaffProjectTeamsMock.mockResolvedValue({

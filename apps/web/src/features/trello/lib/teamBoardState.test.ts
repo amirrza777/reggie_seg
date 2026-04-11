@@ -41,6 +41,7 @@ describe("teamBoardState", () => {
     it("isNotMember returns true for Not a member messages", () => {
       expect(isNotMember(new Error("Not a member of this team"))).toBe(true);
       expect(isNotMember(new Error("Not a member"))).toBe(true);
+      expect(isNotMember("Not a member of board")).toBe(true);
       expect(isNotMember(new Error("Other"))).toBe(false);
     });
 

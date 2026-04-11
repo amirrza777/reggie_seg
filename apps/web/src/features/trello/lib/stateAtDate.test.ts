@@ -22,6 +22,20 @@ describe("stateAtDate", () => {
     expect(counts.completed).toBe(0);
   });
 
+  it("skips replay actions whose card payload has no id", () => {
+    const currentState = { c1: "l1" };
+    const allActionsDesc: TrelloBoardAction[] = [
+      {
+        id: "noid",
+        type: "updateCard",
+        date: "2025-06-25T10:00:00.000Z",
+        data: { card: {} },
+      } as TrelloBoardAction,
+    ];
+    const counts = computeCountsAtDate("2025-06-20", allActionsDesc, currentState, listNamesById, sectionConfig);
+    expect(counts.backlog).toBe(1);
+  });
+
   it("skips actions without card id and information_only lists", () => {
     const currentState = { c1: "l1" };
     const allActionsDesc: TrelloBoardAction[] = [
@@ -34,6 +48,20 @@ describe("stateAtDate", () => {
       { l1: "Notes" },
       { Notes: "information_only" },
     );
+    expect(counts).toEqual({ backlog: 0, inProgress: 0, completed: 0 });
+  });
+
+  it("replays createCard by removing the card when action is after cutoff", () => {
+    const currentState = { c1: "l1" };
+    const allActionsDesc: TrelloBoardAction[] = [
+      {
+        id: "cr",
+        type: "createCard",
+        date: "2025-06-25T10:00:00.000Z",
+        data: { card: { id: "c1" } },
+      } as TrelloBoardAction,
+    ];
+    const counts = computeCountsAtDate("2025-06-20", allActionsDesc, currentState, listNamesById, sectionConfig);
     expect(counts).toEqual({ backlog: 0, inProgress: 0, completed: 0 });
   });
 

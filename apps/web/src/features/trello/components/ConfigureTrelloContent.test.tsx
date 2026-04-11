@@ -14,7 +14,13 @@ vi.mock("@/features/trello/api/client", () => ({
   putTrelloSectionConfig: (...a: unknown[]) => putTrelloSectionConfigMock(...a),
   mergeSectionConfigWithDefaults: (names: string[], saved: Record<string, string>) =>
     Object.fromEntries(names.map((n) => [n, saved[n] ?? "backlog"])),
-  TRELLO_SECTION_STATUSES: ["information_only", "backlog", "work_in_progress", "completed"],
+  TRELLO_SECTION_STATUSES: [
+    "information_only",
+    "backlog",
+    "work_in_progress",
+    "completed",
+    "unlabelled_status",
+  ],
 }));
 
 vi.mock("@/features/trello/context/TrelloBoardContext", () => ({
@@ -110,6 +116,104 @@ describe("ConfigureTrelloContent", () => {
     render(<ConfigureTrelloContent projectId="1" teamId={2} />);
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("Failed to load board.");
+    });
+  });
+
+  it("shows row select option fallback when status has no label mapping", async () => {
+    getTeamBoardMock.mockResolvedValue({
+      ok: true,
+      view: {
+        board: { id: "b", name: "B", lists: [{ id: "l", name: "L" }], members: [], url: "" },
+        listNamesById: {},
+        actionsByDate: {},
+        cardsByList: {},
+      },
+      sectionConfig: {},
+    });
+    render(<ConfigureTrelloContent projectId="1" teamId={2} />);
+    await waitFor(() => expect(screen.getByRole("combobox")).toBeInTheDocument());
+    expect(screen.getByRole("option", { name: "unlabelled_status" })).toBeInTheDocument();
+  });
+
+  it("does not apply load results after unmount", async () => {
+    let resolveLoad: ((v: unknown) => void) | null = null;
+    getTeamBoardMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveLoad = resolve;
+      }),
+    );
+    const { unmount } = render(<ConfigureTrelloContent projectId="1" teamId={2} />);
+    unmount();
+    resolveLoad?.({
+      ok: true,
+      view: {
+        board: { id: "b", name: "B", lists: [{ id: "l", name: "Late" }], members: [], url: "" },
+        listNamesById: {},
+        actionsByDate: {},
+        cardsByList: {},
+      },
+      sectionConfig: {},
+    });
+    await Promise.resolve();
+  });
+
+  it("loads lists when board omits lists property", async () => {
+    getTeamBoardMock.mockResolvedValue({
+      ok: true,
+      view: {
+        board: { id: "b", name: "B", members: [], url: "" } as { id: string; name: string; members: []; url: string },
+        listNamesById: {},
+        actionsByDate: {},
+        cardsByList: {},
+      },
+      sectionConfig: {},
+    });
+    render(<ConfigureTrelloContent projectId="1" teamId={2} />);
+    await waitFor(() => {
+      expect(screen.getByText(/No lists found on the board/i)).toBeInTheDocument();
+    });
+  });
+
+  it("save succeeds without loadTeamBoard when context omits it", async () => {
+    const user = userEvent.setup();
+    useTrelloBoardMock.mockReturnValue(null);
+    getTeamBoardMock.mockResolvedValue({
+      ok: true,
+      view: {
+        board: { id: "b", name: "B", lists: [{ id: "l", name: "L" }], members: [], url: "" },
+        listNamesById: {},
+        actionsByDate: {},
+        cardsByList: {},
+      },
+      sectionConfig: {},
+    });
+    putTrelloSectionConfigMock.mockResolvedValue({ ok: true });
+    render(<ConfigureTrelloContent projectId="1" teamId={2} />);
+    await waitFor(() => expect(screen.getByText("L")).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: /save and view board/i }));
+    await waitFor(() => {
+      expect(routerPush).toHaveBeenCalledWith("/projects/1/trello");
+    });
+  });
+
+  it("shows generic save error when put rejects non-Error", async () => {
+    const user = userEvent.setup();
+    getTeamBoardMock.mockResolvedValue({
+      ok: true,
+      view: {
+        board: { id: "b", name: "B", lists: [{ id: "l", name: "L" }], members: [], url: "" },
+        listNamesById: {},
+        actionsByDate: {},
+        cardsByList: {},
+      },
+      sectionConfig: {},
+    });
+    putTrelloSectionConfigMock.mockRejectedValueOnce("nope");
+    render(<ConfigureTrelloContent projectId="1" teamId={2} />);
+    await waitFor(() => expect(screen.getByText("L")).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: /save and view board/i }));
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("Failed to save configuration.");
     });
   });
 

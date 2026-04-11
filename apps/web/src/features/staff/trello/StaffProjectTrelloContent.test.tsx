@@ -153,6 +153,10 @@ describe("StaffProjectTrelloContent", () => {
     getMyBoardsMock.mockRejectedValueOnce(new Error("nope"));
     await user.click(screen.getByRole("button", { name: /change board/i }));
     expect(setState).toHaveBeenCalledWith({ status: "error", message: "nope" });
+
+    getMyBoardsMock.mockRejectedValueOnce("not-an-error");
+    await user.click(screen.getByRole("button", { name: /change board/i }));
+    expect(setState).toHaveBeenCalledWith({ status: "error", message: "Failed to load your boards." });
   });
 
   it("change account handler sets link-account state", async () => {

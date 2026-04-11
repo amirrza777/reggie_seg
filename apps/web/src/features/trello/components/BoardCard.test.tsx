@@ -38,4 +38,17 @@ describe("BoardCard", () => {
     render(<BoardCard card={baseCard} members={members} />);
     expect(screen.getByText("Bo")).toBeInTheDocument();
   });
+
+  it("renders multiple label chips with explicit names", () => {
+    const card: TrelloCard = {
+      ...baseCard,
+      labels: [
+        { id: "l1", name: "Bug" },
+        { id: "l2", name: "Docs" },
+      ],
+    };
+    render(<BoardCard card={card} members={[]} />);
+    expect(screen.getByText("Bug")).toBeInTheDocument();
+    expect(screen.getByText("Docs")).toBeInTheDocument();
+  });
 });

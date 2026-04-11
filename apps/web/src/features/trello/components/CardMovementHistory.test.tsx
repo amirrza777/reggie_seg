@@ -4,6 +4,59 @@ import { CardMovementHistory } from "./CardMovementHistory";
 import type { TrelloBoardAction } from "../types";
 
 describe("CardMovementHistory", () => {
+  it("does not scroll when selected date does not match any row", () => {
+    const gbcr = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect");
+    gbcr.mockReturnValue({
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      width: 0,
+      height: 0,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+
+    const actionsByDate: Record<string, TrelloBoardAction[]> = {
+      "2024-05-01": [
+        {
+          id: "x",
+          type: "createCard",
+          date: "2024-05-01T10:00:00.000Z",
+          data: { card: { id: "c1" }, list: { id: "lx" } },
+        } as TrelloBoardAction,
+      ],
+    };
+
+    const { container } = render(
+      <CardMovementHistory
+        actionsByDate={actionsByDate}
+        listNamesById={{ lx: "Lane" }}
+        dateKeysSorted={["2024-05-01"]}
+        selectedDate="2099-01-01"
+      />,
+    );
+
+    const wrap = container.querySelector(".trello-history__table-wrap") as HTMLDivElement;
+    expect(wrap.scrollTop).toBe(0);
+  });
+
+  it("treats missing action buckets as empty for a sorted date key", () => {
+    const actionsByDate: Record<string, TrelloBoardAction[]> = {
+      "2024-05-02": [],
+    };
+    render(
+      <CardMovementHistory
+        actionsByDate={actionsByDate}
+        listNamesById={{}}
+        dateKeysSorted={["2024-05-01", "2024-05-02"]}
+        selectedDate="current"
+      />,
+    );
+    expect(screen.getAllByRole("row")).toHaveLength(3);
+  });
+
   it("returns null when there are no dated keys", () => {
     const { container } = render(
       <CardMovementHistory

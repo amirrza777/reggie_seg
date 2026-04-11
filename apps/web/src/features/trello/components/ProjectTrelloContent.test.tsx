@@ -130,6 +130,15 @@ describe("ProjectTrelloContent", () => {
     expect(screen.getByTestId("link-account-view")).toBeInTheDocument();
   });
 
+  it("shows link account view when reconnecting account on an editable project", () => {
+    useCanEditMock.mockReturnValue(true);
+    setSource({ state: { status: "link-account" } });
+    render(
+      <ProjectTrelloContent projectId="1" teamId={2} teamHasLinkedTrelloBoard viewComponent={StubView} />,
+    );
+    expect(screen.getByTestId("link-account-view")).toBeInTheDocument();
+  });
+
   it("shows archived message for no-team-board when read-only", () => {
     useCanEditMock.mockReturnValue(false);
     setSource({ state: { status: "no-team-board" } });
@@ -198,6 +207,24 @@ describe("ProjectTrelloContent", () => {
       <ProjectTrelloContent projectId="1" teamId={2} teamHasLinkedTrelloBoard viewComponent={StubView} />,
     );
     expect(screen.getByTestId("join-board-view")).toBeInTheDocument();
+  });
+
+  it("does not redirect when board has no lists even if section config is empty", () => {
+    setSource({
+      state: {
+        status: "board",
+        view: {
+          ...mockView,
+          board: { ...mockView.board, lists: undefined },
+        },
+        sectionConfig: {},
+      },
+    });
+    render(
+      <ProjectTrelloContent projectId="1" teamId={2} teamHasLinkedTrelloBoard viewComponent={StubView} />,
+    );
+    expect(screen.getByTestId("inner-view")).toBeInTheDocument();
+    expect(routerReplace).not.toHaveBeenCalled();
   });
 
   it("redirect stub when board needs default section config", async () => {

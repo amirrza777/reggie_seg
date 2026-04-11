@@ -161,6 +161,36 @@ describe("CardDistributionGraph", () => {
     expect(screen.getByTestId("line-chart")).toBeInTheDocument();
   });
 
+  it("buckets in-progress from generic list names without section config", () => {
+    const lists = { l1: "Todo" };
+    const cards: Record<string, TrelloCard[]> = {
+      l1: [{ id: "c1", name: "Task", idList: "l1" }],
+    };
+    render(
+      <CardDistributionGraph
+        actionsByDate={actionsByDate}
+        listNamesById={lists}
+        cardsByList={cards}
+      />,
+    );
+    expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+  });
+
+  it("counts member match via idMembers when members array is empty", () => {
+    const cards: Record<string, TrelloCard[]> = {
+      l1: [{ id: "c1", name: "Solo", idList: "l1", idMembers: ["m77"], members: [] }],
+    };
+    render(
+      <CardDistributionGraph
+        actionsByDate={actionsByDate}
+        listNamesById={listNamesById}
+        cardsByList={cards}
+        memberIdFilter="m77"
+      />,
+    );
+    expect(screen.getByTestId("line-chart")).toBeInTheDocument();
+  });
+
   it("derives status from list name casing and replays updateCard without section config", () => {
     const lists = { lb: "BACKLOG", ld: "Completed" };
     const cards: Record<string, TrelloCard[]> = {
