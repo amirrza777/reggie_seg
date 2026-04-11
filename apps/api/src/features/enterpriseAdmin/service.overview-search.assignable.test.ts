@@ -20,6 +20,7 @@ import {
   listAssignableUsersByEnterprise,
   runFuzzyAssignableUserSearch,
 } from "./service.overview-search.assignable.js";
+import { DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES } from "../../shared/fuzzyFallback.js";
 
 describe("enterpriseAdmin assignable overview search", () => {
   beforeEach(() => {
@@ -104,5 +105,66 @@ describe("enterpriseAdmin assignable overview search", () => {
     const groups = await listAssignableUsersByEnterprise("ent-1");
     expect(groups.staff).toHaveLength(1);
     expect(groups.students).toHaveLength(1);
+  });
+
+  it("returns strict response when fuzzy candidate pool is above max fallback threshold", async () => {
+    mockState.prisma.user.count.mockResolvedValueOnce(DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES + 1);
+
+    const strictResponse = {
+      items: [{ id: 1 }],
+      total: 1,
+      page: 1,
+      pageSize: 10,
+      totalPages: 1,
+      hasPreviousPage: false,
+      hasNextPage: false,
+      query: "abc",
+      scope: "all",
+    } as any;
+
+    const result = await runFuzzyAssignableUserSearch(
+      "ent-1",
+      { scope: "all", query: "abc", page: 1, pageSize: 10, prioritiseUserIds: [] },
+      strictResponse,
+    );
+
+    expect(result).toBe(strictResponse);
+    expect(mockState.prisma.user.findMany).not.toHaveBeenCalled();
+  });
+
+  it("sorts fuzzy matches by firstName, then lastName, then email for non-pinned ties", async () => {
+    mockState.prisma.user.count.mockResolvedValueOnce(4);
+    mockState.prisma.user.findMany.mockResolvedValueOnce([
+      { id: 10, email: "zeta@example.com", firstName: "Amy", lastName: "Zeal", active: true },
+      { id: 11, email: "alpha@example.com", firstName: "Amy", lastName: "Zeal", active: true },
+      { id: 12, email: "beta@example.com", firstName: "Amy", lastName: "Able", active: true },
+      { id: 13, email: "gamma@example.com", firstName: "Ben", lastName: "Able", active: true },
+    ]);
+
+    const strictResponse = {
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      totalPages: 0,
+      hasPreviousPage: false,
+      hasNextPage: false,
+      query: "a",
+      scope: "all",
+    } as any;
+
+    const result = await runFuzzyAssignableUserSearch(
+      "ent-1",
+      {
+        scope: "all",
+        query: "a",
+        page: 1,
+        pageSize: 10,
+        prioritiseUserIds: [999],
+      },
+      strictResponse,
+    );
+
+    expect(result.items.map((item) => item.id)).toEqual([12, 11, 10, 13]);
   });
 });

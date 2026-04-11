@@ -121,6 +121,21 @@ describe("peerAssessment service", () => {
     expect(repoMocks.createPeerAssessment).not.toHaveBeenCalled();
   });
 
+  it("saveAssessment rejects when project cannot be found", async () => {
+    const payload = {
+      projectId: 1,
+      teamId: 2,
+      reviewerUserId: 4,
+      revieweeUserId: 5,
+      templateId: 10,
+      answersJson: [{ questionId: 1, answer: "Great work" }],
+    };
+    prismaMocks.projectFindUnique.mockResolvedValueOnce(null);
+
+    await expect(saveAssessment(payload)).rejects.toMatchObject({ code: "PROJECT_NOT_FOUND" });
+    expect(repoMocks.createPeerAssessment).not.toHaveBeenCalled();
+  });
+
   it("saveAssessment blocks submissions before assessment open", async () => {
     const payload = {
       projectId: 1,
@@ -207,6 +222,31 @@ describe("peerAssessment service", () => {
         ...payload,
         submittedLate: false,
         effectiveDueDate: new Date("3026-03-31T23:59:59.000Z"),
+      }),
+    );
+  });
+
+  it("saveAssessment ignores unsupported deadline value shapes", async () => {
+    const payload = {
+      projectId: 1,
+      teamId: 2,
+      reviewerUserId: 4,
+      revieweeUserId: 5,
+      templateId: 10,
+      answersJson: [{ questionId: 1, answer: "String date" }],
+    };
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      assessmentOpenDate: { invalid: true },
+      assessmentDueDate: { invalid: true },
+    });
+    repoMocks.createPeerAssessment.mockResolvedValue({ id: 103 });
+
+    await expect(saveAssessment(payload)).resolves.toEqual({ id: 103 });
+    expect(repoMocks.createPeerAssessment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...payload,
+        submittedLate: false,
+        effectiveDueDate: null,
       }),
     );
   });

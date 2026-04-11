@@ -27,5 +27,8 @@ describe("controller utils", () => {
       "http://127.0.0.1:3001/projects/1/repos?tab=repositories&github=connected"
     );
   });
-});
 
+  it("returns the base path when no query params are provided for relative paths", () => {
+    expect(withQuery("/modules", {})).toBe("/modules");
+  });
+});

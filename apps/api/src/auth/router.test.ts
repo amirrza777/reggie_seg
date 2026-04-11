@@ -106,6 +106,18 @@ describe("auth router", () => {
     expect(res.redirect).toHaveBeenCalledWith(APP_HOME_REDIRECT);
   });
 
+  it("google callback returns 401 when passport callback does not attach a user", async () => {
+    const callbackHandler = await loadGoogleCallbackHandler();
+    const res: any = { status: vi.fn(), json: vi.fn() };
+    res.status.mockReturnValue(res);
+    res.json.mockReturnValue(res);
+
+    await callbackHandler({} as any, res);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: "Google login failed" });
+  });
+
   it.each([
     { label: "admins", role: "ADMIN", email: "admin@test.com" },
     { label: "staff users", role: "STAFF", email: "staff@test.com" },

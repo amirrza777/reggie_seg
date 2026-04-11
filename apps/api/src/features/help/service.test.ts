@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { parseHelpSearchPayload, searchHelpRecords } from "./service.js";
 
+function expectParsedValue<T>(parsed: { ok: true; value: T } | { ok: false; error: string }): T {
+  expect(parsed.ok).toBe(true);
+  if (!parsed.ok) throw new Error(parsed.error);
+  return parsed.value;
+}
+
 describe("help search service", () => {
   it("parses valid payload", () => {
     const parsed = parseHelpSearchPayload({
@@ -10,10 +16,9 @@ describe("help search service", () => {
       limit: 10,
     });
 
-    expect(parsed.ok).toBe(true);
-    if (!parsed.ok) return;
-    expect(parsed.value.limit).toBe(10);
-    expect(parsed.value.scope).toBe("faqs");
+    const parsedValue = expectParsedValue(parsed);
+    expect(parsedValue.limit).toBe(10);
+    expect(parsedValue.scope).toBe("faqs");
   });
 
   it("rejects missing query", () => {
@@ -39,8 +44,7 @@ describe("help search service", () => {
       ],
     });
 
-    if (!parsed.ok) throw new Error(parsed.error);
-    const results = searchHelpRecords(parsed.value);
+    const results = searchHelpRecords(expectParsedValue(parsed));
     expect(results.map((item) => item.id)).toEqual(["faq-1"]);
   });
 
@@ -55,8 +59,7 @@ describe("help search service", () => {
       limit: 5,
     });
 
-    if (!parsed.ok) throw new Error(parsed.error);
-    const results = searchHelpRecords(parsed.value);
+    const results = searchHelpRecords(expectParsedValue(parsed));
     expect(results.map((item) => item.id)).toEqual(["topic-1"]);
   });
 });

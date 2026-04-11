@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { applyFuzzyFallback, fuzzyFilterAndPaginate, shouldUseFuzzyFallback } from "./fuzzyFallback.js";
 
+const includesQuery = (candidate: { value: string }, query: string) => candidate.value.includes(query);
+
 describe("shouldUseFuzzyFallback", () => {
   it("only enables fallback when strict search is empty and query exists", () => {
     expect(shouldUseFuzzyFallback(0, "abc")).toBe(true);
@@ -36,7 +38,7 @@ describe("applyFuzzyFallback", () => {
     const result = await applyFuzzyFallback(strictResults, {
       query: "alp",
       fetchFallbackCandidates,
-      matches: () => true,
+      matches: includesQuery,
     });
 
     expect(result).toEqual(strictResults);
@@ -47,7 +49,7 @@ describe("applyFuzzyFallback", () => {
     const result = await applyFuzzyFallback([], {
       query: "alp",
       fetchFallbackCandidates: async () => [{ id: 1, value: "alpha" }, { id: 2, value: "beta" }],
-      matches: (candidate, query) => candidate.value.includes(query),
+      matches: includesQuery,
     });
 
     expect(result).toEqual([{ id: 1, value: "alpha" }]);
@@ -60,7 +62,7 @@ describe("applyFuzzyFallback", () => {
       query: "alp",
       maxCandidates: 1,
       fetchFallbackCandidates: async () => [{ id: 1, value: "alpha" }, { id: 2, value: "alphabet" }],
-      matches: () => true,
+      matches: includesQuery,
     });
 
     expect(result).toEqual(strictResults);

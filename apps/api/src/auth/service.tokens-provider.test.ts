@@ -212,6 +212,34 @@ describe("auth service", () => {
     expect(svc.verifyRefreshToken("rt")).toEqual({ sub: 22, email: "x@y.com", admin: true });
   });
 
+  it("verifyRefreshToken parses string subject and issuedAt", async () => {
+    const svc = await loadService();
+
+    jwtMock.verify.mockReturnValueOnce({ sub: "22", email: "x@y.com", iat: "1700000000", admin: "nope" });
+    expect(svc.verifyRefreshToken("rt")).toEqual({
+      sub: 22,
+      email: "x@y.com",
+      issuedAtSeconds: 1700000000,
+    });
+  });
+
+  it("verifyRefreshToken rejects non-object payloads", async () => {
+    const svc = await loadService();
+
+    jwtMock.verify.mockReturnValueOnce("invalid-payload");
+    expect(() => svc.verifyRefreshToken("rt")).toThrowError("Invalid refresh token payload");
+  });
+
+  it("verifyRefreshToken rejects invalid subject and email payload fields", async () => {
+    const svc = await loadService();
+
+    jwtMock.verify.mockReturnValueOnce({ sub: "bad", email: "x@y.com" });
+    expect(() => svc.verifyRefreshToken("rt")).toThrowError("Invalid refresh token subject");
+
+    jwtMock.verify.mockReturnValueOnce({ sub: 22, email: "" });
+    expect(() => svc.verifyRefreshToken("rt")).toThrowError("Invalid refresh token email");
+  });
+
   it("parses refresh TTL values for seconds and numeric fallback", async () => {
     const svcSeconds = await loadService({ JWT_REFRESH_TTL: "5s" });
     prismaMock.user.findUnique.mockResolvedValueOnce({ id: 1, role: "STUDENT" });

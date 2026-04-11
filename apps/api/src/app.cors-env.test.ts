@@ -1,15 +1,26 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 
-const ORIGINAL_APP_BASE_URL = process.env.APP_BASE_URL;
-const ORIGINAL_ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS;
+type EnvSnapshot = {
+  APP_BASE_URL?: string;
+  ALLOWED_ORIGINS?: string;
+};
+
+const ORIGINAL_ENV: EnvSnapshot = {
+  APP_BASE_URL: process.env.APP_BASE_URL,
+  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
+};
+
+function restoreCorsEnv(snapshot: EnvSnapshot) {
+  if (snapshot.APP_BASE_URL === undefined) delete process.env.APP_BASE_URL;
+  else process.env.APP_BASE_URL = snapshot.APP_BASE_URL;
+
+  if (snapshot.ALLOWED_ORIGINS === undefined) delete process.env.ALLOWED_ORIGINS;
+  else process.env.ALLOWED_ORIGINS = snapshot.ALLOWED_ORIGINS;
+}
 
 afterEach(() => {
-  if (ORIGINAL_APP_BASE_URL === undefined) delete process.env.APP_BASE_URL;
-  else process.env.APP_BASE_URL = ORIGINAL_APP_BASE_URL;
-
-  if (ORIGINAL_ALLOWED_ORIGINS === undefined) delete process.env.ALLOWED_ORIGINS;
-  else process.env.ALLOWED_ORIGINS = ORIGINAL_ALLOWED_ORIGINS;
+  restoreCorsEnv(ORIGINAL_ENV);
 });
 
 describe("app CORS env origins", () => {

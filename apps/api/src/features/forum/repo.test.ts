@@ -232,6 +232,50 @@ describe("forum repo", () => {
     });
   });
 
+  it("returns forbidden when user cannot manage forum settings while reporting", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null as any);
+
+    const result = await reportDiscussionPost(99, 10, 4, "needs review");
+
+    expect(result).toEqual({ status: "forbidden" });
+    expect(prismaMock.discussionPost.findFirst).not.toHaveBeenCalled();
+    expect(prismaMock.forumReport.create).not.toHaveBeenCalled();
+  });
+
+  it("returns not_found when reporting a discussion post that does not exist", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: 99, role: "STAFF", enterpriseId: "ent-1" } as any);
+    prismaMock.project.findFirst.mockResolvedValue({ id: 10 } as any);
+    prismaMock.discussionPost.findFirst.mockResolvedValue(null as any);
+
+    const result = await reportDiscussionPost(99, 10, 4, "needs review");
+
+    expect(result).toEqual({ status: "not_found" });
+    expect(prismaMock.forumReport.create).not.toHaveBeenCalled();
+  });
+
+  it("normalizes blank report reason to null", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: 99, role: "STAFF", enterpriseId: "ent-1" } as any);
+    prismaMock.project.findFirst.mockResolvedValue({ id: 10 } as any);
+    prismaMock.discussionPost.findFirst.mockResolvedValue({
+      id: 4,
+      authorId: 12,
+      title: "Post title",
+      body: "Post body",
+      createdAt: new Date("2026-03-01T10:00:00Z"),
+      updatedAt: new Date("2026-03-01T10:00:00Z"),
+      parentPostId: null,
+    } as any);
+
+    const result = await reportDiscussionPost(99, 10, 4, "   ");
+
+    expect(result).toEqual({ status: "ok" });
+    expect(prismaMock.forumReport.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        reason: null,
+      }),
+    });
+  });
+
   it("returns missingPost when staff conversation focus is missing", async () => {
     prismaMock.user.findUnique.mockResolvedValue({ id: 2, role: "STAFF", enterpriseId: "ent-1" } as any);
     prismaMock.project.findFirst.mockResolvedValue({ id: 10 } as any);

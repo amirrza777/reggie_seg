@@ -17,6 +17,10 @@ describe("buildEnterpriseCodeBase", () => {
   it("falls back to ENT when name has no alphanumeric characters", () => {
     expect(buildEnterpriseCodeBase("...")).toBe("ENT");
   });
+
+  it("pads with fallback characters when only one initial can be derived", () => {
+    expect(buildEnterpriseCodeBase("A")).toBe("AEN");
+  });
 });
 
 describe("ensureUniqueEnterpriseCode", () => {
@@ -47,4 +51,3 @@ describe("EnterpriseCodeGeneratorService", () => {
     expect(generated).toBe("KCL3");
   });
 });
-

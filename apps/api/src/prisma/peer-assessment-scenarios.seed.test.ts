@@ -174,4 +174,29 @@ describe("seedPeerAssessmentProgressScenarios", () => {
     expect(prismaMock.teamDeadlineOverride.deleteMany).toHaveBeenCalled();
     expect(prismaMock.studentDeadlineOverride.deleteMany).not.toHaveBeenCalled();
   });
+
+  it("returns fallback two-project details when completed-unmarked scenario cannot be prepared", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce({ id: 5 })
+      .mockResolvedValueOnce(null);
+
+    const result = await seedPeerAssessmentProgressScenarios({
+      enterprise: { id: "ent-1" },
+      modules: [{ id: 11 }],
+      templates: [{ id: 500, questionLabels: ["Q1"] }],
+      users: [],
+      usersByRole: { students: [{ id: 21 }] },
+    } as never);
+
+    expect(result).toEqual({
+      assessmentOpenProjectId: expect.any(Number),
+      feedbackPendingProjectId: expect.any(Number),
+      completedUnmarkedProjectId: null,
+    });
+    const logLine = String(logSpy.mock.calls.at(-1)?.[0] ?? "");
+    expect(logLine).toContain("2 rows seeded");
+    expect(logLine).toContain("projects=2");
+    logSpy.mockRestore();
+  });
 });
