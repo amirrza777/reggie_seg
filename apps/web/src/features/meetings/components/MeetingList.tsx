@@ -1,16 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { Eye, Video, Pencil, UserCheck, NotebookPen } from "lucide-react";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
-import type { SortConfig } from "@/shared/ui/Table";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { AddToCalendarDropdown } from "./AddToCalendarDropdown";
 import { formatDate } from "@/shared/lib/formatDate";
 import { useUser } from "@/features/auth/context";
-import { isMeetingMember } from "../lib/meetingMember";
-import { isWithinEditWindow } from "../lib/meetingTime";
+import { getMeetingPermissions } from "../lib/meetingPermissions";
+import { useMeetingSort } from "../hooks/useMeetingSort";
 import "../styles/meeting-list.css";
 import type { Meeting, MeetingPermissions } from "../types";
 
@@ -38,59 +36,10 @@ export function MeetingList({
   workspaceReadOnly = false,
 }: MeetingListProps) {
   const { user } = useUser();
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
-    column: 1,
-    direction: showMinutesWriter ? "desc" : "asc",
-  });
-
-  const sorted = useMemo(() => {
-    return [...meetings].sort((a, b) => {
-      const dir = sortConfig.direction === "asc" ? 1 : -1;
-      switch (sortConfig.column) {
-        case 0:
-          return dir * a.title.localeCompare(b.title);
-        case 1:
-          return dir * a.date.localeCompare(b.date);
-        case 2:
-          return (
-            dir *
-            `${a.organiser.firstName} ${a.organiser.lastName}`.localeCompare(
-              `${b.organiser.firstName} ${b.organiser.lastName}`
-            )
-          );
-        case 3: {
-          if (showMinutesWriter) {
-            const nameA = a.minutes
-              ? `${a.minutes.writer.firstName} ${a.minutes.writer.lastName}`
-              : "";
-            const nameB = b.minutes
-              ? `${b.minutes.writer.firstName} ${b.minutes.writer.lastName}`
-              : "";
-            return dir * nameA.localeCompare(nameB);
-          }
-          return dir * (a.location ?? "").localeCompare(b.location ?? "");
-        }
-        case 4: {
-          if (!showMinutesWriter) {
-            return dir * ((a.participants?.length ?? 0) - (b.participants?.length ?? 0));
-          }
-          return 0;
-        }
-        default:
-          return 0;
-      }
-    });
-  }, [meetings, sortConfig, showMinutesWriter]);
-
-  function handleSort(columnIndex: number) {
-    if (columnIndex === 5) return;
-    if (showMinutesWriter && columnIndex === 4) return;
-    setSortConfig((prev) =>
-      prev.column === columnIndex
-        ? { column: columnIndex, direction: prev.direction === "asc" ? "desc" : "asc" }
-        : { column: columnIndex, direction: "asc" }
-    );
-  }
+  const { sorted, sortConfig, handleSort } = useMeetingSort(
+    meetings,
+    showMinutesWriter,
+  );
 
   if (meetings.length === 0) {
     return (
@@ -111,18 +60,27 @@ export function MeetingList({
 
   const rows = sorted.map((meeting) => {
     const upcoming = isUpcoming(meeting);
-    const isOrganiser = user?.id === meeting.organiser.id;
-    const isMember = user ? isMeetingMember(meeting.team?.allocations ?? [], user.id) : false;
-    const canEditMeeting =
-      !workspaceReadOnly && (isOrganiser || (!!permissions?.allowAnyoneToEditMeetings && isMember));
-    const canRecordAttendance =
-      !workspaceReadOnly && (isOrganiser || (!!permissions?.allowAnyoneToRecordAttendance && isMember));
-    const canWriteMinutes =
-      !workspaceReadOnly &&
-      (!meeting.minutes || meeting.minutes.writerId === user?.id || (!!permissions?.allowAnyoneToWriteMinutes && isMember));
-    const minutesWindowOpen = (permissions?.minutesEditWindowDays ?? 0) > 0 && isWithinEditWindow(meeting.date, permissions!.minutesEditWindowDays);
-    const attendanceWindowOpen = (permissions?.attendanceEditWindowDays ?? 0) > 0 && isWithinEditWindow(meeting.date, permissions!.attendanceEditWindowDays);
+    const flags = getMeetingPermissions(
+      meeting,
+      permissions,
+      user?.id ?? null,
+      !workspaceReadOnly,
+    );
     const writer = meeting.minutes?.writer;
+
+    const teamSize = meeting.team?.allocations?.length ?? 0;
+    const invitedCount = meeting.participants?.length ?? 0;
+    const attendances = meeting.attendances ?? [];
+    const attendedCount = attendances.filter(
+      (a) => a.status !== "absent",
+    ).length;
+    const recordedCount = attendances.length;
+    const attendanceCell =
+      recordedCount > 0 ? (
+        `${attendedCount} of ${recordedCount}`
+      ) : (
+        <span className="muted">—</span>
+      );
 
     const actions = (
       <div className="meeting-list__actions">
@@ -134,7 +92,7 @@ export function MeetingList({
         >
           <Eye size={16} />
         </AnchorLink>
-        {canEditMeeting && upcoming && (
+        {flags.canEditMeeting && upcoming && (
           <AnchorLink
             href={`/projects/${projectId}/meetings/${meeting.id}/edit`}
             className="meeting-list__action"
@@ -144,17 +102,19 @@ export function MeetingList({
             <Pencil size={16} />
           </AnchorLink>
         )}
-        {canRecordAttendance && !upcoming && attendanceWindowOpen && (
-          <AnchorLink
-            href={`/projects/${projectId}/meetings/${meeting.id}/attendance`}
-            className="meeting-list__action"
-            aria-label="Record attendance"
-            title="Record attendance"
-          >
-            <UserCheck size={16} />
-          </AnchorLink>
-        )}
-        {!upcoming && canWriteMinutes && minutesWindowOpen && (
+        {flags.canRecordAttendance &&
+          !upcoming &&
+          flags.attendanceWindowOpen && (
+            <AnchorLink
+              href={`/projects/${projectId}/meetings/${meeting.id}/attendance`}
+              className="meeting-list__action"
+              aria-label="Record attendance"
+              title="Record attendance"
+            >
+              <UserCheck size={16} />
+            </AnchorLink>
+          )}
+        {!upcoming && flags.canWriteMinutes && flags.minutesWindowOpen && (
           <AnchorLink
             href={`/projects/${projectId}/meetings/${meeting.id}/minutes`}
             className="meeting-list__action"
@@ -180,27 +140,20 @@ export function MeetingList({
       </div>
     );
 
-    const teamSize = meeting.team?.allocations?.length ?? 0;
-    const invitedCount = meeting.participants?.length ?? 0;
-    const attendances = meeting.attendances ?? [];
-    const attendedCount = attendances.filter((a) => a.status !== "absent").length;
-    const recordedCount = attendances.length;
-    const attendanceCell = recordedCount > 0
-      ? `${attendedCount} of ${recordedCount}`
-      : <span className="muted">—</span>;
-
     return [
       meeting.title,
       formatDate(meeting.date),
       `${meeting.organiser.firstName} ${meeting.organiser.lastName}`,
-      showMinutesWriter
-        ? writer
-          ? `${writer.firstName} ${writer.lastName}`
-          : <span className="muted">—</span>
-        : meeting.location ?? "",
-      showMinutesWriter
-        ? attendanceCell
-        : `${invitedCount} of ${teamSize}`,
+      showMinutesWriter ? (
+        writer ? (
+          `${writer.firstName} ${writer.lastName}`
+        ) : (
+          <span className="muted">—</span>
+        )
+      ) : (
+        (meeting.location ?? "")
+      ),
+      showMinutesWriter ? attendanceCell : `${invitedCount} of ${teamSize}`,
       actions,
     ];
   });

@@ -32,6 +32,26 @@ function validateCreateMeetingFields(title: string, date: string): CreateMeeting
   return errors;
 }
 
+function buildMeetingRequest(args: SubmitCreateMeetingArgs) {
+  const trimmedTitle = args.title.trim();
+  const trimmedSubject = args.subject.trim();
+  const trimmedLocation = args.location.trim();
+  const trimmedVideoCallLink = args.videoCallLink.trim();
+  const trimmedAgenda = args.agenda.trim();
+
+  return {
+    teamId: args.teamId,
+    organiserId: args.userId!,
+    title: trimmedTitle,
+    date: args.date,
+    subject: trimmedSubject || undefined,
+    location: trimmedLocation || undefined,
+    agenda: trimmedAgenda || undefined,
+    ...(trimmedVideoCallLink ? { videoCallLink: trimmedVideoCallLink } : {}),
+    ...(!args.inviteAll ? { participantIds: args.selectedIds } : {}),
+  };
+}
+
 export async function submitCreateMeeting(args: SubmitCreateMeetingArgs): Promise<SubmitCreateMeetingResult> {
   const fieldErrors = validateCreateMeetingFields(args.title, args.date);
   if (Object.keys(fieldErrors).length > 0) {
@@ -39,45 +59,13 @@ export async function submitCreateMeeting(args: SubmitCreateMeetingArgs): Promis
   }
 
   if (!args.userId) {
-    return {
-      status: "error",
-      message: "You must be signed in to create a meeting.",
-      fieldErrors,
-      success: false,
-    };
+    return { status: "error", message: "You must be signed in to create a meeting.", fieldErrors, success: false };
   }
 
-  const trimmedTitle = args.title.trim();
-  const trimmedSubject = args.subject.trim();
-  const trimmedLocation = args.location.trim();
-  const trimmedVideoCallLink = args.videoCallLink.trim();
-  const trimmedAgenda = args.agenda.trim();
-
   try {
-    await createMeeting({
-      teamId: args.teamId,
-      organiserId: args.userId,
-      title: trimmedTitle,
-      date: args.date,
-      subject: trimmedSubject || undefined,
-      location: trimmedLocation || undefined,
-      agenda: trimmedAgenda || undefined,
-      ...(trimmedVideoCallLink ? { videoCallLink: trimmedVideoCallLink } : {}),
-      ...(!args.inviteAll ? { participantIds: args.selectedIds } : {}),
-    });
-
-    return {
-      status: "success",
-      message: "Meeting created!",
-      fieldErrors: {},
-      success: true,
-    };
+    await createMeeting(buildMeetingRequest(args));
+    return { status: "success", message: "Meeting created!", fieldErrors: {}, success: true };
   } catch (error) {
-    return {
-      status: "error",
-      message: error instanceof Error ? error.message : "Failed to create meeting",
-      fieldErrors,
-      success: false,
-    };
+    return { status: "error", message: error instanceof Error ? error.message : "Failed to create meeting", fieldErrors, success: false };
   }
 }

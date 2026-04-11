@@ -35,8 +35,9 @@ vi.mock("next/link", () => ({
   default: ({ href, children }: any) => <a href={href}>{children}</a>,
 }));
 
+const useProjectWorkspaceCanEditMock = vi.fn(() => ({ canEdit: true }));
 vi.mock("@/features/projects/workspace/ProjectWorkspaceCanEditContext", () => ({
-  useProjectWorkspaceCanEdit: () => ({ canEdit: true }),
+  useProjectWorkspaceCanEdit: (...args: unknown[]) => useProjectWorkspaceCanEditMock(...args),
 }));
 
 import { useUser } from "@/features/auth/context";
@@ -196,6 +197,36 @@ describe("MeetingMinutesContent", () => {
     await waitFor(() => {
       expect(screen.getByTestId("meeting-minutes")).toBeInTheDocument();
     });
+  });
+
+  it("shows archived message with viewer when workspace is read-only and minutes exist", async () => {
+    useProjectWorkspaceCanEditMock.mockReturnValue({ canEdit: false });
+    getMeetingMock.mockResolvedValue({
+      ...baseMeeting,
+      minutes: { writerId: 5, content: "Archived minutes" },
+    });
+
+    render(<MeetingMinutesContent meetingId={1} projectId={1} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("This project is archived; minutes are read-only.")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("rich-text-viewer")).toBeInTheDocument();
+
+    useProjectWorkspaceCanEditMock.mockReturnValue({ canEdit: true });
+  });
+
+  it("shows archived message without viewer when workspace is read-only and no minutes", async () => {
+    useProjectWorkspaceCanEditMock.mockReturnValue({ canEdit: false });
+
+    render(<MeetingMinutesContent meetingId={1} projectId={1} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("This project is archived; minutes are read-only.")).toBeInTheDocument();
+    });
+    expect(screen.getByText("No minutes recorded.")).toBeInTheDocument();
+
+    useProjectWorkspaceCanEditMock.mockReturnValue({ canEdit: true });
   });
 
   it("shows meeting breadcrumbs", async () => {

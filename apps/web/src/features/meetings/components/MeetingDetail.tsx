@@ -9,8 +9,7 @@ import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/Projec
 import { CommentSection } from "./CommentSection";
 import { AddToCalendarDropdown } from "./AddToCalendarDropdown";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
-import { isMeetingMember } from "../lib/meetingMember";
-import { isWithinEditWindow } from "../lib/meetingTime";
+import { getMeetingPermissions } from "../lib/meetingPermissions";
 import { MeetingBreadcrumbs } from "./MeetingBreadcrumbs";
 import "../styles/meeting-detail.css";
 import "../styles/meeting-list.css";
@@ -27,24 +26,28 @@ function formatStatus(status: string) {
   return labels[status] ?? status;
 }
 
-export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetailProps) {
-  const { user } = useUser();
-  const { canEdit: workspaceCanEdit } = useProjectWorkspaceCanEdit();
-  const members = meeting.team?.allocations?.map((a) => a.user) ?? [];
-  const upcoming = new Date(meeting.date) >= new Date();
-  const meetingsHref = `/projects/${projectId}/meetings?tab=${upcoming ? "upcoming" : "previous"}`;
-  const isOrganiser = user?.id === meeting.organiserId;
-  const isMember = user ? isMeetingMember(meeting.team?.allocations ?? [], user.id) : false;
-  const canEdit = workspaceCanEdit && (isOrganiser || (permissions.allowAnyoneToEditMeetings && isMember));
-  const canRecordAttendance =
-    workspaceCanEdit && (isOrganiser || (permissions.allowAnyoneToRecordAttendance && isMember));
-  const canWriteMinutes =
-    workspaceCanEdit &&
-    (!meeting.minutes || meeting.minutes.writerId === user?.id || (permissions.allowAnyoneToWriteMinutes && isMember));
-  const minutesWindowOpen = isWithinEditWindow(meeting.date, permissions.minutesEditWindowDays);
-  const attendanceWindowOpen = isWithinEditWindow(meeting.date, permissions.attendanceEditWindowDays);
+type MeetingDetailActionsProps = {
+  meeting: Meeting;
+  projectId: number;
+  upcoming: boolean;
+  canEdit: boolean;
+  canRecordAttendance: boolean;
+  canWriteMinutes: boolean;
+  minutesWindowOpen: boolean;
+  attendanceWindowOpen: boolean;
+};
 
-  const cardAction = (
+function MeetingDetailActions({
+  meeting,
+  projectId,
+  upcoming,
+  canEdit,
+  canRecordAttendance,
+  canWriteMinutes,
+  minutesWindowOpen,
+  attendanceWindowOpen,
+}: MeetingDetailActionsProps) {
+  return (
     <div className="meeting-list__actions">
       {upcoming && <AddToCalendarDropdown meeting={meeting} compact />}
       {canEdit && upcoming && (
@@ -79,12 +82,35 @@ export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetail
       )}
     </div>
   );
+}
+
+export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetailProps) {
+  const { user } = useUser();
+  const { canEdit: workspaceCanEdit } = useProjectWorkspaceCanEdit();
+  const members = meeting.team?.allocations?.map((a) => a.user) ?? [];
+  const upcoming = new Date(meeting.date) >= new Date();
+  const meetingsHref = `/projects/${projectId}/meetings?tab=${upcoming ? "upcoming" : "previous"}`;
+  const flags = getMeetingPermissions(meeting, permissions, user?.id ?? null, workspaceCanEdit);
 
   return (
     <div className="stack">
       <MeetingBreadcrumbs projectId={projectId} meetingsHref={meetingsHref} currentLabel={meeting.title} />
 
-      <Card title={meeting.title} action={cardAction}>
+      <Card
+        title={meeting.title}
+        action={
+          <MeetingDetailActions
+            meeting={meeting}
+            projectId={projectId}
+            upcoming={upcoming}
+            canEdit={flags.canEditMeeting}
+            canRecordAttendance={flags.canRecordAttendance}
+            canWriteMinutes={flags.canWriteMinutes}
+            minutesWindowOpen={flags.minutesWindowOpen}
+            attendanceWindowOpen={flags.attendanceWindowOpen}
+          />
+        }
+      >
         <p>Date: {new Date(meeting.date).toLocaleString()}</p>
         <p>Organiser: {meeting.organiser.firstName} {meeting.organiser.lastName}</p>
         {meeting.subject && <p>Subject: {meeting.subject}</p>}

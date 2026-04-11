@@ -25,8 +25,9 @@ vi.mock("next/link", () => ({
   default: ({ href, children }: any) => <a href={href}>{children}</a>,
 }));
 
+const useProjectWorkspaceCanEditMock = vi.fn(() => ({ canEdit: true }));
 vi.mock("@/features/projects/workspace/ProjectWorkspaceCanEditContext", () => ({
-  useProjectWorkspaceCanEdit: () => ({ canEdit: true }),
+  useProjectWorkspaceCanEdit: (...args: unknown[]) => useProjectWorkspaceCanEditMock(...args),
 }));
 
 import { useUser } from "@/features/auth/context";
@@ -166,6 +167,18 @@ describe("MeetingAttendanceContent", () => {
     await waitFor(() => {
       expect(screen.getByText("members=3")).toBeInTheDocument();
     });
+  });
+
+  it("shows archived message when workspace is read-only", async () => {
+    useProjectWorkspaceCanEditMock.mockReturnValue({ canEdit: false });
+
+    render(<MeetingAttendanceContent meetingId={1} projectId={1} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("This project is archived; attendance cannot be edited.")).toBeInTheDocument();
+    });
+
+    useProjectWorkspaceCanEditMock.mockReturnValue({ canEdit: true });
   });
 
   it("shows meeting breadcrumbs", async () => {

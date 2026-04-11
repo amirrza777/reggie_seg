@@ -15,6 +15,7 @@ import { getTeamMembers } from "../teamAllocation/service/service.js";
 import { addNotification } from "../notifications/service.js";
 import { sendEmail } from "../../shared/email.js";
 import { buildIcs } from "./ics.js";
+import { extractPlainText } from "../../shared/extractPlainText.js";
 
 /** Returns the meetings. */
 export function listMeetings(teamId: number) {
@@ -71,14 +72,15 @@ function sendMeetingInviteEmails(
   data: MeetingInput,
   meetingUrl: string | null,
 ) {
-  const ics = buildIcs({ title: data.title, date: data.date, location: data.location, videoCallLink: data.videoCallLink, agenda: data.agenda });
+  const agenda = data.agenda ? extractPlainText(data.agenda) : null;
+  const ics = buildIcs({ title: data.title, date: data.date, location: data.location, videoCallLink: data.videoCallLink, agenda });
   const body = [
     "A new meeting has been scheduled in Team Feedback.",
     `Title: ${data.title}`,
     `Date (UTC): ${data.date.toUTCString()}`,
     data.location ? `Location: ${data.location}` : null,
     data.videoCallLink ? `Video call: ${data.videoCallLink}` : null,
-    data.agenda ? `Agenda:\n${data.agenda}` : null,
+    agenda ? `Agenda:\n${agenda}` : null,
     meetingUrl ? `Open meeting details: ${meetingUrl}` : null,
     "Calendar attachment: meeting.ics",
     "",
