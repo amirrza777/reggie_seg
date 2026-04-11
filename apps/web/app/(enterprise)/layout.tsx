@@ -15,6 +15,7 @@ const enterpriseAdminNav = [
   { href: "/enterprise", label: "Enterprise overview", space: "enterprise" as const },
   { href: "/enterprise/modules", label: "Module management", space: "enterprise" as const },
   { href: "/enterprise/users", label: "People", space: "enterprise" as const },
+  { href: "/enterprise/forum-reports", label: "Forum reports", space: "enterprise" as const },
   { href: "/enterprise/feature-flags", label: "Feature flags", space: "enterprise" as const },
 ];
 

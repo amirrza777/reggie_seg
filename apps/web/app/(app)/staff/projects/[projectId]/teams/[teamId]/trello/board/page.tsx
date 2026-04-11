@@ -1,6 +1,6 @@
 import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
-import { StaffTrelloBoardView } from "@/features/staff/trello/StaffTrelloBoardView";
+import { TrelloBoardView } from "@/features/trello/views/TrelloBoardView";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
@@ -12,23 +12,24 @@ export default async function StaffTrelloBoardPage({ params }: PageProps) {
   const ctx = await getStaffTeamContext(projectId, teamId);
 
   if (!ctx.ok) {
-    return null;
+    return (
+      <div className="staff-projects stack">
+        <p className="muted">{ctx.error}</p>
+      </div>
+    );
   }
 
   const { team } = ctx;
 
   return (
     <>
-      <p className="muted">
-        Team: {team.teamName} · Board view
-      </p>
-
-    <StaffProjectTrelloContent
-      projectId={projectId}
-      teamId={team.id}
-      teamName={team.teamName}
-      viewComponent={StaffTrelloBoardView}
-    />
+      <StaffProjectTrelloContent
+        projectId={projectId}
+        teamId={team.id}
+        teamName={team.teamName}
+        viewComponent={TrelloBoardView}
+        viewExtraProps={{ filterVariant: "staff" }}
+      />
     </>
   );
 }

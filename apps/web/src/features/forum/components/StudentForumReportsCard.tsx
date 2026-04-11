@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { ForumConversationTree } from "@/shared/ui/ForumConversationTree";
 import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
+import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { SkeletonText } from "@/shared/ui/Skeleton";
 import {
   approveStudentForumReport,
@@ -163,7 +164,9 @@ export function StudentForumReportsCard({ projectId }: StudentForumReportsCardPr
             <p className="muted" style={{ margin: 0 }}>
               Author: {report.post.author.firstName} {report.post.author.lastName}
             </p>
-            <p style={{ margin: 0 }}>{report.post.body}</p>
+            <div>
+              <RichTextViewer content={report.post.body} noPadding />
+            </div>
             {report.reason ? <p className="muted">Reason: {report.reason}</p> : null}
           </div>
           <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 12 }}>

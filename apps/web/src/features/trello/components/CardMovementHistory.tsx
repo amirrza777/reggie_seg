@@ -1,3 +1,5 @@
+// Timeline of card movement between lists
+
 "use client";
 
 import React, { useEffect, useRef } from "react";

@@ -1,3 +1,5 @@
+// Summary panel: this/last week completions and percent change
+
 import type { VelocityStats } from "@/features/trello/lib/velocity";
 
 type Props = { velocity: VelocityStats };

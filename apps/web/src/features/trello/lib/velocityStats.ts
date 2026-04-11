@@ -1,3 +1,5 @@
+// Computes weekly completion velocity
+
 import type { TrelloBoardAction, TrelloCard } from "../types";
 import { getListStatus } from "./listStatus";
 import { getWeekStartKeyLocal, getEndOfWeekDateKey } from "./weekUtils";

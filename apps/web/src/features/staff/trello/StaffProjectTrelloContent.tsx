@@ -1,9 +1,13 @@
+// Staff Trello shell: read-only board data load + nav
+
 "use client";
 
 import type { ComponentType } from "react";
+import { usePathname } from "next/navigation";
 import { useTrelloBoard } from "@/features/trello/context/TrelloBoardContext";
 import { useTeamBoardState } from "@/features/trello/hooks/useTeamBoardState";
-import { StaffTrelloNav } from "./StaffTrelloNav";
+import { TrelloNav } from "@/features/trello/components/TrelloNav";
+import { resolveStaffTeamBasePath } from "@/features/staff/projects/components/navBasePath";
 import { getMyBoards } from "@/features/trello/api/client";
 import type { ProjectDeadline } from "@/features/projects/types";
 import type { BoardView } from "@/features/trello/api/client";
@@ -18,6 +22,12 @@ export type StaffTrelloContentViewProps = {
   deadline?: ProjectDeadline | null;
 };
 
+export type StaffTrelloViewExtraProps = {
+  integrationsReadOnly?: boolean;
+  showIntegrationSettings?: boolean;
+  filterVariant?: "project" | "staff";
+};
+
 type StaffProjectTrelloContentProps = {
   projectId: string;
   teamId: number;
@@ -25,6 +35,7 @@ type StaffProjectTrelloContentProps = {
   teamName?: string;
   deadline?: ProjectDeadline | null;
   viewComponent: ComponentType<StaffTrelloContentViewProps>;
+  viewExtraProps?: StaffTrelloViewExtraProps;
 };
 
 export function StaffProjectTrelloContent({
@@ -33,11 +44,20 @@ export function StaffProjectTrelloContent({
   moduleId,
   deadline,
   viewComponent: View,
+  viewExtraProps,
 }: StaffProjectTrelloContentProps) {
+  const pathname = usePathname();
   const ctx = useTrelloBoard();
   const fallback = useTeamBoardState(teamId, { staffView: true });
   const source = ctx ?? fallback;
   const { state, setState, mergedSectionConfig } = source;
+
+  const trelloBasePath = `${resolveStaffTeamBasePath({
+    projectId,
+    teamId: String(teamId),
+    moduleId,
+    pathname,
+  })}/trello`;
 
   const onRequestChangeBoard = async () => {
     try {
@@ -67,7 +87,9 @@ export function StaffProjectTrelloContent({
   if (state.status === "error") {
     return (
       <div className="stack">
-        <p>{state.message}</p>
+        <div className="trello-error" role="alert">
+          <p className="trello-error__text">{state.message}</p>
+        </div>
       </div>
     );
   }
@@ -107,10 +129,8 @@ export function StaffProjectTrelloContent({
 
   return (
     <div className="stack">
-      <StaffTrelloNav
-        projectId={projectId}
-        teamId={teamId}
-        moduleId={moduleId}
+      <TrelloNav
+        basePath={trelloBasePath}
         boardName={state.view.board.name}
         boardUrl={state.view.board.url}
       />
@@ -121,6 +141,7 @@ export function StaffProjectTrelloContent({
         onRequestChangeBoard={onRequestChangeBoard}
         onRequestChangeAccount={onRequestChangeAccount}
         deadline={deadline}
+        {...viewExtraProps}
       />
     </div>
   );

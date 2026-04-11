@@ -1,3 +1,5 @@
+// Shown when student's linked account isn't present on the team's board (i.e. they need to join on actual Trello)
+
 "use client";
 
 import "@/features/trello/styles/link-account.css";

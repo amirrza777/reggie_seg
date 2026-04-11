@@ -1,3 +1,5 @@
+// Server gate: ensures validity before rendering student Trello routes.
+
 import React, { type ReactNode } from "react";
 import { getProject, getProjectDeadline, getTeamByUserAndProject } from "../../projects/api/client";
 import { CustomAllocationWaitingBoard } from "../../projects/components/CustomAllocationWaitingBoard";

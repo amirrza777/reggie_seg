@@ -313,6 +313,50 @@ describe("TrelloService", () => {
     ).rejects.toThrow("Not a member of this team");
   });
 
+  it("fetches team board for staff viewer who is not a team member", async () => {
+    canStaffAccessTeamInProjectMock.mockResolvedValue(true);
+    (TrelloRepo.isUserInTeam as any).mockResolvedValue(false);
+    (TrelloRepo.getTeamWithOwner as any).mockResolvedValue({
+      projectId: 9,
+      trelloBoardId: "board1",
+      trelloOwner: { trelloToken: "ownerToken" },
+      trelloSectionConfig: { "To Do": "backlog" },
+    });
+    (TrelloRepo.getUserById as any).mockResolvedValue({ trelloMemberId: "staff-member" });
+    vi.spyOn(TrelloService, "getBoardWithData").mockResolvedValue({
+      id: "board1",
+      members: [{ id: "student-member" }],
+    } as any);
+
+    const result = await TrelloService.fetchAssignedTeamBoard(2, 99);
+
+    expect(result).toEqual({
+      board: { id: "board1", members: [{ id: "student-member" }] },
+      sectionConfig: { "To Do": "backlog" },
+    });
+    expect(canStaffAccessTeamInProjectMock).toHaveBeenCalledWith(99, 9, 2);
+  });
+
+  it("returns requireJoin when a team member is not on the linked board but has a Trello identity", async () => {
+    (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
+    (TrelloRepo.getTeamWithOwner as any).mockResolvedValue({
+      projectId: 9,
+      trelloBoardId: "board1",
+      trelloOwner: { trelloToken: "ownerToken" },
+      trelloSectionConfig: null,
+    });
+    (TrelloRepo.getUserById as any).mockResolvedValue({ trelloMemberId: "userOnTrello" });
+    vi.spyOn(TrelloService, "getBoardWithData").mockResolvedValue({
+      id: "board1",
+      url: "https://trello.com/b/join-here",
+      members: [{ id: "someoneElse" }],
+    } as any);
+
+    const result = await TrelloService.fetchAssignedTeamBoard(2, 1);
+
+    expect(result).toEqual({ requireJoin: true, boardUrl: "https://trello.com/b/join-here" });
+  });
+
   it("throws if no board assigned", async () => {
     (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
     (TrelloRepo.getTeamWithOwner as any).mockResolvedValue({

@@ -1,3 +1,5 @@
+// Shared Recharts XAxis configured for Trello time-based charts.
+
 "use client";
 
 import { XAxis } from "recharts";

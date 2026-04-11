@@ -1,3 +1,6 @@
+// Summary metrics (counts, velocity, cumulative chart series) from a `BoardView` + section config + deadline.
+// Used by: `TrelloSummaryView` (student and staff).
+
 import type { BoardView } from "@/features/trello/api/client";
 import {
   computeCumulativeByWeek,
@@ -30,7 +33,9 @@ export function useTrelloSummaryData(
   projectEndTime: number | null;
   boardUrl: string | undefined;
 } {
-  const { cardsByList, listNamesById, actionsByDate } = view;
+  const cardsByList = view.cardsByList ?? {};
+  const listNamesById = view.listNamesById ?? {};
+  const actionsByDate = view.actionsByDate ?? {};
   const counts = countCardsByStatus(cardsByList, listNamesById, sectionConfig);
   const velocity = computeVelocity(actionsByDate, listNamesById, sectionConfig);
 
@@ -42,16 +47,16 @@ export function useTrelloSummaryData(
   } = normalizeProjectDeadline(deadline);
 
   const [weekRangeStart, weekRangeEnd] = getSummaryWeekRange(
-    (actionsByDate ?? {}) as Record<string, unknown>,
+    actionsByDate as Record<string, unknown>,
     deadlineStart,
     deadlineEnd
   );
 
   const cumulativeByWeek = computeCumulativeByWeek(
-    actionsByDate ?? {},
-    listNamesById ?? {},
+    actionsByDate,
+    listNamesById,
     sectionConfig ?? {},
-    cardsByList ?? {},
+    cardsByList,
     CUMULATIVE_WEEKS,
     weekRangeStart,
     weekRangeEnd

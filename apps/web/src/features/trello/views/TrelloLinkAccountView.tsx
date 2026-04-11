@@ -1,3 +1,5 @@
+// Shown when student hasn't conencted their Trello yet
+
 "use client";
 
 import { usePathname } from "next/navigation";

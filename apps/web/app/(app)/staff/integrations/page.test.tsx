@@ -54,10 +54,6 @@ vi.mock("@/features/staff/trello/StaffProjectTrelloContent", () => ({
   ),
 }));
 
-vi.mock("@/features/staff/trello/StaffTrelloSummaryView", () => ({
-  StaffTrelloSummaryView: () => <div>summary-view</div>,
-}));
-
 vi.mock("@/shared/ui/Placeholder", () => ({
   Placeholder: ({ title, description }: { title: string; description: string }) => (
     <header>

@@ -67,7 +67,10 @@ describe("StaffProjectBreadcrumbs", () => {
       />
     );
 
-    expect(screen.getByRole("link", { name: "Trello" })).toHaveAttribute("href", "/staff/projects/9/trello");
+    expect(screen.getByRole("link", { name: "Trello" })).toHaveAttribute(
+      "href",
+      "/staff/projects/9/teams/4/trello",
+    );
     expect(screen.getByText("Graphs")).toHaveAttribute("aria-current", "page");
   });
 

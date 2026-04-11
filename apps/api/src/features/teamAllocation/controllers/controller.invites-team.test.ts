@@ -8,7 +8,7 @@ import {
 } from "./controller.invites.js";
 import { createTeamForProjectHandler, getTeamByIdHandler } from "./controller.teams.js";
 
-vi.mock("./service.js", () => ({
+vi.mock("../service/service.js", () => ({
   createTeamInvite: vi.fn(),
   listInviteEligibleStudents: vi.fn(),
   listTeamInvites: vi.fn(),

@@ -1,3 +1,5 @@
+// Board snapshot with historical state, and member filtering.
+
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -14,6 +16,7 @@ import {
   prevChangeDay,
   nextChangeDay,
 } from "@/features/trello/lib/boardStateAtDate";
+import type { ProjectDeadline } from "@/features/projects/types";
 import type { BoardView } from "@/features/trello/api/client";
 import type { TrelloBoardAction, TrelloCard } from "@/features/trello/types";
 
@@ -23,7 +26,11 @@ type Props = {
   onRequestChangeBoard: () => void;
   /** When "staff", show dropdown of all board members (default: "project" = Whole team / My tasks toggle) */
   filterVariant?: "project" | "staff";
-  integrationsReadOnly?: boolean;
+  integrationsReadOnly?: boolean; // prop compatibility, not used
+  projectId?: string;
+  onRequestChangeAccount?: () => void;
+  deadline?: ProjectDeadline | null;
+  showIntegrationSettings?: boolean; // staff summary extras; ignored here
 };
 
 function isCardAssignedToMember(card: TrelloCard, memberId: string): boolean {
@@ -63,6 +70,11 @@ export function TrelloBoardView({
   view,
   sectionConfig,
   filterVariant = "project",
+  integrationsReadOnly: _integrationsReadOnly = false,
+  projectId: _projectId,
+  onRequestChangeAccount: _onRequestChangeAccount,
+  deadline: _deadline,
+  showIntegrationSettings: _showIntegrationSettings,
 }: Props) {
   const { cardsByList, listNamesById, actionsByDate } = view;
   const lists = view.board.lists ?? [];

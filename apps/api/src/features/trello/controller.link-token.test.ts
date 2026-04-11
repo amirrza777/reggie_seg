@@ -95,6 +95,32 @@ describe("trello link token controller flows", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "Invalid link token" });
   });
 
+  it("rejects callback-with-link-token when JWT sub is not a finite number", async () => {
+    (jwt.verify as any).mockReturnValue({ sub: "9", purpose: "trello-link" });
+    const res = createMockRes();
+
+    await TrelloController.callbackWithLinkToken(
+      { body: { linkToken: "jwt", token: "abc" } } as any,
+      res,
+    );
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "Invalid link token" });
+  });
+
+  it("rejects callback-with-link-token when purpose is present but not a string", async () => {
+    (jwt.verify as any).mockReturnValue({ sub: 9, purpose: 404 });
+    const res = createMockRes();
+
+    await TrelloController.callbackWithLinkToken(
+      { body: { linkToken: "jwt", token: "abc" } } as any,
+      res,
+    );
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "Invalid link token" });
+  });
+
   it("rejects callback-with-link-token when purpose is wrong", async () => {
     (jwt.verify as any).mockReturnValue({ sub: 9, purpose: "other" });
     const res = createMockRes();

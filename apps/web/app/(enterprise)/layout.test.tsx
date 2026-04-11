@@ -101,6 +101,7 @@ describe("EnterpriseLayout", () => {
       { href: "/enterprise", label: "Enterprise overview", space: "enterprise" },
       { href: "/enterprise/modules", label: "Module management", space: "enterprise" },
       { href: "/enterprise/users", label: "People", space: "enterprise" },
+      { href: "/enterprise/forum-reports", label: "Forum reports", space: "enterprise" },
       { href: "/enterprise/feature-flags", label: "Feature flags", space: "enterprise" },
     ]);
   });

@@ -5,6 +5,7 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { ForumConversationTree } from "@/shared/ui/ForumConversationTree";
+import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { SkeletonText } from "@/shared/ui/Skeleton";
 import { Table } from "@/shared/ui/Table";
 import type { ForumReportConversation, ForumReportEntry } from "../types";
@@ -19,9 +20,6 @@ type RequestState = "idle" | "loading" | "success" | "error";
 type PendingAction = { reportId: number; kind: "dismiss" | "remove" } | null;
 
 const toName = (user: ForumReportEntry["reporter"]) => `${user.firstName} ${user.lastName}`;
-
-const truncate = (value: string, max = 140) =>
-  value.length > max ? `${value.slice(0, max - 1)}…` : value;
 
 export function ForumReportsTable() {
   const [reports, setReports] = useState<ForumReportEntry[]>([]);
@@ -134,7 +132,9 @@ export function ForumReportsTable() {
     </div>,
     <div key={`${report.id}-content`} className="ui-stack-xs">
       <strong>{report.title}</strong>
-      <span className="muted">{truncate(report.body)}</span>
+      <div className="muted">
+        <RichTextViewer content={report.body} noPadding />
+      </div>
       {report.reason ? <span className="muted">Reason: {report.reason}</span> : null}
     </div>,
     <span key={`${report.id}-date`} className="muted">

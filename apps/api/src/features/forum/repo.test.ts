@@ -4,6 +4,7 @@ import {
   createStudentReport,
   approveStudentReport,
   getStaffConversationForPost,
+  reportDiscussionPost,
 } from "./repo.js";
 import { prisma } from "../../shared/db.js";
 
@@ -198,6 +199,36 @@ describe("forum repo", () => {
     expect(prismaMock.forumStudentReport.update).toHaveBeenCalledWith({
       where: { id: 7 },
       data: expect.objectContaining({ status: "APPROVED", reviewedById: 99 }),
+    });
+  });
+
+  it("stores long post bodies when staff reports a discussion post", async () => {
+    const longBody = "x".repeat(500);
+    prismaMock.user.findUnique.mockResolvedValue({ id: 99, role: "STAFF", enterpriseId: "ent-1" } as any);
+    prismaMock.project.findFirst.mockResolvedValue({ id: 10 } as any);
+    prismaMock.discussionPost.findFirst.mockResolvedValue({
+      id: 4,
+      authorId: 12,
+      title: "Long post",
+      body: longBody,
+      createdAt: new Date("2026-03-01T10:00:00Z"),
+      updatedAt: new Date("2026-03-01T10:00:00Z"),
+      parentPostId: null,
+    } as any);
+
+    const result = await reportDiscussionPost(99, 10, 4, "needs review");
+
+    expect(result).toEqual({ status: "ok" });
+    expect(prismaMock.forumReport.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        projectId: 10,
+        postId: 4,
+        reporterId: 99,
+        authorId: 12,
+        reason: "needs review",
+        title: "Long post",
+        body: longBody,
+      }),
     });
   });
 

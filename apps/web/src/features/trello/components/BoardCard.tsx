@@ -1,3 +1,5 @@
+// Card (title, due date, member chips) in a list column
+
 "use client";
 
 import React from "react";

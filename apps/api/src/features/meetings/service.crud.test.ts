@@ -190,6 +190,44 @@ describe("meetings crud service", () => {
     );
   });
 
+  it("rejects addMeeting when project itself is archived", async () => {
+    (repo.getTeamMeetingState as any).mockResolvedValue({
+      archivedAt: null,
+      inactivityFlag: "NONE",
+      deadlineProfile: "STANDARD",
+      deadlineOverride: null,
+      project: {
+        archivedAt: new Date("2020-01-01"),
+        module: { archivedAt: null },
+        deadline: null,
+      },
+    });
+
+    await expect(
+      addMeeting({ teamId: 1, organiserId: 1, title: "Meeting", date: new Date("2026-03-01") })
+    ).rejects.toEqual({ code: "PROJECT_COMPLETED" });
+    expect(repo.createMeeting).not.toHaveBeenCalled();
+  });
+
+  it("rejects addMeeting when team deadline override date has passed", async () => {
+    (repo.getTeamMeetingState as any).mockResolvedValue({
+      archivedAt: null,
+      inactivityFlag: "NONE",
+      deadlineProfile: "STANDARD",
+      deadlineOverride: { feedbackDueDate: new Date("2020-06-01") },
+      project: {
+        archivedAt: null,
+        module: { archivedAt: null },
+        deadline: { feedbackDueDate: new Date("2030-01-01"), feedbackDueDateMcf: null },
+      },
+    });
+
+    await expect(
+      addMeeting({ teamId: 1, organiserId: 1, title: "Override Meeting", date: new Date("2026-03-01") })
+    ).rejects.toEqual({ code: "PROJECT_COMPLETED" });
+    expect(repo.createMeeting).not.toHaveBeenCalled();
+  });
+
   it("rejects addMeeting when MCF deadline profile has passed", async () => {
     (repo.getTeamMeetingState as any).mockResolvedValue({
       archivedAt: null,
