@@ -1,3 +1,5 @@
+// Line chart of card distribution over time (optional filter to one board member)
+
 "use client";
 
 import React, { useMemo } from "react";

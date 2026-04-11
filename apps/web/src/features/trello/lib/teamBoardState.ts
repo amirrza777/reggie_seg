@@ -1,3 +1,5 @@
+// Maps API errors to UI states (board / link account / link board / join) and loads team board data.
+
 import { getMyBoards, getTeamBoard } from "@/features/trello/api/client";
 import type { BoardView, OwnerBoard } from "@/features/trello/api/client";
 

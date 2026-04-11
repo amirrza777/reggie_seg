@@ -3,6 +3,7 @@ import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamCont
 import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
 import { StaffTrelloGraphsView } from "@/features/staff/trello/StaffTrelloGraphsView";
 import "@/features/staff/projects/styles/staff-projects.css";
+import React from "react";
 
 type PageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
@@ -13,7 +14,11 @@ export default async function StaffTrelloGraphsPage({ params }: PageProps) {
   const ctx = await getStaffTeamContext(projectId, teamId);
 
   if (!ctx.ok) {
-    return null;
+    return (
+      <div className="staff-projects stack">
+        <p className="muted">{ctx.error}</p>
+      </div>
+    );
   }
 
   const { user, project, team } = ctx;
@@ -25,11 +30,6 @@ export default async function StaffTrelloGraphsPage({ params }: PageProps) {
   }
 
   return (
-    <>
-      <p className="muted">
-        Team: {team.teamName} · Velocity and throughput
-      </p>
-
     <StaffProjectTrelloContent
       projectId={projectId}
       teamId={team.id}
@@ -37,6 +37,5 @@ export default async function StaffTrelloGraphsPage({ params }: PageProps) {
       deadline={deadline ?? undefined}
       viewComponent={StaffTrelloGraphsView}
     />
-    </>
   );
 }

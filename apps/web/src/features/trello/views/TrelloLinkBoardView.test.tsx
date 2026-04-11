@@ -67,6 +67,19 @@ describe("TrelloLinkBoardView", () => {
     vi.useRealTimers();
   });
 
+  it("uses generic subtitle when teamName is omitted", async () => {
+    getBoardByIdMock.mockResolvedValue(buildPreview());
+    render(
+      <TrelloLinkBoardView
+        projectId="10"
+        teamId={5}
+        boards={[{ id: "board-1", name: "Board One" }]}
+        onAssigned={vi.fn()}
+      />,
+    );
+    expect(await screen.findByText(/Choose a board to link to this team/i)).toBeInTheDocument();
+  });
+
   it("loads and renders board preview details", async () => {
     getBoardByIdMock.mockResolvedValue(buildPreview());
 
@@ -337,6 +350,20 @@ describe("TrelloLinkBoardView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Link board" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Failed to assign board.");
+  });
+
+  it("does not assign when selected board id is empty", () => {
+    getBoardByIdMock.mockImplementation(() => new Promise(() => {}));
+    render(
+      <TrelloLinkBoardView
+        projectId="10"
+        teamId={5}
+        boards={[{ id: "", name: "Weird" }]}
+        onAssigned={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Link board" }));
+    expect(assignBoardToTeamMock).not.toHaveBeenCalled();
   });
 
   it("links board successfully and redirects", async () => {

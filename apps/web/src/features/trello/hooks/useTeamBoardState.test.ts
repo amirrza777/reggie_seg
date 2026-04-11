@@ -27,6 +27,13 @@ describe("useTeamBoardState", () => {
     vi.clearAllMocks();
   });
 
+  it("exposes empty mergedSectionConfig while not on board state", () => {
+    getTeamBoardMock.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useTeamBoardState(10));
+    expect(result.current.state.status).toBe("loading");
+    expect(result.current.mergedSectionConfig).toEqual({});
+  });
+
   it("starts in loading state and resolves to board when getTeamBoard returns ok", async () => {
     getTeamBoardMock.mockResolvedValue({ ok: true, view: mockBoardView, sectionConfig: {} });
 
@@ -141,5 +148,20 @@ describe("useTeamBoardState", () => {
     if (result.current.state.status === "join-board") {
       expect(result.current.state.boardUrl).toBe("https://trello.com/b/other");
     }
+  });
+
+  it("mergedSectionConfig uses empty list names when board.lists is undefined", async () => {
+    const viewMissingLists = {
+      ...mockBoardView,
+      board: { ...mockBoardView.board, lists: undefined as unknown as [] },
+    };
+    getTeamBoardMock.mockResolvedValue({ ok: true, view: viewMissingLists, sectionConfig: { X: "backlog" } });
+
+    const { result } = renderHook(() => useTeamBoardState(10));
+
+    await waitFor(() => {
+      expect(result.current.state.status).toBe("board");
+    });
+    expect(result.current.mergedSectionConfig).toEqual({});
   });
 });

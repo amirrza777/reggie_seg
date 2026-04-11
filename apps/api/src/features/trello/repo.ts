@@ -1,3 +1,5 @@
+// db persistence for user's Trello tokens and team's linked board + list-status JSON.
+
 import { prisma } from "../../shared/db.js";
 import { Prisma } from "@prisma/client";
 

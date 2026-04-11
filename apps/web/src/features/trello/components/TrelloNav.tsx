@@ -1,12 +1,15 @@
+// Sub-nav for Trello tabs (summary / board / graphs). Staff and students (just different base path)
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type Props = {
-  projectId: string;
+export type TrelloNavProps = {
+  /** e.g. `/projects/${projectId}/trello` or `${staffTeamBase}/trello` */
+  basePath: string;
   boardName: string;
-  boardUrl: string;
+  boardUrl?: string | null;
 };
 
 function NavLink({
@@ -29,9 +32,13 @@ function NavLink({
   );
 }
 
-export function TrelloNav({ projectId, boardName, boardUrl }: Props) {
+function normalizeBasePath(basePath: string): string {
+  return basePath.replace(/\/$/, "") || basePath;
+}
+
+export function TrelloNav({ basePath, boardName, boardUrl }: TrelloNavProps) {
   const pathname = usePathname();
-  const base = `/projects/${projectId}/trello`;
+  const base = normalizeBasePath(basePath);
   const isSummary = pathname === base || pathname === `${base}/`;
   const isBoard = pathname === `${base}/board`;
   const isGraphs = pathname === `${base}/graphs`;
@@ -41,9 +48,13 @@ export function TrelloNav({ projectId, boardName, boardUrl }: Props) {
       <div className="projects-panel__header">
         <h1 className="projects-panel__title">Trello</h1>
         <p className="projects-panel__subtitle">
-          <Link href={boardUrl} target="_blank" rel="noreferrer">
-            {boardName} ⤴
-          </Link>
+          {boardUrl ? (
+            <Link href={boardUrl} target="_blank" rel="noopener noreferrer">
+              {boardName} ⤴
+            </Link>
+          ) : (
+            boardName
+          )}
         </p>
       </div>
       <nav className="pill-nav" aria-label="Trello sections">

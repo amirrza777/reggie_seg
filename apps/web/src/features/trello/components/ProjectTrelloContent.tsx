@@ -1,3 +1,5 @@
+// Student shell: loads team board, handles link/configure/join flows, restricts if archived
+
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -197,9 +199,9 @@ export function ProjectTrelloContent({
   return (
     <div className="stack">
       <TrelloNav
-        projectId={projectId}
+        basePath={`/projects/${projectId}/trello`}
         boardName={state.view.board.name}
-        boardUrl={state.view.board.url ?? ""}
+        boardUrl={state.view.board.url?.trim() ? state.view.board.url : null}
       />
       <View
         projectId={projectId}

@@ -1,7 +1,10 @@
+// Allows student to pick which of their personal Trello boards should be linked to the team
+// Selector dropdown + board preview
+
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { assignBoardToTeam, getBoardById, getMyBoards } from "@/features/trello/api/client";
 import type { BoardView, OwnerBoard } from "@/features/trello/api/client";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
@@ -30,6 +33,8 @@ export function TrelloLinkBoardView({ projectId, teamId, teamName, boards, onAss
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<BoardView | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const boardSearchRequestIdRef = useRef(0);
+  const prevTrimmedBoardSearchRef = useRef("");
 
   const visibleBoards = useMemo(() => {
     const selectedBoard = availableBoards.find((board) => board.id === selectedBoardId) ?? boards.find((board) => board.id === selectedBoardId) ?? null;
@@ -51,25 +56,33 @@ export function TrelloLinkBoardView({ projectId, teamId, teamName, boards, onAss
 
   useEffect(() => {
     const normalizedQuery = boardSearchQuery.trim();
+    const hadNonEmptySearch = prevTrimmedBoardSearchRef.current.length > 0;
+    prevTrimmedBoardSearchRef.current = normalizedQuery;
+
     if (!normalizedQuery) {
+      if (hadNonEmptySearch) {
+        boardSearchRequestIdRef.current += 1;
+      }
       setIsSearchingBoards(false);
       return;
     }
 
     let cancelled = false;
     const timer = window.setTimeout(() => {
+      if (cancelled) {return;}
+      const requestId = (boardSearchRequestIdRef.current += 1);
       setIsSearchingBoards(true);
       getMyBoards({ query: normalizedQuery })
         .then((nextBoards) => {
-          if (cancelled) {return;}
+          if (requestId !== boardSearchRequestIdRef.current) {return;}
           setAvailableBoards(nextBoards);
         })
         .catch(() => {
-          if (cancelled) {return;}
+          if (requestId !== boardSearchRequestIdRef.current) {return;}
           setAvailableBoards([]);
         })
         .finally(() => {
-          if (cancelled) {return;}
+          if (requestId !== boardSearchRequestIdRef.current) {return;}
           setIsSearchingBoards(false);
         });
     }, SEARCH_DEBOUNCE_MS);

@@ -34,12 +34,14 @@ describe("teamBoardState", () => {
     it("isUserNotConnected returns true for user not connected messages", () => {
       expect(isUserNotConnected(new Error("User not connected"))).toBe(true);
       expect(isUserNotConnected(new Error("not connected to Trello"))).toBe(true);
+      expect(isUserNotConnected("not connected to Trello")).toBe(true);
       expect(isUserNotConnected(new Error("Other"))).toBe(false);
     });
 
     it("isNotMember returns true for Not a member messages", () => {
       expect(isNotMember(new Error("Not a member of this team"))).toBe(true);
       expect(isNotMember(new Error("Not a member"))).toBe(true);
+      expect(isNotMember("Not a member of board")).toBe(true);
       expect(isNotMember(new Error("Other"))).toBe(false);
     });
 
@@ -109,6 +111,16 @@ describe("teamBoardState", () => {
       expect(setState).toHaveBeenLastCalledWith({ status: "no-team-board" });
     });
 
+    it("sets no-team-board when getMyBoards rejects with not-connected string", async () => {
+      getTeamBoardMock.mockRejectedValue(new Error("No board assigned"));
+      getMyBoardsMock.mockRejectedValue("not connected to Trello");
+      const setState = vi.fn();
+
+      await loadTeamBoardState(10, setState);
+
+      expect(setState).toHaveBeenLastCalledWith({ status: "no-team-board" });
+    });
+
     it("sets error with API message when getTeamBoard throws Not a member", async () => {
       getTeamBoardMock.mockRejectedValue(new Error("Not a member of this team"));
       const setState = vi.fn();
@@ -141,6 +153,49 @@ describe("teamBoardState", () => {
         status: "error",
         message:
           "The team's Trello board owner has disconnected their account. Ask them to reconnect or assign a new board.",
+      });
+    });
+
+    it("sets error when No board assigned and getMyBoards fails for other reasons", async () => {
+      getTeamBoardMock.mockRejectedValue(new Error("No board assigned"));
+      getMyBoardsMock.mockRejectedValue(new Error("Network failure"));
+      const setState = vi.fn();
+
+      await loadTeamBoardState(10, setState);
+
+      expect(setState).toHaveBeenLastCalledWith({
+        status: "error",
+        message: "Network failure",
+      });
+    });
+
+    it("sets link-account when getTeamBoard throws user not connected", async () => {
+      getTeamBoardMock.mockRejectedValue(new Error("User not connected to Trello"));
+      const setState = vi.fn();
+
+      await loadTeamBoardState(10, setState);
+
+      expect(setState).toHaveBeenLastCalledWith({ status: "link-account" });
+    });
+
+    it("uses string fallbacks for errors that are not Error instances", async () => {
+      getTeamBoardMock.mockRejectedValue("string fail");
+      const setState = vi.fn();
+      await loadTeamBoardState(10, setState);
+      expect(setState).toHaveBeenLastCalledWith({
+        status: "error",
+        message: "Failed to load Trello board.",
+      });
+    });
+
+    it("uses string message when getMyBoards rejects with non-Error", async () => {
+      getTeamBoardMock.mockRejectedValue(new Error("No board assigned"));
+      getMyBoardsMock.mockRejectedValue("x");
+      const setState = vi.fn();
+      await loadTeamBoardState(10, setState);
+      expect(setState).toHaveBeenLastCalledWith({
+        status: "error",
+        message: "Failed to load your boards.",
       });
     });
   });

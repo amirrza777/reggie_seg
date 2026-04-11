@@ -1,3 +1,5 @@
+// Student footer settings: open board in Trello, configure lists, change team board / linked account
+
 import Link from "next/link";
 
 type Props = {

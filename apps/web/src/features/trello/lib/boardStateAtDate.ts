@@ -1,8 +1,7 @@
+// Returns the board state for a given day.
+
 import type { TrelloBoardAction, TrelloCard } from "../types";
 
-/**
- * Returns the board state for a given day.
- */
 export function getBoardStateAtDate(
   cardsByList: Record<string, TrelloCard[]>,
   actionsByDate: Record<string, TrelloBoardAction[]>,

@@ -1,3 +1,5 @@
+// UI to assign each Trello list to category and persist section config.
+
 "use client";
 
 import { useRouter } from "next/navigation";

@@ -1,3 +1,5 @@
+// Summary panel: card counts by status
+
 import type { CardCountByStatus } from "@/features/trello/lib/velocity";
 
 type Props = { counts: CardCountByStatus };

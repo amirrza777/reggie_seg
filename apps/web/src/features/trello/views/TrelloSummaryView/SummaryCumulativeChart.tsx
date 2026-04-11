@@ -1,3 +1,6 @@
+// Bar chart of cumulative total cards vs completed
+// optional deadline reference lines
+
 "use client";
 
 import {

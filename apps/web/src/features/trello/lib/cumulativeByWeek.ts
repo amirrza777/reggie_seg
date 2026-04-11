@@ -1,3 +1,5 @@
+// Aggregates card flow into weekly cumulative totals (for summary chart)
+
 import type { TrelloBoardAction, TrelloCard } from "../types";
 import { getWeekStartKeyUTC, addDaysUTC, getWeekKeysBetweenDateKeys } from "./weekUtils";
 import { buildCurrentState, computeCountsAtDate } from "./stateAtDate";

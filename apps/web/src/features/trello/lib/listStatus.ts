@@ -1,4 +1,5 @@
 /** Maps list names to backlog / in progress / completed (or information-only). */
+
 export type ListStatus = "backlog" | "inProgress" | "completed" | null;
 
 export const SECTION_STATUS_LABELS: Record<string, string> = {

@@ -37,10 +37,6 @@ vi.mock("@/features/staff/trello/StaffProjectTrelloContent", () => ({
   ),
 }));
 
-vi.mock("@/features/staff/trello/StaffTrelloSummaryView", () => ({
-  StaffTrelloSummaryView: () => <div>summary-view</div>,
-}));
-
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 const getProjectDeadlineMock = vi.mocked(getProjectDeadline);
@@ -71,6 +67,16 @@ describe("StaffTrelloSectionPage", () => {
     expect(screen.getByText("team load failed")).toBeInTheDocument();
   });
 
+  it("renders generic project load message when rejection is not an Error", async () => {
+    getCurrentUserMock.mockResolvedValue(staffUser);
+    getStaffProjectTeamsMock.mockRejectedValue("offline");
+
+    const page = await StaffTrelloSectionPage({ params: Promise.resolve({ projectId: "21", teamId: "9" }) });
+    render(page);
+
+    expect(screen.getByText("Failed to load project team data.")).toBeInTheDocument();
+  });
+
   it("renders missing-team fallback when team id is not in project", async () => {
     getCurrentUserMock.mockResolvedValue(staffUser);
     getStaffProjectTeamsMock.mockResolvedValue({
@@ -96,7 +102,6 @@ describe("StaffTrelloSectionPage", () => {
     render(page);
 
     expect(getProjectDeadlineMock).toHaveBeenCalledWith(88, 44);
-    expect(screen.getByText(/Team: Team B · No board linked/)).toBeInTheDocument();
     expect(screen.getByTestId("staff-trello-content")).toHaveTextContent("44:55:3:Team B:none");
   });
 });

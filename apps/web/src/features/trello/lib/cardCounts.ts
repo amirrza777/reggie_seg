@@ -1,3 +1,5 @@
+// Counts cards per category in current board state.
+
 import { getListStatus } from "./listStatus";
 
 export type CardCountByStatus = {
