@@ -119,9 +119,13 @@ describe("StaffAllocationDraftsPanel", () => {
     await renderPanel();
     await waitFor(() => expect(screen.getByRole("button", { name: "Edit members" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Edit members" }));
-    await screen.findByRole("button", { name: "Save members" });
+    const saveMembersButton = await screen.findByRole("button", { name: "Save members" });
+    await waitFor(() => expect(saveMembersButton).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Select" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save members" }));
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: "Selected" })).toHaveLength(2);
+    });
+    fireEvent.click(saveMembersButton);
     await waitFor(() => expect(updateDraftMock).toHaveBeenCalled());
     expect(updateDraftMock).toHaveBeenCalledWith(9, 31, expect.objectContaining({ studentIds: [11, 13] }));
   });
@@ -182,6 +186,9 @@ describe("StaffAllocationDraftsPanel", () => {
 
   it("reloads drafts when refresh event is dispatched", async () => {
     await renderPanel();
+    await waitFor(() => {
+      expect(getDraftsMock).toHaveBeenCalledTimes(1);
+    });
     await act(async () => {
       window.dispatchEvent(new Event(STAFF_ALLOCATION_DRAFTS_REFRESH_EVENT));
     });
@@ -221,8 +228,9 @@ describe("StaffAllocationDraftsPanel", () => {
     updateDraftMock.mockRejectedValue(new Error("Refresh drafts and try again"));
     await renderPanel();
     fireEvent.click(screen.getByRole("button", { name: "Edit members" }));
-    await screen.findByRole("button", { name: "Save members" });
-    fireEvent.click(screen.getByRole("button", { name: "Save members" }));
+    const saveMembersButton = await screen.findByRole("button", { name: "Save members" });
+    await waitFor(() => expect(saveMembersButton).toBeEnabled());
+    fireEvent.click(saveMembersButton);
     expect(await screen.findByText(/This draft changed while you were editing it/i)).toBeInTheDocument();
   });
 });
