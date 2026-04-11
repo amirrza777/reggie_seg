@@ -31,6 +31,45 @@ class MentionOption extends MenuOption {
   }
 }
 
+type MentionMenuProps = {
+  options: MentionOption[];
+  selectedIndex: number | null;
+  selectOptionAndCleanUp: (option: MentionOption) => void;
+  setHighlightedIndex: (index: number) => void;
+  anchorElementRef: React.MutableRefObject<HTMLElement | null>;
+};
+
+function MentionMenu({ options, selectedIndex, selectOptionAndCleanUp, setHighlightedIndex, anchorElementRef }: MentionMenuProps) {
+  return createPortal(
+    <ul className="mention-dropdown">
+      {options.map((option, index) => {
+        const isSelected = selectedIndex === index;
+        return (
+          <li
+            key={option.memberId}
+            ref={option.setRefElement}
+            className={
+              isSelected
+                ? "mention-dropdown__item mention-dropdown__item--active"
+                : "mention-dropdown__item"
+            }
+            onClick={() => selectOptionAndCleanUp(option)}
+            onMouseEnter={() => setHighlightedIndex(index)}
+            role="option"
+            aria-selected={isSelected}
+          >
+            {option.name}
+            {option.projectRole && (
+              <span className="mention-dropdown__role">{option.projectRole}</span>
+            )}
+          </li>
+        );
+      })}
+    </ul>,
+    anchorElementRef.current,
+  );
+}
+
 type MentionPluginProps = {
   members?: Member[];
 };
@@ -79,34 +118,14 @@ export function MentionPlugin({ members }: MentionPluginProps) {
         if (options.length === 0 || !anchorElementRef.current) {
           return null;
         }
-
-        return createPortal(
-          <ul className="mention-dropdown">
-            {options.map((option, index) => {
-              const isSelected = selectedIndex === index;
-              return (
-                <li
-                  key={option.memberId}
-                  ref={option.setRefElement}
-                  className={
-                    isSelected
-                      ? "mention-dropdown__item mention-dropdown__item--active"
-                      : "mention-dropdown__item"
-                  }
-                  onClick={() => selectOptionAndCleanUp(option)}
-                  onMouseEnter={() => setHighlightedIndex(index)}
-                  role="option"
-                  aria-selected={isSelected}
-                >
-                  {option.name}
-                  {option.projectRole && (
-                    <span className="mention-dropdown__role">{option.projectRole}</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>,
-          anchorElementRef.current,
+        return (
+          <MentionMenu
+            options={options}
+            selectedIndex={selectedIndex}
+            selectOptionAndCleanUp={selectOptionAndCleanUp}
+            setHighlightedIndex={setHighlightedIndex}
+            anchorElementRef={anchorElementRef}
+          />
         );
       }}
     />

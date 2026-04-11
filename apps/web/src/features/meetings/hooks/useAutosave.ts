@@ -7,6 +7,22 @@ type UseAutosaveOptions = {
   onSave: (value: string) => Promise<void>;
 };
 
+async function executeSave(
+  onSaveRef: React.RefObject<(value: string) => Promise<void>>,
+  value: string,
+  lastSavedRef: React.RefObject<string>,
+  setStatus: (status: SaveStatus) => void,
+) {
+  setStatus("saving");
+  try {
+    await onSaveRef.current(value);
+    lastSavedRef.current = value;
+    setStatus("saved");
+  } catch {
+    setStatus("error");
+  }
+}
+
 export function useAutosave(value: string, options: UseAutosaveOptions) {
   const { delay = 1500, onSave } = options;
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -23,15 +39,8 @@ export function useAutosave(value: string, options: UseAutosaveOptions) {
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    timeoutRef.current = setTimeout(async () => {
-      setStatus("saving");
-      try {
-        await onSaveRef.current(value);
-        lastSavedRef.current = value;
-        setStatus("saved");
-      } catch {
-        setStatus("error");
-      }
+    timeoutRef.current = setTimeout(() => {
+      executeSave(onSaveRef, value, lastSavedRef, setStatus);
     }, delay);
 
     return () => {
@@ -42,15 +51,7 @@ export function useAutosave(value: string, options: UseAutosaveOptions) {
   const saveNow = useCallback(async () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (value === lastSavedRef.current) return;
-
-    setStatus("saving");
-    try {
-      await onSaveRef.current(value);
-      lastSavedRef.current = value;
-      setStatus("saved");
-    } catch {
-      setStatus("error");
-    }
+    await executeSave(onSaveRef, value, lastSavedRef, setStatus);
   }, [value]);
 
   return { status, saveNow };

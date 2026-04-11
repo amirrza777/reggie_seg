@@ -29,19 +29,11 @@ function renderCommentContent(content: string) {
   );
 }
 
-export function CommentSection({
-  meetingId,
-  teamId,
-  members = [],
-  initialComments = [],
-  allowComposer = true,
-}: CommentSectionProps) {
-  const { user } = useUser();
+function useCommentActions(meetingId: number, teamId: number | undefined, user: { id: number; firstName: string; lastName: string }, initialComments: MeetingCommentRecord[]) {
   const [comments, setComments] = useState(initialComments);
   const [message, setMessage] = useState<string | null>(null);
 
   async function handlePost(text: string) {
-    if (!user) return;
     setMessage(null);
     try {
       if (typeof teamId === "number") {
@@ -74,6 +66,19 @@ export function CommentSection({
       setMessage(err instanceof Error ? err.message : "Failed to delete comment");
     }
   }
+
+  return { comments, message, handlePost, handleDeleteComment };
+}
+
+export function CommentSection({
+  meetingId,
+  teamId,
+  members = [],
+  initialComments = [],
+  allowComposer = true,
+}: CommentSectionProps) {
+  const { user } = useUser();
+  const { comments, message, handlePost, handleDeleteComment } = useCommentActions(meetingId, teamId, user ?? { id: 0, firstName: "", lastName: "" }, initialComments);
 
   return (
     <Card title="Comments">

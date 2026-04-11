@@ -3,7 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, CalendarPlus } from "lucide-react";
-import { buildIcs } from "../lib/ics";
+import {
+  buildGoogleUrl,
+  buildOutlookUrl,
+  downloadIcs,
+} from "../lib/calendarLinks";
 import "../styles/meeting-detail.css";
 import { GoogleIcon } from "@/shared/ui/GoogleIcon";
 import { OutlookIcon } from "@/shared/ui/OutlookIcon";
@@ -16,59 +20,14 @@ type AddToCalendarDropdownProps = {
   compact?: boolean;
 };
 
-function buildGoogleUrl(meeting: Meeting): string {
-  const date = new Date(meeting.date);
-  const end = new Date(date.getTime() + 60 * 60 * 1000);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const utc = (d: Date) =>
-    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
-  const descParts = [];
-  if (meeting.agenda) descParts.push(meeting.agenda);
-  if (meeting.videoCallLink) descParts.push(`Video call: ${meeting.videoCallLink}`);
-  const url = new URL("https://calendar.google.com/calendar/render");
-  url.searchParams.set("action", "TEMPLATE");
-  url.searchParams.set("text", meeting.title);
-  url.searchParams.set("dates", `${utc(date)}/${utc(end)}`);
-  if (meeting.location) url.searchParams.set("location", meeting.location);
-  if (descParts.length) url.searchParams.set("details", descParts.join("\n\n"));
-  return url.toString();
-}
-
-function buildOutlookUrl(meeting: Meeting, baseUrl: string): string {
-  const date = new Date(meeting.date);
-  const end = new Date(date.getTime() + 60 * 60 * 1000);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const iso = (d: Date) =>
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
-  const descParts = [];
-  if (meeting.agenda) descParts.push(meeting.agenda);
-  if (meeting.videoCallLink) descParts.push(`Video call: ${meeting.videoCallLink}`);
-  const params = new URLSearchParams({ subject: meeting.title, startdt: iso(date), enddt: iso(end) });
-  if (meeting.location) params.set("location", meeting.location);
-  if (descParts.length) params.set("body", descParts.join("\n\n"));
-  return `${baseUrl}?${params}`;
-}
-
-function downloadIcs(meeting: Meeting) {
-  const ics = buildIcs({
-    title: meeting.title,
-    date: new Date(meeting.date),
-    location: meeting.location,
-    videoCallLink: meeting.videoCallLink,
-    agenda: meeting.agenda,
-  });
-  const blob = new Blob([ics], { type: "text/calendar" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${meeting.title}.ics`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-export function AddToCalendarDropdown({ meeting, compact = false }: AddToCalendarDropdownProps) {
+export function AddToCalendarDropdown({
+  meeting,
+  compact = false,
+}: AddToCalendarDropdownProps) {
   const [open, setOpen] = useState(false);
-  const [listPos, setListPos] = useState<{ top: number; right: number } | null>(null);
+  const [listPos, setListPos] = useState<{ top: number; right: number } | null>(
+    null,
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -89,7 +48,10 @@ export function AddToCalendarDropdown({ meeting, compact = false }: AddToCalenda
   function handleToggle() {
     if (!open && compact && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      setListPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+      setListPos({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
     }
     setOpen((prev) => !prev);
   }
@@ -99,7 +61,11 @@ export function AddToCalendarDropdown({ meeting, compact = false }: AddToCalenda
       ref={listRef}
       className="atc-dropdown__list"
       role="listbox"
-      style={compact && listPos ? { position: "fixed", top: listPos.top, right: listPos.right } : undefined}
+      style={
+        compact && listPos
+          ? { position: "fixed", top: listPos.top, right: listPos.right }
+          : undefined
+      }
     >
       <li>
         <a
@@ -115,7 +81,10 @@ export function AddToCalendarDropdown({ meeting, compact = false }: AddToCalenda
       <li>
         <a
           className="atc-dropdown__item"
-          href={buildOutlookUrl(meeting, "https://outlook.live.com/calendar/0/deeplink/compose")}
+          href={buildOutlookUrl(
+            meeting,
+            "https://outlook.live.com/calendar/0/deeplink/compose",
+          )}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => setOpen(false)}
@@ -126,7 +95,10 @@ export function AddToCalendarDropdown({ meeting, compact = false }: AddToCalenda
       <li>
         <a
           className="atc-dropdown__item"
-          href={buildOutlookUrl(meeting, "https://outlook.office.com/calendar/deeplink/compose")}
+          href={buildOutlookUrl(
+            meeting,
+            "https://outlook.office.com/calendar/deeplink/compose",
+          )}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => setOpen(false)}
@@ -138,7 +110,10 @@ export function AddToCalendarDropdown({ meeting, compact = false }: AddToCalenda
         <button
           type="button"
           className="atc-dropdown__item"
-          onClick={() => { downloadIcs(meeting); setOpen(false); }}
+          onClick={() => {
+            downloadIcs(meeting);
+            setOpen(false);
+          }}
         >
           <AppleIcon width={16} height={16} /> Apple / iCal
         </button>
@@ -150,7 +125,11 @@ export function AddToCalendarDropdown({ meeting, compact = false }: AddToCalenda
     <div ref={containerRef} className="atc-dropdown">
       <button
         type="button"
-        className={compact ? "atc-dropdown__trigger--compact" : "btn btn--ghost atc-dropdown__trigger"}
+        className={
+          compact
+            ? "atc-dropdown__trigger--compact"
+            : "btn btn--ghost atc-dropdown__trigger"
+        }
         onClick={handleToggle}
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -162,7 +141,10 @@ export function AddToCalendarDropdown({ meeting, compact = false }: AddToCalenda
         ) : (
           <>
             Add to calendar
-            <ChevronDown size={14} className={open ? "atc-dropdown__chevron--open" : undefined} />
+            <ChevronDown
+              size={14}
+              className={open ? "atc-dropdown__chevron--open" : undefined}
+            />
           </>
         )}
       </button>
