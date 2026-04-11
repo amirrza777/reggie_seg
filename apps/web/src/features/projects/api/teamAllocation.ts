@@ -1,4 +1,4 @@
 "use client";
 
-export * from "./teamAllocation.types.js";
-export * from "./teamAllocation.client.js";
+export * from "./teamAllocation.types";
+export * from "./teamAllocation.client";

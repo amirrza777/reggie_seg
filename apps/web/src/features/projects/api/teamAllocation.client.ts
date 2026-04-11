@@ -18,7 +18,7 @@ import type {
   RandomAllocationPreview,
   TeamInvite,
   TeamInviteEligibleStudent,
-} from "./teamAllocation.types.js";
+} from "./teamAllocation.types";
 
 export async function sendTeamInvite(
   teamId: number,
