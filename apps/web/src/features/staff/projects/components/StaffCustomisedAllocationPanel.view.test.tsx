@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { StaffCustomisedAllocationPanel } from "./StaffCustomisedAllocationPanel.view";
+import { StaffCustomisedAllocationPanel } from "./StaffCustomisedAllocationPanel";
 import { useCustomisedAllocation } from "./useCustomisedAllocation";
 
 vi.mock("./useCustomisedAllocation", () => ({ useCustomisedAllocation: vi.fn() }));

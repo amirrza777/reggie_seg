@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { TeamFormationPanel } from "./TeamFormationPanel.view";
+import { TeamFormationPanel } from "./TeamFormationPanel";
 
 const refreshMock = vi.fn();
 const getTeamInvitesMock = vi.fn();

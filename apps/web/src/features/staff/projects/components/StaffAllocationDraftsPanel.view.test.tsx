@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { StaffAllocationDraftsPanel } from "./StaffAllocationDraftsPanel.view";
+import { StaffAllocationDraftsPanel } from "./StaffAllocationDraftsPanel";
 import { useStaffAllocationDraftsPanel } from "./useStaffAllocationDraftsPanel";
 
 vi.mock("./useStaffAllocationDraftsPanel", () => ({

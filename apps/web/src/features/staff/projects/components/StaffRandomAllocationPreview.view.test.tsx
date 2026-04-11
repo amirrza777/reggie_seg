@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { StaffRandomAllocationPreview } from "./StaffRandomAllocationPreview.view";
+import { StaffRandomAllocationPreview } from "./StaffRandomAllocationPreview";
 import { useStaffRandomAllocationPreview } from "./useStaffRandomAllocationPreview";
 
 vi.mock("./useStaffRandomAllocationPreview", () => ({
