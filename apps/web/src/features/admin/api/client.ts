@@ -134,3 +134,10 @@ export async function inviteEnterpriseAdmin(enterpriseId: string, email: string)
     },
   );
 }
+
+export async function inviteCurrentEnterpriseAdmin(email: string) {
+  return apiFetch<EnterpriseAdminInviteResponse>("/admin/invites/enterprise-admin", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}

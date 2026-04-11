@@ -51,9 +51,14 @@ describe("moduleJoin code env parsing", () => {
     expect(shortAlpha.MODULE_JOIN_CODE_ALPHABET).toBe("23456789ABCDEFGHJKMNPQRSTVWXYZ");
 
     const invalidAlpha = await loadCodeWithEnv({
-      MODULE_JOIN_CODE_ALPHABET: "ABCDEF*123",
+      MODULE_JOIN_CODE_ALPHABET: "ABCDEFGHJKMNPQRST*VWXYZ23456789",
     });
     expect(invalidAlpha.MODULE_JOIN_CODE_ALPHABET).toBe("23456789ABCDEFGHJKMNPQRSTVWXYZ");
+
+    const dedupTooSmall = await loadCodeWithEnv({
+      MODULE_JOIN_CODE_ALPHABET: "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD",
+    });
+    expect(dedupTooSmall.MODULE_JOIN_CODE_ALPHABET).toBe("23456789ABCDEFGHJKMNPQRSTVWXYZ");
   });
 
   it("sanitizes configured alphabet by trimming, stripping spaces, and deduplicating", async () => {

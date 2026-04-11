@@ -42,7 +42,7 @@ const warningPanelMock = vi.fn((props: Record<string, unknown>) => (
   />
 ));
 
-vi.mock("@/features/staff/projects/components/StaffTeamWarningReviewPanel", () => ({
+vi.mock("@/features/staff/projects/team-health/components/StaffTeamWarningReviewPanel", () => ({
   StaffTeamWarningReviewPanel: (props: Record<string, unknown>) => warningPanelMock(props),
 }));
 
@@ -54,11 +54,11 @@ const messagePanelMock = vi.fn((props: Record<string, unknown>) => (
   />
 ));
 
-vi.mock("@/features/staff/projects/components/StaffTeamHealthMessageReviewPanel", () => ({
+vi.mock("@/features/staff/projects/team-health/components/StaffTeamHealthMessageReviewPanel", () => ({
   StaffTeamHealthMessageReviewPanel: (props: Record<string, unknown>) => messagePanelMock(props),
 }));
 
-vi.mock("@/features/staff/projects/components/StaffSignalLookbackSelect", () => ({
+vi.mock("@/features/staff/projects/team-health/components/StaffSignalLookbackSelect", () => ({
   StaffSignalLookbackSelect: ({ value }: { value: string }) => (
     <div data-testid="signal-lookback-select" data-value={value} />
   ),

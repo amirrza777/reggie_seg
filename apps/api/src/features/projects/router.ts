@@ -43,7 +43,7 @@ import {
   getStaffTeamDeadlineHandler,
   reviewStaffTeamHealthMessageHandler,
   resolveStaffTeamHealthMessageHandler,
-} from "./team-health-review/controller.js";
+} from "../team-health-review/controller.js";
 
 const router = Router();
 router.post("/", requireAuth, createProjectHandler);

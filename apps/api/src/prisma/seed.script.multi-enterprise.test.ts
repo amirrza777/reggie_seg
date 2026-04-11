@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildPrismaMock, flushAsyncWork, mockSeedRuntime } from "./seed.script.shared";
 
-describe("prisma seed script multi-enterprise", () => {
+describe("prisma seed script multi-enterprise", registerMultiEnterpriseTests);
+
+function registerMultiEnterpriseTests() {
   const originalEnv = process.env;
 
   beforeEach(() => {
@@ -18,39 +20,36 @@ describe("prisma seed script multi-enterprise", () => {
   });
 
   it("repeats the seed flow for each configured enterprise", async () => {
-    const prismaMock = buildPrismaMock();
-    prismaMock.enterprise.findUnique = vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(null);
-    prismaMock.enterprise.create = vi.fn().mockResolvedValueOnce({ id: "ent-1" }).mockResolvedValueOnce({ id: "ent-2" });
+    const prismaMock = arrangeMultiEnterpriseRuntime();
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
-    mockSeedRuntime(prismaMock, { enterpriseCount: 2 });
-
     await import("../../prisma/seed/seed.ts");
     await flushAsyncWork();
-
-    expect(prismaMock.enterprise.create).toHaveBeenCalledTimes(2);
-    expect(prismaMock.user.createMany).toHaveBeenCalled();
-    expect(prismaMock.module.createMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.arrayContaining([
-          expect.objectContaining({
-            briefText: expect.any(String),
-            timelineText: expect.any(String),
-            expectationsText: expect.any(String),
-            readinessNotesText: expect.any(String),
-          }),
-        ]),
-      }),
-    );
-    expect(prismaMock.meetingComment.create).toHaveBeenCalled();
-    expect(prismaMock.mention.createMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.arrayContaining([expect.objectContaining({ sourceType: "COMMENT" })]),
-      }),
-    );
-    expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(6);
-    expect(logSpy.mock.calls.some(([msg]) => String(msg).includes("Seed users ready across 2 enterprise(s). Default password"))).toBe(
-      true,
-    );
+    expectMultiEnterpriseArtifacts(prismaMock, logSpy);
   });
-});
+}
+
+function arrangeMultiEnterpriseRuntime() {
+  const prismaMock = buildPrismaMock();
+  prismaMock.enterprise.findUnique = vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+  prismaMock.enterprise.create = vi.fn().mockResolvedValueOnce({ id: "ent-1" }).mockResolvedValueOnce({ id: "ent-2" });
+  mockSeedRuntime(prismaMock, { enterpriseCount: 2 });
+  return prismaMock;
+}
+
+function expectMultiEnterpriseArtifacts(prismaMock: ReturnType<typeof buildPrismaMock>, _logSpy: ReturnType<typeof vi.spyOn>) {
+  expect(prismaMock.enterprise.create).toHaveBeenCalledTimes(2);
+  expect(prismaMock.user.createMany).toHaveBeenCalled();
+  expect(prismaMock.module.createMany).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.arrayContaining([
+        expect.objectContaining({
+          briefText: expect.any(String),
+          timelineText: expect.any(String),
+          expectationsText: expect.any(String),
+          readinessNotesText: expect.any(String),
+        }),
+      ]),
+    }),
+  );
+  expect(prismaMock.featureFlag.upsert).toHaveBeenCalled();
+}

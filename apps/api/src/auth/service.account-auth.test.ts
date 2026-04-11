@@ -96,7 +96,7 @@ describe("auth service", () => {
 
     prismaMock.enterpriseAdminInviteToken.findUnique.mockResolvedValueOnce(null);
     await expect(
-      svc.acceptEnterpriseAdminInvite({ token: "token-1" }),
+      svc.acceptEnterpriseAdminInvite({ token: "token-1", newPassword: "pw-1" }),
     ).rejects.toMatchObject({ code: "INVALID_ENTERPRISE_ADMIN_INVITE" });
 
     prismaMock.enterpriseAdminInviteToken.findUnique.mockResolvedValueOnce({
@@ -108,7 +108,7 @@ describe("auth service", () => {
       expiresAt: new Date(Date.now() + 60_000),
     });
     await expect(
-      svc.acceptEnterpriseAdminInvite({ token: "token-2" }),
+      svc.acceptEnterpriseAdminInvite({ token: "token-2", newPassword: "pw-2" }),
     ).rejects.toMatchObject({ code: "USED_ENTERPRISE_ADMIN_INVITE" });
 
     prismaMock.enterpriseAdminInviteToken.findUnique.mockResolvedValueOnce({
@@ -120,7 +120,7 @@ describe("auth service", () => {
       expiresAt: new Date(Date.now() - 60_000),
     });
     await expect(
-      svc.acceptEnterpriseAdminInvite({ token: "token-3" }),
+      svc.acceptEnterpriseAdminInvite({ token: "token-3", newPassword: "pw-3" }),
     ).rejects.toMatchObject({ code: "EXPIRED_ENTERPRISE_ADMIN_INVITE" });
   });
 
@@ -149,10 +149,11 @@ describe("auth service", () => {
       role: "ENTERPRISE_ADMIN",
       active: true,
     });
-    argon2Mock.hash.mockResolvedValueOnce("refresh-hash");
+    argon2Mock.hash.mockResolvedValueOnce("invite-password-hash").mockResolvedValueOnce("refresh-hash");
 
     const tokens = await svc.acceptEnterpriseAdminInvite({
       token: "token-4",
+      newPassword: "invite-pass",
       firstName: "Ada",
       lastName: "Lovelace",
     });
@@ -162,6 +163,7 @@ describe("auth service", () => {
       data: {
         role: "ENTERPRISE_ADMIN",
         active: true,
+        passwordHash: "invite-password-hash",
         firstName: "Ada",
         lastName: "Lovelace",
       },
@@ -197,7 +199,12 @@ describe("auth service", () => {
       active: true,
     });
 
-    const tokens = await svc.acceptEnterpriseAdminInvite({ token: "token-5", firstName: "New", lastName: "Admin" });
+    const tokens = await svc.acceptEnterpriseAdminInvite({
+      token: "token-5",
+      newPassword: "new-invite-pass",
+      firstName: "New",
+      lastName: "Admin",
+    });
 
     expect(prismaMock.user.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -205,6 +212,7 @@ describe("auth service", () => {
         email: "new-admin@example.com",
         firstName: "New",
         lastName: "Admin",
+        passwordHash: "invite-password-hash",
         role: "ENTERPRISE_ADMIN",
       }),
     });
@@ -240,6 +248,7 @@ describe("auth service", () => {
 
     const tokens = await svc.acceptEnterpriseAdminInvite({
       token: "token-rehome",
+      newPassword: "rehome-pass",
       firstName: "Re",
       lastName: "Home",
     });
@@ -251,6 +260,7 @@ describe("auth service", () => {
         blockedEnterpriseId: null,
         role: "ENTERPRISE_ADMIN",
         active: true,
+        passwordHash: "hashed",
         firstName: "Re",
         lastName: "Home",
       },
@@ -279,7 +289,7 @@ describe("auth service", () => {
     });
 
     await expect(
-      svc.acceptEnterpriseAdminInvite({ token: "token-dup" }),
+      svc.acceptEnterpriseAdminInvite({ token: "token-dup", newPassword: "dup-pass" }),
     ).rejects.toMatchObject({ code: "EMAIL_ALREADY_USED_IN_OTHER_ENTERPRISE" });
 
     expect(prismaMock.user.create).not.toHaveBeenCalled();

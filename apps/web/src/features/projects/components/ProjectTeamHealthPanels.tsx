@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/shared/ui/Card";
+import { Button } from "@/shared/ui/Button";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { TeamHealthMessagePanel } from "./TeamHealthMessagePanel";
 import type { TeamHealthMessage, TeamWarning } from "../types";
 

@@ -11,9 +11,9 @@ import {
 import { seedCompletedProjectScenario } from "./completed-project";
 import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedUsers } from "./catalog";
 import type { SeedProfileConfig } from "./config";
+import { seedAssessmentAccountEmailSet } from "./data";
 import type { SeedContext, SeedEnterprise } from "./types";
 import { seedForumPosts } from "./forum";
-import { seedGithubDemoPath } from "./githubDemo";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines, seedStaffStudentMarks } from "./outcomes";
 import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios";
 import { seedMeetings } from "./meetings";
@@ -33,7 +33,8 @@ export type SeedStepDefinition = {
 export async function buildSeedContext(enterprise: SeedEnterprise, passwordHash: string): Promise<SeedContext> {
   await seedAdminUser(enterprise.id);
   const users = await seedUsers(enterprise.id, passwordHash);
-  const usersByRole = buildUsersByRole(users);
+  const { standardUsers, assessmentAccounts } = splitSeedUsersByParticipation(users);
+  const usersByRole = buildUsersByRole(standardUsers);
   const modules = await seedModules(enterprise.id);
   const templateOwner = usersByRole.adminOrStaff[0];
   const templates = await seedQuestionnaireTemplates(templateOwner?.id);
@@ -44,12 +45,20 @@ export async function buildSeedContext(enterprise: SeedEnterprise, passwordHash:
     enterprise,
     passwordHash,
     users,
+    standardUsers,
+    assessmentAccounts,
     usersByRole,
     modules,
     templates,
     projects,
     teams,
   };
+}
+
+function splitSeedUsersByParticipation(users: SeedContext["users"]) {
+  const standardUsers = users.filter((user) => !seedAssessmentAccountEmailSet.has(user.email.toLowerCase()));
+  const assessmentAccounts = users.filter((user) => seedAssessmentAccountEmailSet.has(user.email.toLowerCase()));
+  return { standardUsers, assessmentAccounts };
 }
 
 function buildCoreSeedPlan(_context: SeedContext): SeedStepDefinition[] {
@@ -73,7 +82,6 @@ function buildScenarioSeedPlan(context: SeedContext, config: SeedProfileConfig):
     ...buildStaffStudentMarksStep(context, config),
     buildTeamInvitesStep(context),
     buildGithubE2EUsersStep(context),
-    ...buildGithubDemoStep(context, config),
     ...buildCompletedProjectStep(context, config),
     buildProjectDeadlinesStep(context),
     buildPeerAssessmentsStep(context),
@@ -86,34 +94,12 @@ function buildScenarioSeedPlan(context: SeedContext, config: SeedProfileConfig):
   ];
 }
 
-export function buildDevSeedPlan(context: SeedContext, config: SeedProfileConfig) {
-  return [...buildCoreSeedPlan(context), ...buildMembershipSeedPlan(context, config), ...buildScenarioSeedPlan(context, config)];
-}
-
-export function buildDemoSeedPlan(context: SeedContext, config: SeedProfileConfig) {
-  return [...buildCoreSeedPlan(context), ...buildMembershipSeedPlan(context, config), ...buildScenarioSeedPlan(context, config)];
-}
-
-export function buildE2ESeedPlan(context: SeedContext, config: SeedProfileConfig) {
-  return [...buildCoreSeedPlan(context), ...buildMembershipSeedPlan(context, config), ...buildScenarioSeedPlan(context, config)];
-}
-
-export function buildTrelloE2ESeedPlan(context: SeedContext, config: SeedProfileConfig) {
+function buildProfileSeedPlan(context: SeedContext, config: SeedProfileConfig) {
   return [...buildCoreSeedPlan(context), ...buildMembershipSeedPlan(context, config), ...buildScenarioSeedPlan(context, config)];
 }
 
 export function buildSeedStepPlan(context: SeedContext, config: SeedProfileConfig) {
-  switch (config.name) {
-    case "demo":
-      return buildDemoSeedPlan(context, config);
-    case "e2e":
-      return buildE2ESeedPlan(context, config);
-    case "trello-e2e":
-      return buildTrelloE2ESeedPlan(context, config);
-    case "dev":
-    default:
-      return buildDevSeedPlan(context, config);
-  }
+  return buildProfileSeedPlan(context, config);
 }
 
 function buildMembershipStep(name: string, run: () => Promise<unknown>): SeedStepDefinition {
@@ -166,11 +152,6 @@ function buildTeamInvitesStep(context: SeedContext) {
 
 function buildGithubE2EUsersStep(context: SeedContext) {
   return buildScenarioStep("seedGithubE2EUsers", () => seedGithubE2EUsers(context.enterprise.id, context.projects, context.teams));
-}
-
-function buildGithubDemoStep(context: SeedContext, config: SeedProfileConfig) {
-  if (!config.scenarios.has("githubDemo")) return [];
-  return [buildScenarioStep("seedGithubDemoPath", () => seedGithubDemoPath(context))];
 }
 
 function buildCompletedProjectStep(context: SeedContext, config: SeedProfileConfig) {

@@ -51,6 +51,9 @@ vi.mock("@/features/enterprise/components/EnterpriseModuleManager", () => ({
 vi.mock("@/features/enterprise/components/EnterpriseFeatureFlagsCard", () => ({
   EnterpriseFeatureFlagsCard: () => <div data-testid="enterprise-feature-flags-card" />,
 }));
+vi.mock("@/features/enterprise/reports/components/ForumReportsTable", () => ({
+  ForumReportsTable: () => <div data-testid="enterprise-forum-reports-table" />,
+}));
 vi.mock("@/features/enterprise/components/EnterpriseModuleCreateForm", () => ({
   EnterpriseModuleCreateForm: () => <div data-testid="enterprise-module-create-form" />,
 }));
@@ -81,6 +84,7 @@ import EnterpriseHomePage from "./(enterprise)/enterprise/page";
 import EnterpriseGroupsPage from "./(enterprise)/enterprise/groups/page";
 import EnterpriseModulesPage from "./(enterprise)/enterprise/modules/page";
 import EnterpriseFeatureFlagsPage from "./(enterprise)/enterprise/feature-flags/page";
+import EnterpriseForumReportsPage from "./(enterprise)/enterprise/forum-reports/page";
 import EnterpriseModuleCreatePage from "./(enterprise)/enterprise/modules/create/page";
 import AdminEnterprisesPage from "./(admin)/admin/enterprises/page";
 import StaffModulesPage from "./(app)/staff/modules/page";
@@ -132,6 +136,12 @@ describe("route pages smoke tests", () => {
     render(view);
     expect(screen.getByText("Enterprise feature flags")).toBeInTheDocument();
     expect(screen.getByTestId("enterprise-feature-flags-card")).toBeInTheDocument();
+  });
+
+  it("renders enterprise forum-reports page", () => {
+    render(<EnterpriseForumReportsPage />);
+    expect(screen.getByRole("heading", { level: 1, name: "Forum reports" })).toBeInTheDocument();
+    expect(screen.getByTestId("enterprise-forum-reports-table")).toBeInTheDocument();
   });
 
   it("redirects enterprise module-create page when unauthenticated", async () => {

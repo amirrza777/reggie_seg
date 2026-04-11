@@ -321,7 +321,7 @@
   align-items: center;
   gap: 10px;
   color: var(--ink);
-  font-weight: 500;
+  font-weight: var(--fw-bold);
 }
 
 .footer .brand-wordmark__icon {

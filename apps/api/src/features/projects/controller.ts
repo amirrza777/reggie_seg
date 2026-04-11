@@ -26,14 +26,14 @@ export {
   createTeamHealthMessageHandler,
   getMyTeamHealthMessagesHandler,
   getStaffTeamHealthMessagesHandler,
-} from "./controller.team-health.js";
+} from "../team-health-review/controller.js";
 
 export {
   updateTeamDeadlineProfileHandler,
   getStaffStudentDeadlineOverridesHandler,
   upsertStaffStudentDeadlineOverrideHandler,
   clearStaffStudentDeadlineOverrideHandler,
-} from "./controller.staff-deadlines.js";
+} from "./deadlines/controller.staff-deadlines.js";
 
 export {
   createStaffTeamWarningHandler,
@@ -43,7 +43,7 @@ export {
   getProjectWarningsConfigHandler,
   updateProjectWarningsConfigHandler,
   evaluateProjectWarningsHandler,
-} from "./warnings/controller.js";
+} from "../warnings/controller.js";
 
 export {
   getProjectNavFlagsConfigHandler,

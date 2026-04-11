@@ -72,29 +72,29 @@ describe("auth controller auth flows", () => {
       accessToken: "invite-access",
       refreshToken: "invite-refresh",
     });
-    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123" } } as any, res as any);
-    expect(service.acceptEnterpriseAdminInvite).toHaveBeenCalledWith({ token: "abc123" });
+    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123", newPassword: "pass123" } } as any, res as any);
+    expect(service.acceptEnterpriseAdminInvite).toHaveBeenCalledWith({ token: "abc123", newPassword: "pass123" });
     expect(res.cookie).toHaveBeenCalledWith("refresh_token", "invite-refresh", expect.any(Object));
     expect(res.json).toHaveBeenLastCalledWith({ accessToken: "invite-access" });
 
     (service.acceptEnterpriseAdminInvite as any).mockRejectedValueOnce({ code: "INVALID_ENTERPRISE_ADMIN_INVITE" });
-    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123" } } as any, res as any);
+    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123", newPassword: "pass123" } } as any, res as any);
     expect(res.status).toHaveBeenLastCalledWith(400);
 
     (service.acceptEnterpriseAdminInvite as any).mockRejectedValueOnce({ code: "USED_ENTERPRISE_ADMIN_INVITE" });
-    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123" } } as any, res as any);
+    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123", newPassword: "pass123" } } as any, res as any);
     expect(res.status).toHaveBeenLastCalledWith(400);
 
     (service.acceptEnterpriseAdminInvite as any).mockRejectedValueOnce({ code: "EXPIRED_ENTERPRISE_ADMIN_INVITE" });
-    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123" } } as any, res as any);
+    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123", newPassword: "pass123" } } as any, res as any);
     expect(res.status).toHaveBeenLastCalledWith(400);
 
     (service.acceptEnterpriseAdminInvite as any).mockRejectedValueOnce({ code: "EMAIL_ALREADY_USED_IN_OTHER_ENTERPRISE" });
-    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123" } } as any, res as any);
+    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123", newPassword: "pass123" } } as any, res as any);
     expect(res.status).toHaveBeenLastCalledWith(409);
 
     (service.acceptEnterpriseAdminInvite as any).mockRejectedValueOnce(new Error("invite-fail"));
-    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123" } } as any, res as any);
+    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123", newPassword: "pass123" } } as any, res as any);
     expect(res.status).toHaveBeenLastCalledWith(500);
   });
 

@@ -92,6 +92,7 @@ describe("auth api client", () => {
 
     await acceptEnterpriseAdminInvite({
       token: "abc123",
+      newPassword: "secret-pass",
       firstName: "Ada",
       lastName: "Lovelace",
     });
@@ -99,7 +100,7 @@ describe("auth api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/auth/enterprise-admin/accept", {
       method: "POST",
       auth: false,
-      body: JSON.stringify({ token: "abc123", firstName: "Ada", lastName: "Lovelace" }),
+      body: JSON.stringify({ token: "abc123", newPassword: "secret-pass", firstName: "Ada", lastName: "Lovelace" }),
     });
     expect(setAccessTokenMock).toHaveBeenCalledWith("invite-token");
   });

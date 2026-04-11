@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../shared/db.js", () => ({ prisma: mocks.prisma }));
+vi.mock("../../../shared/db.js", () => ({ prisma: mocks.prisma }));
 
 import {
   findCustomAllocationQuestionnairesForStaff,
