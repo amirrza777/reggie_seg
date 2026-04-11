@@ -115,7 +115,7 @@ describe("createMeetingHandler", () => {
     };
     const res = mockResponse();
     await createMeetingHandler(req, res);
-    expect(service.addMeeting).toHaveBeenCalledWith(expect.objectContaining({ participantIds: undefined }));
+    expect(service.addMeeting).toHaveBeenCalledWith(expect.not.objectContaining({ participantIds: expect.anything() }));
   });
 
   it("returns 409 for TEAM_ARCHIVED error", async () => {
@@ -201,7 +201,7 @@ describe("updateMeetingHandler", () => {
     const req: any = { params: { meetingId: "1" }, body: { userId: 1, participantIds: "not-an-array" } };
     const res = mockResponse();
     await updateMeetingHandler(req, res);
-    expect(service.editMeeting).toHaveBeenCalledWith(1, 1, expect.objectContaining({ participantIds: undefined }));
+    expect(service.editMeeting).toHaveBeenCalledWith(1, 1, expect.not.objectContaining({ participantIds: expect.anything() }));
   });
 
   it("returns 404 for NOT_FOUND error", async () => {

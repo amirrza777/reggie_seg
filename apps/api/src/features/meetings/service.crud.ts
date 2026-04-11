@@ -73,7 +73,7 @@ function sendMeetingInviteEmails(
   meetingUrl: string | null,
 ) {
   const agenda = data.agenda ? extractPlainText(data.agenda) : null;
-  const ics = buildIcs({ title: data.title, date: data.date, location: data.location, videoCallLink: data.videoCallLink, agenda });
+  const ics = buildIcs({ title: data.title, date: data.date, agenda, ...(data.location && { location: data.location }), ...(data.videoCallLink && { videoCallLink: data.videoCallLink }) });
   const body = [
     "A new meeting has been scheduled in Team Feedback.",
     `Title: ${data.title}`,
