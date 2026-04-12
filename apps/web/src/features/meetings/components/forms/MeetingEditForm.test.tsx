@@ -7,7 +7,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock }),
 }));
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   updateMeeting: vi.fn(),
   deleteMeeting: vi.fn(),
 }));
@@ -18,7 +18,7 @@ vi.mock("@/shared/ui/RichTextEditor", () => ({
   ),
 }));
 
-import { updateMeeting, deleteMeeting } from "../api/client";
+import { updateMeeting, deleteMeeting } from "../../api/client";
 import { MeetingEditForm } from "./MeetingEditForm";
 
 const updateMeetingMock = updateMeeting as MockedFunction<typeof updateMeeting>;

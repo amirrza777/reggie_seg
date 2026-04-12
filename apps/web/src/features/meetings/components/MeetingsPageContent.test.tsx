@@ -15,7 +15,7 @@ vi.mock("@/features/auth/context", () => ({
   useUser: vi.fn(() => ({ user: { id: 99, firstName: "Test", lastName: "User" } })),
 }));
 
-vi.mock("./CreateMeetingForm", () => ({
+vi.mock("./forms/CreateMeetingForm", () => ({
   CreateMeetingForm: ({ onCreated, onCancel }: any) => (
     <div data-testid="create-form">
       <button type="button" onClick={onCreated}>submit</button>

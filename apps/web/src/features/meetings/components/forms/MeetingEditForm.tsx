@@ -4,11 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { updateMeeting, deleteMeeting } from "../api/client";
+import { updateMeeting, deleteMeeting } from "../../api/client";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
-import { useParticipantSelection } from "../hooks/useParticipantSelection";
-import "../styles/meeting-list.css";
-import type { Meeting } from "../types";
+import { useParticipantSelection } from "../../hooks/useParticipantSelection";
+import "../../styles/meeting-list.css";
+import type { Meeting } from "../../types";
 
 type MeetingEditFormProps = {
   meeting: Meeting;

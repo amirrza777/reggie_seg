@@ -5,7 +5,7 @@ vi.mock("@/features/auth/useUser", () => ({
   useUser: vi.fn(),
 }));
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   createMeeting: vi.fn(),
   listTeamMembers: vi.fn(),
 }));
@@ -17,7 +17,7 @@ vi.mock("@/shared/ui/RichTextEditor", () => ({
 }));
 
 import { useUser } from "@/features/auth/useUser";
-import { createMeeting, listTeamMembers } from "../api/client";
+import { createMeeting, listTeamMembers } from "../../api/client";
 import { CreateMeetingForm } from "./CreateMeetingForm";
 
 const useUserMock = useUser as MockedFunction<typeof useUser>;

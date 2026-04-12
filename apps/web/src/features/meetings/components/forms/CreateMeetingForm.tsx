@@ -5,10 +5,10 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { useUser } from "@/features/auth/useUser";
-import { listTeamMembers } from "../api/client";
-import { useParticipantSelection } from "../hooks/useParticipantSelection";
+import { listTeamMembers } from "../../api/client";
+import { useParticipantSelection } from "../../hooks/useParticipantSelection";
 import { submitCreateMeeting } from "./CreateMeetingForm.submit";
-import "../styles/meeting-list.css";
+import "../../styles/meeting-list.css";
 
 type TeamMember = {
   id: number;

@@ -2,7 +2,7 @@ export * from "./api/client";
 export * from "./components/AttendanceTable";
 export * from "./components/MeetingList";
 export * from "./components/MeetingMinutes";
-export * from "./components/CreateMeetingForm";
+export * from "./components/forms/CreateMeetingForm";
 export * from "./components/CommentSection";
 export * from "./components/MeetingDetail";
 export * from "./components/MeetingsPageContent";

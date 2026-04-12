@@ -12,7 +12,7 @@ vi.mock("./components/MeetingList", () => ({
 vi.mock("./components/MeetingMinutes", () => ({
   MeetingMinutes: () => null,
 }));
-vi.mock("./components/CreateMeetingForm", () => ({
+vi.mock("./components/forms/CreateMeetingForm", () => ({
   CreateMeetingForm: () => null,
 }));
 vi.mock("./components/CommentSection", () => ({

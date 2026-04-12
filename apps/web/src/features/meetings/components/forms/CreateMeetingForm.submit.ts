@@ -1,4 +1,4 @@
-import { createMeeting } from "../api/client";
+import { createMeeting } from "../../api/client";
 
 type CreateMeetingFieldErrors = {
   title?: string;

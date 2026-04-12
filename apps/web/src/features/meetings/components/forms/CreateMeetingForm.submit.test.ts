@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createMeeting } from "../api/client";
+import { createMeeting } from "../../api/client";
 import { submitCreateMeeting } from "./CreateMeetingForm.submit";
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   createMeeting: vi.fn(),
 }));
 
