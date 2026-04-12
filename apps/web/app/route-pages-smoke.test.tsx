@@ -48,7 +48,7 @@ vi.mock("@/features/enterprise/components/EnterpriseModuleManager", () => ({
     <div data-testid="enterprise-module-manager">{String(canCreateModule)}</div>
   ),
 }));
-vi.mock("@/features/enterprise/components/EnterpriseFeatureFlagsCard", () => ({
+vi.mock("@/features/enterprise/components/feature-flags/EnterpriseFeatureFlagsCard", () => ({
   EnterpriseFeatureFlagsCard: () => <div data-testid="enterprise-feature-flags-card" />,
 }));
 vi.mock("@/features/enterprise/reports/components/ForumReportsTable", () => ({

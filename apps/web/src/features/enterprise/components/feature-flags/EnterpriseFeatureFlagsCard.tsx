@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
-import { listEnterpriseFeatureFlags, updateEnterpriseFeatureFlag } from "../api/client";
-import type { EnterpriseFeatureFlag } from "../types";
+import { listEnterpriseFeatureFlags, updateEnterpriseFeatureFlag } from "../../api/client";
+import type { EnterpriseFeatureFlag } from "../../types";
 import { EnterpriseFeatureFlagsPanel } from "./EnterpriseFeatureFlagsPanel";
 
 type Status = "idle" | "loading" | "error" | "success";

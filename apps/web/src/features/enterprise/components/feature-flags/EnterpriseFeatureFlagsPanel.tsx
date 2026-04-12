@@ -1,7 +1,7 @@
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 import { Button } from "@/shared/ui/Button";
-import type { EnterpriseFeatureFlag } from "../types";
+import type { EnterpriseFeatureFlag } from "../../types";
 
 type EnterpriseFeatureFlagsPanelProps = {
   flags: EnterpriseFeatureFlag[];
