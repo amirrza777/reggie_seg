@@ -22,3 +22,5 @@ apps/web/.next-dev-webpack/
 .claude/
 reports/files_over_400_lines.tsv
 reports/files_over_400_lines_code_only.tsv
+reports/web-coverage-ownership.summary.json
+reports/web-coverage-ownership.by-author.json
