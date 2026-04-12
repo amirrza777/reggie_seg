@@ -1,0 +1,46 @@
+import type { DiscussionPost, ForumConversationPost } from "./types";
+
+export type ReportConfirmationState = null | { postId: number; mode: "staff" | "student" };
+
+export type DiscussionForumPostThreadProps = {
+  post: DiscussionPost;
+  depth?: number;
+  user: { id: number } | null;
+  isStudent: boolean;
+  isStaff: boolean;
+  userLoading: boolean;
+  expandedRepliesByPostId: Record<number, boolean>;
+  showAllImmediateRepliesByPostId: Record<number, boolean>;
+  replyOpenByPostId: Record<number, boolean>;
+  replyEmptyByPostId: Record<number, boolean | undefined>;
+  replyDrafts: Record<number, string>;
+  replyKeyByPostId: Record<number, number>;
+  editingPostId: number | null;
+  editingTitle: string;
+  editingBody: string;
+  editingBodyEmpty: boolean;
+  savingPostId: number | null;
+  savingReplyPostId: number | null;
+  reactingPostId: number | null;
+  menuOpenPostId: number | null;
+  deletingPostId: number | null;
+  reportingPostId: number | null;
+  members?: Array<{ id: number; name: string }>;
+  toggleReplies: (post: DiscussionPost, expanded: boolean) => void;
+  showMoreReplies: (postId: number) => void;
+  togglePostMenu: (postId: number) => void;
+  closePostMenu: () => void;
+  toggleReplyBox: (postId: number) => void;
+  startEditing: (post: DiscussionPost) => void;
+  cancelEditing: () => void;
+  setEditingTitle: (title: string) => void;
+  setEditingBody: (body: string) => void;
+  setEditingBodyEmpty: (empty: boolean) => void;
+  handleUpdate: (post: DiscussionPost) => Promise<void>;
+  handleDelete: (postId: number) => Promise<void>;
+  handleReaction: (postId: number, type: "LIKE" | "DISLIKE") => Promise<void>;
+  handleReplyChange: (postId: number, body: string) => void;
+  setReplyEmptyByPostId: (updater: (prev: Record<number, boolean | undefined>) => Record<number, boolean | undefined>) => void;
+  handleReplySubmit: (postId: number) => Promise<void>;
+  setReportConfirmation: (state: ReportConfirmationState) => void;
+};
