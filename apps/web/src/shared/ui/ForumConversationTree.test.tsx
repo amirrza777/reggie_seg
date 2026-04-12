@@ -45,4 +45,65 @@ describe("ForumConversationTree", () => {
     expect(screen.getByText("Root body")).toBeInTheDocument();
     expect(screen.getByText("Reply body")).toBeInTheDocument();
   });
+
+  it("handles posts without titles gracefully", () => {
+    const postWithoutTitle: ForumConversationTreePost = {
+      id: 1,
+      title: "",
+      body: "Body content",
+      createdAt: "2026-03-01T12:00:00.000Z",
+      author: { firstName: "John", lastName: "Doe" },
+      replies: [],
+    };
+    render(<ForumConversationTree post={postWithoutTitle} focusPostId={1} />);
+
+    expect(screen.getByText("Body content")).toBeInTheDocument();
+    expect(screen.getByText(/John Doe/)).toBeInTheDocument();
+  });
+
+  it("renders nested replies with correct depth styling", () => {
+    const deepPost: ForumConversationTreePost = {
+      id: 1,
+      title: "Parent",
+      body: "Parent body",
+      createdAt: "2026-03-01T12:00:00.000Z",
+      author: { firstName: "P", lastName: "Parent" },
+      replies: [
+        {
+          id: 2,
+          title: "Child",
+          body: "Child body",
+          createdAt: "2026-03-01T13:00:00.000Z",
+          author: { firstName: "C", lastName: "Child" },
+          replies: [
+            {
+              id: 3,
+              title: "Grandchild",
+              body: "Grandchild body",
+              createdAt: "2026-03-01T14:00:00.000Z",
+              author: { firstName: "G", lastName: "Grandchild" },
+              replies: [],
+            },
+          ],
+        },
+      ],
+    };
+    const { container } = render(<ForumConversationTree post={deepPost} focusPostId={3} />);
+
+    expect(screen.getByText("Parent")).toBeInTheDocument();
+    expect(screen.getByText("Child")).toBeInTheDocument();
+    expect(screen.getByText("Grandchild")).toBeInTheDocument();
+
+    const cards = container.querySelectorAll(".card");
+    expect(cards.length).toBe(3);
+    
+    // Check that depth styling increases marginLeft (0, 16, 32)
+    const parentCard = cards[0] as HTMLElement;
+    const childCard = cards[1] as HTMLElement;
+    const grandchildCard = cards[2] as HTMLElement;
+    
+    expect(parentCard.style.marginLeft).toBe("0px");
+    expect(childCard.style.marginLeft).toBe("16px");
+    expect(grandchildCard.style.marginLeft).toBe("32px");
+  });
 });
