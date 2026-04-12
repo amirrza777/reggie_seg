@@ -1,0 +1,133 @@
+.module-card__menu-item:hover,
+.module-card__menu-item:focus-visible {
+  background: var(--glass-ui-hover);
+  color: var(--ink-strong);
+  outline: none;
+}
+
+.module-list-empty {
+  padding: 20px 24px;
+  text-align: center;
+  color: var(--muted-subtle);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.module-list-empty p {
+  margin: 0;
+}
+
+.module-list__banner {
+  margin-bottom: 14px;
+}
+
+.module-join-modal {
+  width: min(520px, 96vw);
+}
+
+.module-join-modal__body {
+  display: grid;
+  gap: 10px;
+}
+
+.module-join-modal__footer {
+  gap: 8px;
+}
+
+.module-join-modal__error {
+  margin-top: 4px;
+}
+
+@media (max-height: 760px) {
+  .module-list__grid {
+    gap: 16px;
+  }
+
+  .module-card {
+    min-height: 170px;
+    gap: 12px;
+    padding: 16px var(--space-panel-content-inset);
+  }
+
+  .module-card__header {
+    gap: 6px;
+  }
+
+  .module-card__footer {
+    gap: 4px;
+    padding-top: 10px;
+  }
+
+  .module-list-empty {
+    padding: 16px 18px;
+  }
+}
+
+@media (max-height: 560px) {
+  .module-list__grid {
+    gap: 12px;
+  }
+
+  .module-card {
+    min-height: 154px;
+    gap: 10px;
+    padding: 14px var(--space-panel-content-inset);
+  }
+
+  .module-card__menu-panel {
+    top: calc(100% + 6px);
+  }
+}
+
+.module-join-modal__success {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0 2px;
+}
+
+.module-join-modal__headline {
+  margin: 0;
+  font-size: var(--fs-fixed-1rem);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-strong);
+}
+
+@media (max-width: 860px) {
+  .module-list {
+    padding-top: 4px;
+  }
+
+  .module-list__toolbar {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .module-list__toolbar-action,
+  .module-list__sort-group {
+    width: 100%;
+  }
+
+  .staff-modules__subtitle-row {
+    align-items: stretch;
+  }
+
+  .module-list__toolbar--inline {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .module-list__sort-select {
+    width: 100%;
+  }
+
+  .module-list__grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .module-card {
+    min-height: 176px;
+    padding: 16px var(--space-panel-content-inset) 18px;
+  }
+}

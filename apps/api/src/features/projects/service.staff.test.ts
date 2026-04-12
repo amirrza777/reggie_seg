@@ -53,6 +53,8 @@ const prismaMocks = vi.hoisted(() => ({
   user: { findUnique: vi.fn() },
   moduleLead: { findUnique: vi.fn() },
   project: { findUnique: vi.fn().mockResolvedValue({ archivedAt: null, module: { archivedAt: null } }) },
+  projectStudent: { findMany: vi.fn() },
+  teamAllocation: { findMany: vi.fn() },
 }));
 
 vi.mock("../../shared/db.js", () => ({ prisma: prismaMocks }));
@@ -95,6 +97,8 @@ function makeTeam(overrides: Record<string, unknown> = {}) {
 describe("projects service — staff functions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prismaMocks.projectStudent.findMany.mockResolvedValue([]);
+    prismaMocks.teamAllocation.findMany.mockResolvedValue([]);
   });
 
   // ── fetchProjectsForStaff ─────────────────────────────────────────────────
@@ -276,6 +280,8 @@ describe("projects service — staff functions", () => {
       });
       repoMocks.getStaffViewerModuleAccessLabel.mockResolvedValue("MODULE_LEAD");
       prismaMocks.user.findUnique.mockResolvedValue({ role: "ADMIN" });
+      prismaMocks.projectStudent.findMany.mockResolvedValue([{ userId: 2 }, { userId: 3 }, { userId: 4 }]);
+      prismaMocks.teamAllocation.findMany.mockResolvedValue([{ userId: 2 }]);
       const result = await fetchProjectTeamsForStaff(1, 1);
       expect(result!.teams[0]).toMatchObject({
         id: 10,
@@ -284,6 +290,8 @@ describe("projects service — staff functions", () => {
         hasDeadlineOverride: false,
         allocations: [{ userId: 2 }],
       });
+      expect(result!.projectStudentCount).toBe(3);
+      expect(result!.unassignedProjectStudentCount).toBe(2);
     });
   });
 

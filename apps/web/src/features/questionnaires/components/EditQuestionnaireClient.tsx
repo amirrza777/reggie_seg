@@ -23,7 +23,7 @@ import {
   QuestionnairePurposeButtons,
   QuestionnaireVisibilityButtons,
 } from "./SharedQuestionnaireButtons";
-import { EditQuestionnaireQuestionList } from "./EditQuestionnaireQuestionList";
+import { EditQuestionnaireQuestions } from "./EditQuestionnaireQuestions";
 
 export default function EditQuestionnairePage() {
   const { id } = useParams<{ id: string }>();
@@ -291,14 +291,14 @@ export default function EditQuestionnairePage() {
       )}
       {saveError ? <p className="ui-note ui-note--error">{saveError}</p> : null}
 
-      <EditQuestionnaireQuestionList
-        questions={questions}
+      <EditQuestionnaireQuestions
         preview={preview}
+        questions={questions}
         answers={answers}
+        disallowTextQuestions={disallowTextQuestions}
         setAnswers={setAnswers}
         setQuestions={setQuestions}
         setHasUnsavedChanges={setHasUnsavedChanges}
-        disallowTextQuestions={disallowTextQuestions}
         addQuestion={addQuestion}
       />
     </div>

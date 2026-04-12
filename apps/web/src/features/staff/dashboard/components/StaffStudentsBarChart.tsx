@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
 import { useChartCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
@@ -19,6 +20,7 @@ const PROJECT_LABEL_AXIS_PADDING = 8;
 const APPROX_PROJECT_LABEL_CHAR_WIDTH = 6;
 const MAX_PROJECT_LABEL_LENGTH = 46;
 const PROJECT_LABEL_FONT = "400 11px sans-serif";
+const STAFF_STUDENTS_CHART_STYLE: CSSProperties = { width: "100%", minWidth: 0 };
 
 let projectLabelMeasureContext: CanvasRenderingContext2D | null | undefined;
 
@@ -86,8 +88,8 @@ function StaffStudentsBarChartBody({
   tooltipProps: ReturnType<typeof useChartCursorTooltip>["tooltipProps"];
 }) {
   return (
-    <div className="ui-no-select" style={{ height: chartHeight }} {...containerHandlers}>
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="ui-no-select" style={{ ...STAFF_STUDENTS_CHART_STYLE, height: chartHeight }} {...containerHandlers}>
+      <ResponsiveContainer width="100%" height={chartHeight} minWidth={0} initialDimension={{ width: 1, height: chartHeight }}>
         <BarChart data={data} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }} accessibilityLayer={false} {...chartHandlers}>
           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
           <XAxis type="number" allowDecimals={false} tick={{ fill: "var(--muted)", fontSize: "var(--fs-fixed-11px)" }} axisLine={false} tickLine={false} />

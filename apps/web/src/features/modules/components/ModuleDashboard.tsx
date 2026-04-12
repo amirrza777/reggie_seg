@@ -13,6 +13,7 @@ export type ModuleExpectationsSectionProps = {
 export type ModuleDashboardPageViewProps = {
   dashboard: ModuleDashboardData;
   toolbar?: ReactNode;
+  projectsPanel?: ReactNode;
 };
 
 type ModuleMarksCardProps = {
@@ -22,7 +23,7 @@ type ModuleMarksCardProps = {
 /**
  * Module overview as a vertical stack of cards: brief, timeline, expectations, readiness, marks.
  */
-export function ModuleDashboardPageView({ dashboard, toolbar }: ModuleDashboardPageViewProps) {
+export function ModuleDashboardPageView({ dashboard, toolbar, projectsPanel }: ModuleDashboardPageViewProps) {
   const { marksRows, briefParagraphs, timelineRows, expectationRows, readinessParagraphs } = dashboard;
 
   return (
@@ -32,6 +33,7 @@ export function ModuleDashboardPageView({ dashboard, toolbar }: ModuleDashboardP
           {toolbar}
         </div>
       ) : null}
+      {projectsPanel ? <div className="module-dashboard__projects-panel">{projectsPanel}</div> : null}
       <ModuleBriefCard briefParagraphs={briefParagraphs} />
       <ModuleTimelineCard timelineRows={timelineRows} />
       <ModuleExpectationsCard expectationRows={expectationRows} />

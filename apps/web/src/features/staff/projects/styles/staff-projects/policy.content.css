@@ -1,2 +1,2 @@
-@import "./policy.content.part1.css";
-@import "./policy.content.part2.css";
+@import "./policy.content.base.css";
+@import "./policy.content.mobile.css";

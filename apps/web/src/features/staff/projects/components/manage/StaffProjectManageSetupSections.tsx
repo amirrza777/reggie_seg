@@ -7,11 +7,15 @@ import { StaffProjectManageSetupProvider } from "./StaffProjectManageSetupContex
 import { StaffProjectManageArchiveOrDeleteSection } from "./sections/StaffProjectManageArchiveOrDeleteSection";
 import { StaffProjectManageFeatureFlagsSection } from "./sections/StaffProjectManageFeatureFlagsSection";
 import { StaffProjectManageForumSection } from "./sections/StaffProjectManageForumSection";
+import { StaffProjectManageInfoBoardSection } from "./sections/StaffProjectManageInfoBoardSection";
+import { StaffProjectManagePeerTemplateSection } from "./sections/StaffProjectManagePeerTemplateSection";
+import { StaffProjectManageProjectAccessSection } from "./sections/StaffProjectManageProjectAccessSection";
+import { StaffProjectManageProjectDeadlinesSection } from "./sections/StaffProjectManageProjectDeadlinesSection";
 import { StaffProjectManageProjectNameSection } from "./sections/StaffProjectManageProjectNameSection";
 import { StaffProjectManageWarningsSection } from "./sections/StaffProjectManageWarningsSection";
 
 const MANAGE_PROJECT_DESCRIPTION_EDITABLE =
-  "Update project details, forum privacy, student tabs, and automatic warning configuration from the staff workspace.";
+  "Update project details, student information board, deadlines, staff and student access, peer assessment questionnaire, forum privacy, student tabs, and automatic warning configuration from the staff workspace.";
 
 const MANAGE_PROJECT_DESCRIPTION_READ_ONLY =
   "Settings are read-only while this project is archived. You can unarchive it, or its module, to restore editing.";
@@ -62,6 +66,10 @@ export function StaffProjectManageSetupSections({
         <div className="stack">
           <StaffProjectManageSetupProvider projectId={projectId} initial={initial}>
             <StaffProjectManageProjectNameSection />
+            <StaffProjectManageInfoBoardSection />
+            <StaffProjectManageProjectDeadlinesSection />
+            <StaffProjectManageProjectAccessSection />
+            <StaffProjectManagePeerTemplateSection />
             <StaffProjectManageForumSection discussionHref={discussionHref} />
             <StaffProjectManageFeatureFlagsSection globalFeatureFlags={globalFeatureFlags} />
             <StaffProjectManageWarningsSection

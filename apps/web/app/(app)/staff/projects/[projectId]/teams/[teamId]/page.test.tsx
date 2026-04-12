@@ -6,6 +6,7 @@ import { listTeamMeetings } from "@/features/staff/meetings/api/client";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { getLatestProjectGithubSnapshot, listProjectGithubRepoLinks } from "@/features/github/api/client";
 import { getFeedbackReviewStatuses, getPeerAssessmentsForUser } from "@/features/peerFeedback/api/client";
+import { getTeamBoard } from "@/features/trello/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import StaffProjectTeamTabsPage from "./page";
@@ -49,6 +50,10 @@ vi.mock("@/features/staff/projects/server/getStaffProjectTeamsCached", () => ({
   getStaffProjectTeams: vi.fn(),
 }));
 
+vi.mock("@/features/trello/api/client", () => ({
+  getTeamBoard: vi.fn(),
+}));
+
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 const getStaffTeamHealthMessagesMock = vi.mocked(getStaffTeamHealthMessages);
@@ -59,6 +64,7 @@ const listProjectGithubRepoLinksMock = vi.mocked(listProjectGithubRepoLinks);
 const getLatestProjectGithubSnapshotMock = vi.mocked(getLatestProjectGithubSnapshot);
 const getPeerAssessmentsForUserMock = vi.mocked(getPeerAssessmentsForUser);
 const getFeedbackReviewStatusesMock = vi.mocked(getFeedbackReviewStatuses);
+const getTeamBoardMock = vi.mocked(getTeamBoard);
 
 const staffUser = { id: 10, isStaff: true, role: "STAFF" } as Awaited<ReturnType<typeof getCurrentUser>>;
 
@@ -84,6 +90,7 @@ describe("StaffProjectTeamTabsPage", () => {
     });
     getPeerAssessmentsForUserMock.mockResolvedValue([]);
     getFeedbackReviewStatusesMock.mockResolvedValue({});
+    getTeamBoardMock.mockResolvedValue({ ok: false, requireJoin: false } as Awaited<ReturnType<typeof getTeamBoard>>);
   });
 
   it("renders invalid route message", async () => {
@@ -204,7 +211,7 @@ describe("StaffProjectTeamTabsPage", () => {
     expect(screen.getByText("?")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /Final mark/i })[0]).toHaveAttribute(
       "href",
-      "/staff/peer-assessments/module/2/team/6/student/101",
+      "/staff/projects/5/teams/6/grading/student/101",
     );
   });
 

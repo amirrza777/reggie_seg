@@ -16,7 +16,6 @@ describe("MarkingStudentList", () => {
   it("renders student links and unavailable-id fallback", () => {
     render(
       <MarkingStudentList
-        moduleId={4}
         projectId={9}
         teamId={21}
         students={[
@@ -28,7 +27,7 @@ describe("MarkingStudentList", () => {
 
     expect(screen.getByRole("link", { name: "Open student marking" })).toHaveAttribute(
       "href",
-      "/staff/peer-assessments/module/4/team/21/student/11",
+      "/staff/projects/9/teams/21/grading/student/11",
     );
     expect(screen.getByText("Student identifier unavailable.")).toBeInTheDocument();
   });
@@ -38,7 +37,6 @@ describe("MarkingStudentList", () => {
 
     render(
       <MarkingStudentList
-        moduleId={4}
         projectId={9}
         teamId={21}
         students={[
@@ -64,7 +62,6 @@ describe("MarkingStudentList", () => {
 
     render(
       <MarkingStudentList
-        moduleId={4}
         projectId={9}
         teamId={21}
         students={[{ id: 11, title: "Alice Roe" }]}

@@ -49,11 +49,6 @@ export default async function StaffProjectTeamDeadlinesPage({ params, searchPara
 
   return (
     <div className="staff-projects">
-      <p className="muted">
-        Team: {team.teamName} · {team.allocations.length} on this team · Profile:{" "}
-        {team.deadlineProfile === "MCF" ? "MCF" : "Standard"}
-      </p>
-
       <section className="staff-projects__team-policy" aria-label="Deadline policy controls">
         <div className="staff-projects__team-policy-top">
           <div>

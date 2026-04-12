@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   prisma: {
-    projectStudent: { findFirst: vi.fn() },
     user: { findMany: vi.fn(), findFirst: vi.fn() },
     team: { findFirst: vi.fn(), findMany: vi.fn() },
     teamAllocation: { findUnique: vi.fn() },
@@ -24,8 +23,7 @@ describe("repo.scope", () => {
     vi.clearAllMocks();
   });
 
-  it("findVacantModuleStudentsForProject applies project scope when needed", async () => {
-    mocks.prisma.projectStudent.findFirst.mockResolvedValue({ userId: 10 });
+  it("findVacantModuleStudentsForProject always scopes to project students", async () => {
     mocks.prisma.user.findMany.mockResolvedValue([{ id: 3, firstName: "A", lastName: "B", email: "a@x.com" }]);
     const result = await findVacantModuleStudentsForProject("ent-1", 4, 9);
     const where = mocks.prisma.user.findMany.mock.calls[0]?.[0]?.where;
@@ -34,7 +32,6 @@ describe("repo.scope", () => {
   });
 
   it("findModuleStudentsForManualAllocation maps current team and numeric search", async () => {
-    mocks.prisma.projectStudent.findFirst.mockResolvedValue(null);
     mocks.prisma.user.findMany.mockResolvedValue([
       {
         id: 42,
@@ -45,7 +42,9 @@ describe("repo.scope", () => {
       },
     ]);
     const rows = await findModuleStudentsForManualAllocation("ent-1", 5, 8, " 42 ");
-    const andFilters = mocks.prisma.user.findMany.mock.calls[0]?.[0]?.where?.AND;
+    const where = mocks.prisma.user.findMany.mock.calls[0]?.[0]?.where;
+    const andFilters = where?.AND;
+    expect(where?.projectStudents).toEqual({ some: { projectId: 8 } });
     expect(rows).toEqual([
       {
         id: 42,
@@ -83,12 +82,12 @@ describe("repo.scope", () => {
       project: { moduleId: 3 },
     });
     mocks.prisma.teamAllocation.findUnique.mockResolvedValue({ teamId: 2 });
-    mocks.prisma.projectStudent.findFirst.mockResolvedValue(null);
     mocks.prisma.user.findMany.mockResolvedValue([{ id: 11, firstName: "M", lastName: "N", email: "m@n.com" }]);
     const result = await findInviteEligibleStudentsForTeam(2, 7);
     const where = mocks.prisma.user.findMany.mock.calls[0]?.[0]?.where;
     expect(result).toEqual([{ id: 11, firstName: "M", lastName: "N", email: "m@n.com" }]);
     expect(where.enterpriseId).toBe("ent-1");
+    expect(where.projectStudents).toEqual({ some: { projectId: 9 } });
   });
 
   it("findInviteEligibleStudentForTeamByEmail returns null when team is missing", async () => {
@@ -104,11 +103,11 @@ describe("repo.scope", () => {
       projectId: 9,
       project: { moduleId: 3 },
     });
-    mocks.prisma.projectStudent.findFirst.mockResolvedValue(null);
     mocks.prisma.user.findFirst.mockResolvedValue({ id: 99, firstName: "R", lastName: "S", email: "x@y.com" });
     await findInviteEligibleStudentForTeamByEmail(2, "x@y.com");
     const where = mocks.prisma.user.findFirst.mock.calls[0]?.[0]?.where;
     expect(where.email).toEqual({ equals: "x@y.com" });
+    expect(where.projectStudents).toEqual({ some: { projectId: 9 } });
   });
 
   it("findProjectTeamSummaries maps allocation counts", async () => {

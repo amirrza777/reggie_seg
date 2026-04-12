@@ -1,3 +1,2 @@
-@import "./discussion-forum.content.part1.css";
-@import "./discussion-forum.content.part2.css";
-@import "./discussion-forum.content.part3.css";
+@import "./discussion-forum.content.layout.css";
+@import "./discussion-forum.content.editor-and-responsive.css";

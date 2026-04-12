@@ -135,13 +135,26 @@ describe("projects service", () => {
 
   it("maps user projects to API shape with fallback module name", async () => {
     (repo.getUserProjects as any).mockResolvedValue([
-      { id: 1, name: "A", moduleId: 10, module: { name: "SEGP" } },
-      { id: 2, name: "B", moduleId: 11, module: null },
+      {
+        id: 1,
+        name: "A",
+        moduleId: 10,
+        module: { name: "SEGP" },
+        deadline: { taskOpenDate: new Date("2026-02-01T00:00:00.000Z") },
+      },
+      { id: 2, name: "B", moduleId: 11, module: null, deadline: null },
     ]);
 
     await expect(fetchProjectsForUser(7)).resolves.toEqual([
-      { id: 1, name: "A", moduleId: 10, moduleName: "SEGP", archivedAt: null },
-      { id: 2, name: "B", moduleId: 11, moduleName: "", archivedAt: null },
+      {
+        id: 1,
+        name: "A",
+        moduleId: 10,
+        moduleName: "SEGP",
+        archivedAt: null,
+        taskOpenDate: "2026-02-01T00:00:00.000Z",
+      },
+      { id: 2, name: "B", moduleId: 11, moduleName: "", archivedAt: null, taskOpenDate: null },
     ]);
   });
 

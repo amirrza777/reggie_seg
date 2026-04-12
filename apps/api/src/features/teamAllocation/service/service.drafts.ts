@@ -131,6 +131,7 @@ export async function updateAllocationDraftForProject(
       project.enterpriseId,
       project.moduleId,
       normalizedStudentIds,
+      project.id,
     );
     if (moduleStudents.length !== normalizedStudentIds.length) {
       throw { code: "STUDENT_NOT_IN_MODULE" };

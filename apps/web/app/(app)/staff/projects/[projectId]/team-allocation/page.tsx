@@ -14,12 +14,14 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
   const userId = (await getCurrentUser())!.id;
   const numericProjectId = Number(projectId);
   const data = await getStaffProjectTeams(userId, numericProjectId);
-  const emptyTeams = data.teams.filter((team) => team.allocations.length === 0).length;
+  const unassigned = data.unassignedProjectStudentCount;
+  const inProject = data.projectStudentCount;
 
   return (
     <>
       <p className="muted">
-        {emptyTeams} empty team{emptyTeams === 1 ? "" : "s"}
+        {unassigned} student{unassigned === 1 ? "" : "s"} not yet assigned to a team (
+        {inProject} student{inProject === 1 ? "" : "s"} in project)
       </p>
 
       <StaffAllocationModesPanel

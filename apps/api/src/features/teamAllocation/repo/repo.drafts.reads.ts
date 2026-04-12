@@ -182,6 +182,7 @@ export async function findModuleStudentsByIdsInModule(
   enterpriseId: string,
   moduleId: number,
   studentIds: number[],
+  projectId: number,
 ) {
   if (studentIds.length === 0) {
     return [];
@@ -198,6 +199,9 @@ export async function findModuleStudentsByIdsInModule(
           enterpriseId,
           moduleId,
         },
+      },
+      projectStudents: {
+        some: { projectId },
       },
     },
     select: {

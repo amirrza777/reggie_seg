@@ -43,26 +43,8 @@ import {
   updateEnterpriseModule,
 } from "../api/client";
 import { archiveItem, unarchiveItem } from "@/features/archive/api/client";
-import type { EnterpriseModuleAccessSelectionResponse } from "../types";
 import { EnterpriseModuleCreateForm } from "./EnterpriseModuleCreateForm";
 import React from "react";
-
-const editInitialSelection: EnterpriseModuleAccessSelectionResponse = {
-  module: {
-    id: 77,
-    name: "Existing module",
-    createdAt: "2026-03-01T00:00:00.000Z",
-    updatedAt: "2026-03-01T00:00:00.000Z",
-    archivedAt: null,
-    studentCount: 1,
-    leaderCount: 1,
-    teachingAssistantCount: 1,
-    briefText: "Module brief from server",
-  },
-  leaderIds: [11],
-  taIds: [12],
-  studentIds: [31],
-};
 
 const createEnterpriseModuleMock = createEnterpriseModule as MockedFunction<typeof createEnterpriseModule>;
 const deleteEnterpriseModuleMock = deleteEnterpriseModule as MockedFunction<typeof deleteEnterpriseModule>;
@@ -296,8 +278,10 @@ describe("EnterpriseModuleCreateForm", () => {
 
     expect(unarchiveButton).toBeDisabled();
     fireEvent.click(confirmation);
-    expect(unarchiveButton).toBeEnabled();
-    fireEvent.click(unarchiveButton);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /^unarchive module$/i, hidden: true })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^unarchive module$/i, hidden: true }));
 
     await waitFor(() => expect(unarchiveItemMock).toHaveBeenCalledWith("modules", 77));
     expect(refresh).toHaveBeenCalled();

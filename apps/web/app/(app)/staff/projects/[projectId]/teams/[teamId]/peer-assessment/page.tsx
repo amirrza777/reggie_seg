@@ -84,11 +84,6 @@ export default async function StaffPeerAssessmentSectionPage({ params }: PagePro
 
   return (
     <>
-      <p className="muted">
-        Team: {team.teamName} · {team.allocations?.length ?? 0} on this team · Assessments {submittedTotal}/
-        {expectedTotal} submitted (team).
-      </p>
-
     <section className="staff-projects__team-card">
       <h3 style={{ margin: 0 }}>Peer assessments by student</h3>
       <p className="muted" style={{ margin: 0 }}>

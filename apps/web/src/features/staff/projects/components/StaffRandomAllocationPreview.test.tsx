@@ -312,7 +312,9 @@ describe("StaffRandomAllocationPreview", () => {
     fireEvent.click(screen.getByRole("button", { name: /preview random teams/i }));
     await waitFor(() => expect(getRandomAllocationPreviewMock).toHaveBeenCalledWith(4, 2, { minTeamSize: 1, maxTeamSize: 2 }));
     await screen.findByText("Random Team 1");
+    await waitFor(() => expect(screen.getByRole("button", { name: /confirm allocation/i })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: /confirm allocation/i }));
+    await waitFor(() => expect(screen.getByRole("button", { name: /confirmed/i })).toBeInTheDocument());
     await waitFor(() => expect(screen.getByRole("button", { name: /save draft allocation/i })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: /save draft allocation/i }));
     await waitFor(() => expect(applyRandomAllocationMock).toHaveBeenCalledWith(4, 2, ["Random Team 1", "Random Team 2"], { minTeamSize: 1, maxTeamSize: 2 }));

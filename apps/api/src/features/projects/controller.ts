@@ -12,9 +12,10 @@ export {
   submitTeamAllocationQuestionnaireResponseHandler,
   getStaffProjectsHandler,
   getStaffProjectTeamsHandler,
+  getStaffProjectPeerAssessmentOverviewHandler,
   getStaffMarkingProjectsHandler,
   getProjectMarkingHandler,
-} from "./controller.core.js";
+} from "./controller.handlers.js";
 
 export {
   getUserModulesHandler,

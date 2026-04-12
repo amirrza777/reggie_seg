@@ -55,7 +55,7 @@ export default async function StaffModuleProjectsPage({ params, searchParams }: 
               {hasQuery ? " (filtered)" : ""}
             </span>
             {createHref ? (
-              <Link href={createHref} className="staff-projects__badge">
+              <Link href={createHref} className="btn btn--primary btn--sm">
                 Create project
               </Link>
             ) : null}

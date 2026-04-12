@@ -54,7 +54,7 @@ vi.mock("./service.helpers.js", () => ({
   isEnterpriseAdminRole: (role: string) => role === "ENTERPRISE_ADMIN" || role === "ADMIN",
   normalizeFeatureFlagLabel: (flag: any) => (flag.key === "repos" && flag.label === "Repos" ? { ...flag, label: "Repositories" } : flag),
 }));
-vi.mock("./service.core.js", () => ({
+vi.mock("./service.shared.js", () => ({
   buildManagedModuleSelect: mockState.core.buildManagedModuleSelect,
   buildModuleScopeWhere: mockState.core.buildModuleScopeWhere,
   mapModuleRecord: mockState.core.mapModuleRecord,
