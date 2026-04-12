@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ModuleMarksSection } from "@/features/modules/components/ModuleDashboardSections";
+import { ModuleMarksSection } from "@/features/modules/components/dashboard/ModuleDashboardSections";
 import { buildModuleDashboardData } from "@/features/modules/moduleDashboardData";
 import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
 

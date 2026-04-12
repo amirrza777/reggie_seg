@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ModuleDashboardData, ModuleTimelineItem } from "../moduleDashboardData";
+import type { ModuleDashboardData, ModuleTimelineItem } from "../../moduleDashboardData";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 

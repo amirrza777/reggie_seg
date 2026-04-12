@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ModuleDashboardPageView } from "@/features/modules/components/ModuleDashboard";
+import { ModuleDashboardPageView } from "@/features/modules/components/dashboard/ModuleDashboard";
 import { buildModuleDashboardData } from "@/features/modules/moduleDashboardData";
 import {
   loadStaffModuleWorkspaceContext,

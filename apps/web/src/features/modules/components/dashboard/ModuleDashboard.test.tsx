@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { ModuleDashboardData, ModuleTimelineItem } from "../moduleDashboardData";
+import type { ModuleDashboardData, ModuleTimelineItem } from "../../moduleDashboardData";
 import {
   ModuleDashboardPageView,
   ModuleExpectationsCard,

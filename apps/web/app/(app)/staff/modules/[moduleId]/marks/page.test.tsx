@@ -21,7 +21,7 @@ vi.mock("@/features/modules/moduleDashboardData", () => ({
   buildModuleDashboardData: vi.fn(),
 }));
 
-vi.mock("@/features/modules/components/ModuleDashboardSections", () => ({
+vi.mock("@/features/modules/components/dashboard/ModuleDashboardSections", () => ({
   ModuleMarksSection: ({ marksRows }: { marksRows: Array<{ id: number }> }) => (
     <div data-testid="module-marks" data-row-count={String(marksRows.length)} />
   ),
