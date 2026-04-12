@@ -1,3 +1,4 @@
+.module-card__menu-item:hover,
 .module-card__menu-item:focus-visible {
   background: var(--glass-ui-hover);
   color: var(--ink-strong);
