@@ -101,17 +101,22 @@ describe("repo.drafts.reads", () => {
   });
 
   it("findModuleStudentsByIdsInModule skips query for empty student ids", async () => {
-    const rows = await findModuleStudentsByIdsInModule("ent-1", 10, []);
+    const rows = await findModuleStudentsByIdsInModule("ent-1", 10, [], 99);
     expect(rows).toEqual([]);
     expect(mocks.prisma.user.findMany).not.toHaveBeenCalled();
   });
 
-  it("findModuleStudentsByIdsInModule queries active students in module", async () => {
+  it("findModuleStudentsByIdsInModule queries active students on the project", async () => {
     mocks.prisma.user.findMany.mockResolvedValue([{ id: 4 }]);
-    await expect(findModuleStudentsByIdsInModule("ent-1", 10, [4, 5])).resolves.toEqual([{ id: 4 }]);
+    await expect(findModuleStudentsByIdsInModule("ent-1", 10, [4, 5], 7)).resolves.toEqual([{ id: 4 }]);
     expect(mocks.prisma.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ id: { in: [4, 5] }, enterpriseId: "ent-1", role: "STUDENT" }),
+        where: expect.objectContaining({
+          id: { in: [4, 5] },
+          enterpriseId: "ent-1",
+          role: "STUDENT",
+          projectStudents: { some: { projectId: 7 } },
+        }),
       }),
     );
   });

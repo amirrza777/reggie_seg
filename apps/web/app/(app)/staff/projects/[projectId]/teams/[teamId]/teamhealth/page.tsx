@@ -386,11 +386,6 @@ export default async function StaffTeamHealthPage({ params, searchParams }: Page
 
   return (
     <div className="staff-projects__team-health-stack">
-      <p className="muted">
-        Team: {team.teamName} · {openWarnings.length} active warning{openWarnings.length === 1 ? "" : "s"} ·{" "}
-        {openSupportRequests} open message{openSupportRequests === 1 ? "" : "s"}
-      </p>
-
       <section className="staff-projects__team-list" aria-label="Team health snapshot">
         <article className="staff-projects__team-card staff-projects__team-card--signal">
 

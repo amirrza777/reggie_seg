@@ -9,12 +9,7 @@ export { findStaffScopedProject, findStaffScopedProjectAccess } from "./repo.pro
 
 export type InviteEligibleStudent = ModuleStudent;
 
-async function buildProjectStudentScope(projectId: number): Promise<Prisma.UserWhereInput> {
-  const hasProjectStudents = await prisma.projectStudent.findFirst({
-    where: { projectId },
-    select: { userId: true },
-  });
-  if (!hasProjectStudents) return {};
+function buildProjectStudentScope(projectId: number): Prisma.UserWhereInput {
   return {
     projectStudents: {
       some: {
@@ -29,7 +24,7 @@ export async function findVacantModuleStudentsForProject(
   moduleId: number,
   projectId: number,
 ): Promise<ModuleStudent[]> {
-  const projectStudentScope = await buildProjectStudentScope(projectId);
+  const projectStudentScope = buildProjectStudentScope(projectId);
   return prisma.user.findMany({
     where: {
       enterpriseId,
@@ -69,7 +64,7 @@ export async function findModuleStudentsForManualAllocation(
 ): Promise<ManualAllocationStudent[]> {
   const normalizedSearchQuery = typeof searchQuery === "string" ? searchQuery.trim() : "";
   const searchFilters: Prisma.UserWhereInput[] = [];
-  const projectStudentScope = await buildProjectStudentScope(projectId);
+  const projectStudentScope = buildProjectStudentScope(projectId);
   if (normalizedSearchQuery.length > 0) {
     const queryFilters: Prisma.UserWhereInput[] = [
       { email: { contains: normalizedSearchQuery } },
@@ -178,7 +173,7 @@ export async function findInviteEligibleStudentsForTeam(
     throw { code: "TEAM_ACCESS_FORBIDDEN" };
   }
 
-  const projectStudentScope = await buildProjectStudentScope(team.projectId);
+  const projectStudentScope = buildProjectStudentScope(team.projectId);
   return prisma.user.findMany({
     where: {
       enterpriseId: team.enterpriseId,
@@ -232,7 +227,7 @@ export async function findInviteEligibleStudentForTeamByEmail(teamId: number, em
     return null;
   }
 
-  const projectStudentScope = await buildProjectStudentScope(team.projectId);
+  const projectStudentScope = buildProjectStudentScope(team.projectId);
   return prisma.user.findFirst({
     where: {
       email: { equals: email },

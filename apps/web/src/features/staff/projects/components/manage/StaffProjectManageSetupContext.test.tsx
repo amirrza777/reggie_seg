@@ -25,6 +25,29 @@ const initial: StaffProjectManageSummary = {
   archivedAt: null,
   moduleId: 3,
   moduleArchivedAt: null,
+  questionnaireTemplateId: 2,
+  questionnaireTemplate: { id: 2, templateName: "T" },
+  projectDeadline: {
+    taskOpenDate: "2026-01-01T00:00:00.000Z",
+    taskDueDate: "2026-01-15T00:00:00.000Z",
+    taskDueDateMcf: "2026-01-22T00:00:00.000Z",
+    assessmentOpenDate: "2026-01-16T00:00:00.000Z",
+    assessmentDueDate: "2026-01-30T00:00:00.000Z",
+    assessmentDueDateMcf: "2026-02-06T00:00:00.000Z",
+    feedbackOpenDate: "2026-01-31T00:00:00.000Z",
+    feedbackDueDate: "2026-02-14T00:00:00.000Z",
+    feedbackDueDateMcf: "2026-02-21T00:00:00.000Z",
+    teamAllocationQuestionnaireOpenDate: null,
+    teamAllocationQuestionnaireDueDate: null,
+  },
+  hasSubmittedPeerAssessments: false,
+  informationText: null,
+  projectAccess: {
+    moduleLeaders: [],
+    moduleTeachingAssistants: [],
+    moduleMemberDirectory: [],
+    projectStudentIds: [],
+  },
 };
 
 function wrapper({ children }: { children: ReactNode }) {

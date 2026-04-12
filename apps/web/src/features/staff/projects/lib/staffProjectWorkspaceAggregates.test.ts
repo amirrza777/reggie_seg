@@ -5,6 +5,8 @@ import type { StaffProjectTeamsResponse } from "@/features/projects/types";
 function buildResponse(overrides: Partial<StaffProjectTeamsResponse> = {}): StaffProjectTeamsResponse {
   return {
     project: { id: 1, name: "P", moduleId: 2, moduleName: "M", viewerAccessLabel: undefined },
+    projectStudentCount: 0,
+    unassignedProjectStudentCount: 0,
     teams: [],
     ...overrides,
   } as StaffProjectTeamsResponse;

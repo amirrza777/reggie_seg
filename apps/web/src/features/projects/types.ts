@@ -202,8 +202,41 @@ export type StaffProjectTeamsResponse = {
     projectArchivedAt?: string | null;
     viewerAccessLabel?: string;
     canManageProjectSettings?: boolean;
+    informationText?: string | null;
   };
+  /** Students explicitly on this project (project access), used for allocation scope. */
+  projectStudentCount: number;
+  /** Of those, not yet on any active team for this project. */
+  unassignedProjectStudentCount: number;
   teams: Team[];
+};
+
+export type StaffProjectManageDeadlineSnapshot = {
+  taskOpenDate: string | null;
+  taskDueDate: string | null;
+  taskDueDateMcf: string | null;
+  assessmentOpenDate: string | null;
+  assessmentDueDate: string | null;
+  assessmentDueDateMcf: string | null;
+  feedbackOpenDate: string | null;
+  feedbackDueDate: string | null;
+  feedbackDueDateMcf: string | null;
+  teamAllocationQuestionnaireOpenDate: string | null;
+  teamAllocationQuestionnaireDueDate: string | null;
+};
+
+export type StaffProjectManageAccessPerson = {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+};
+
+export type StaffProjectManageAccessSnapshot = {
+  moduleLeaders: StaffProjectManageAccessPerson[];
+  moduleTeachingAssistants: StaffProjectManageAccessPerson[];
+  moduleMemberDirectory: StaffProjectManageAccessPerson[];
+  projectStudentIds: number[];
 };
 
 export type StaffProjectManageSummary = {
@@ -212,6 +245,40 @@ export type StaffProjectManageSummary = {
   archivedAt: string | null;
   moduleId: number;
   moduleArchivedAt: string | null;
+  informationText: string | null;
+  questionnaireTemplateId: number;
+  questionnaireTemplate: { id: number; templateName: string } | null;
+  projectDeadline: StaffProjectManageDeadlineSnapshot | null;
+  hasSubmittedPeerAssessments: boolean;
+  projectAccess: StaffProjectManageAccessSnapshot;
+};
+
+export type StaffProjectManageDeadlinePatchPayload = {
+  taskOpenDate: string;
+  taskDueDate: string;
+  taskDueDateMcf: string;
+  assessmentOpenDate: string;
+  assessmentDueDate: string;
+  assessmentDueDateMcf: string;
+  feedbackOpenDate: string;
+  feedbackDueDate: string;
+  feedbackDueDateMcf: string;
+  teamAllocationQuestionnaireOpenDate?: string | null;
+  teamAllocationQuestionnaireDueDate?: string | null;
+};
+
+export type StaffProjectPeerAssessmentOverview = {
+  project: { id: number; name: string };
+  moduleId: number;
+  questionnaireTemplate: { id: number; templateName: string } | null;
+  teams: Array<{
+    id: number;
+    title: string;
+    submitted: number;
+    expected: number;
+  }>;
+  canManageProjectSettings: boolean;
+  hasSubmittedPeerAssessments: boolean;
 };
 
 export type StaffStudentDeadlineOverride = {

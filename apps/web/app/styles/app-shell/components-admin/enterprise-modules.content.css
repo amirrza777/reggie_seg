@@ -433,6 +433,11 @@
   background: var(--status-danger-soft, color-mix(in srgb, var(--status-danger) 12%, var(--surface)));
 }
 
+.enterprise-module-create__access-item--prioritised:not(.is-pending-removal) {
+  border-color: var(--status-success-border);
+  background: var(--status-success-soft);
+}
+
 .enterprise-module-create__char-count {
   justify-self: end;
   font-size: var(--fs-caption);

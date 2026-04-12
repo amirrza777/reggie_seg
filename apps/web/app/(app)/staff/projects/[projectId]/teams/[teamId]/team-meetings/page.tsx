@@ -78,9 +78,6 @@ export default async function StaffTeamMeetingsSectionPage({ params }: PageProps
   const count = meetingsState.meetings.length;
   return (
     <>
-      <p className="muted">
-        Team: {project.team.teamName} · {count} meeting{count === 1 ? "" : "s"} logged
-      </p>
       <section className="staff-projects__team-card" aria-label="Team meetings analytics and history">
         {meetingsState.error ? (
           <p className="muted">{meetingsState.error}</p>

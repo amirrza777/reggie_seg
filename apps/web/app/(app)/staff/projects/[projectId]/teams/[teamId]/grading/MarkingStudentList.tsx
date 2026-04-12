@@ -6,13 +6,12 @@ import type { ModuleSummary } from "@/features/staff/peerAssessments/api/client"
 
 type Props = {
   students: ModuleSummary[];
-  moduleId: number;
   projectId: number;
   teamId: number;
   readOnly?: boolean;
 };
 
-export function MarkingStudentList({ students, moduleId, projectId: _projectId, teamId, readOnly = false }: Props) {
+export function MarkingStudentList({ students, projectId, teamId, readOnly = false }: Props) {
   const [query, setQuery] = useState("");
   const trimmed = query.trim().toLowerCase();
 
@@ -69,7 +68,7 @@ export function MarkingStudentList({ students, moduleId, projectId: _projectId, 
               <p className="muted" style={{ margin: 0 }}>Student identifier unavailable.</p>
             ) : (
               <Link
-                href={`/staff/peer-assessments/module/${encodeURIComponent(String(moduleId))}/team/${encodeURIComponent(String(teamId))}/student/${encodeURIComponent(String(student.id))}`}
+                href={`/staff/projects/${encodeURIComponent(String(projectId))}/teams/${encodeURIComponent(String(teamId))}/grading/student/${encodeURIComponent(String(student.id))}`}
                 className="pill-nav__link staff-projects__team-action"
               >
                 {readOnly ? "View student" : "Open student marking"}

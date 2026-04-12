@@ -53,6 +53,7 @@ describe("seed plan", () => {
       "seedForumPosts",
       "seedMeetings",
       "seedNotifications",
+      "seedSyncProjectStudentsFromTeamAllocations",
     ]);
   });
 

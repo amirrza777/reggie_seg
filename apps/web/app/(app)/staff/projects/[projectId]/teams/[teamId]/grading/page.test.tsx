@@ -152,7 +152,6 @@ describe("StaffTeamGradingSectionPage", () => {
     expect(markingStudentListMock).toHaveBeenCalledWith(
       expect.objectContaining({
         students: [{ id: 21, title: "Alice Roe" }],
-        moduleId: 20,
         projectId: 1,
         teamId: 2,
         readOnly: false,

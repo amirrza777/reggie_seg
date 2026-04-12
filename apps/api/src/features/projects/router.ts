@@ -18,6 +18,7 @@ import {
   submitTeamAllocationQuestionnaireResponseHandler,
   getStaffProjectsHandler,
   getStaffProjectTeamsHandler,
+  getStaffProjectPeerAssessmentOverviewHandler,
   getStaffMarkingProjectsHandler,
   createTeamHealthMessageHandler,
   getMyTeamHealthMessagesHandler,
@@ -56,6 +57,7 @@ router.get("/staff/:projectId/manage", requireAuth, getStaffProjectManageHandler
 router.patch("/staff/:projectId/manage", requireAuth, patchStaffProjectManageHandler);
 router.delete("/staff/:projectId/manage", requireAuth, deleteStaffProjectManageHandler);
 router.get("/staff/:projectId/teams", requireAuth, getStaffProjectTeamsHandler);
+router.get("/staff/:projectId/peer-assessments", requireAuth, getStaffProjectPeerAssessmentOverviewHandler);
 router.get("/staff/:projectId/teams/:teamId/team-health-messages", requireAuth, getStaffTeamHealthMessagesHandler);
 router.post("/staff/:projectId/teams/:teamId/warnings", requireAuth, createStaffTeamWarningHandler);
 router.get("/staff/:projectId/teams/:teamId/warnings", requireAuth, getStaffTeamWarningsHandler);

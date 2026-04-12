@@ -9,13 +9,17 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("StaffProjectSectionNav", () => {
-  it("renders Team allocation, Meetings, and Discussion Forum links", () => {
+  it("renders Team allocation, Meetings, Discussion Forum, and Peer assessments links", () => {
     usePathnameMock.mockReturnValue("/staff/projects/9");
     render(<StaffProjectSectionNav projectId="9" />);
 
     expect(screen.getByRole("link", { name: "Team allocation" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Meetings" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Discussion Forum" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Peer assessments" })).toHaveAttribute(
+      "href",
+      "/staff/projects/9/peer-assessments",
+    );
   });
 
   it("marks Discussion Forum as active on nested discussion routes", () => {

@@ -3,6 +3,12 @@
   gap: 12px;
 }
 
+.staff-projects__overview-info-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
 .staff-projects__team-overview-top {
   display: grid;
   grid-template-columns: minmax(0, 1.9fr) minmax(300px, 1fr);

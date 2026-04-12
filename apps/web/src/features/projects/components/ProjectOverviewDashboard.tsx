@@ -118,7 +118,18 @@ function DeadlinesScheduleCard({ items, emphasize = false }: { items: DeadlineIt
   );
 }
 
-function InformationBoardCard({
+/** Same schedule card as the student project overview (base project dates). */
+export function ProjectDeadlinesScheduleCard({
+  deadline,
+  emphasize = false,
+}: {
+  deadline: ProjectDeadline;
+  emphasize?: boolean;
+}) {
+  return <DeadlinesScheduleCard items={buildDeadlineItems(deadline)} emphasize={emphasize} />;
+}
+
+export function InformationBoardCard({
   informationText,
   largeText = false,
 }: {
@@ -289,7 +300,6 @@ export function ProjectOverviewDashboard({
   team,
   teamFormationMode,
 }: ProjectOverviewDashboardProps) {
-  const deadlineItems = buildDeadlineItems(deadline);
   const completed = isProjectCompleted(project, deadline, marking);
   const teamMode = teamFormationMode ?? "self";
 
@@ -302,7 +312,7 @@ export function ProjectOverviewDashboard({
       <div className="stack project-overview-layout project-overview-layout--overview">
         <TeamFormationCard project={project} team={team} mode={teamMode} />
         <InformationBoardCard informationText={project.informationText} largeText />
-        {!completed ? <DeadlinesScheduleCard items={deadlineItems} emphasize /> : null}
+        {!completed ? <ProjectDeadlinesScheduleCard deadline={deadline} emphasize /> : null}
       </div>
 
       {completed ? (

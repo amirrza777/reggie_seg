@@ -21,6 +21,18 @@ vi.mock("./StaffProjectManageSetupContext", () => ({
 vi.mock("./sections/StaffProjectManageProjectNameSection", () => ({
   StaffProjectManageProjectNameSection: () => <div data-testid="name-section" />,
 }));
+vi.mock("./sections/StaffProjectManagePeerTemplateSection", () => ({
+  StaffProjectManagePeerTemplateSection: () => <div data-testid="peer-template-section" />,
+}));
+vi.mock("./sections/StaffProjectManageProjectDeadlinesSection", () => ({
+  StaffProjectManageProjectDeadlinesSection: () => <div data-testid="deadlines-section" />,
+}));
+vi.mock("./sections/StaffProjectManageInfoBoardSection", () => ({
+  StaffProjectManageInfoBoardSection: () => <div data-testid="info-board-section" />,
+}));
+vi.mock("./sections/StaffProjectManageProjectAccessSection", () => ({
+  StaffProjectManageProjectAccessSection: () => <div data-testid="access-section" />,
+}));
 vi.mock("./sections/StaffProjectManageForumSection", () => ({
   StaffProjectManageForumSection: () => <div data-testid="forum-section" />,
 }));
@@ -40,6 +52,29 @@ const baseInitial: StaffProjectManageSummary = {
   archivedAt: null,
   moduleId: 2,
   moduleArchivedAt: null,
+  questionnaireTemplateId: 9,
+  questionnaireTemplate: { id: 9, templateName: "Peer Q" },
+  projectDeadline: {
+    taskOpenDate: "2026-01-01T00:00:00.000Z",
+    taskDueDate: "2026-01-15T00:00:00.000Z",
+    taskDueDateMcf: "2026-01-22T00:00:00.000Z",
+    assessmentOpenDate: "2026-01-16T00:00:00.000Z",
+    assessmentDueDate: "2026-01-30T00:00:00.000Z",
+    assessmentDueDateMcf: "2026-02-06T00:00:00.000Z",
+    feedbackOpenDate: "2026-01-31T00:00:00.000Z",
+    feedbackDueDate: "2026-02-14T00:00:00.000Z",
+    feedbackDueDateMcf: "2026-02-21T00:00:00.000Z",
+    teamAllocationQuestionnaireOpenDate: null,
+    teamAllocationQuestionnaireDueDate: null,
+  },
+  hasSubmittedPeerAssessments: false,
+  informationText: null,
+  projectAccess: {
+    moduleLeaders: [],
+    moduleTeachingAssistants: [],
+    moduleMemberDirectory: [],
+    projectStudentIds: [],
+  },
 };
 
 describe("StaffProjectManageSetupSections", () => {
@@ -57,10 +92,16 @@ describe("StaffProjectManageSetupSections", () => {
       />,
     );
     expect(
-      screen.getByText(/Update project details, forum privacy, student tabs, and automatic warning configuration/i),
+      screen.getByText(
+        /Update project details, student information board, deadlines, staff and student access, peer assessment questionnaire, forum privacy, student tabs, and automatic warning configuration from the staff workspace/i,
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Back to project/i })).toHaveAttribute("href", "/staff/projects/1");
     expect(screen.getByTestId("name-section")).toBeInTheDocument();
+    expect(screen.getByTestId("info-board-section")).toBeInTheDocument();
+    expect(screen.getByTestId("peer-template-section")).toBeInTheDocument();
+    expect(screen.getByTestId("deadlines-section")).toBeInTheDocument();
+    expect(screen.getByTestId("access-section")).toBeInTheDocument();
   });
 
   it("renders read-only note when the project or module is archived", () => {

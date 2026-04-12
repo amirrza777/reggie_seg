@@ -1,70 +1,87 @@
 /* Staff can see a student's peer assessment progress for the rest of members in their team */
 
+import Link from "next/link";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { Card } from "@/shared/ui/Card";
 import { PerformanceSummaryCard } from "@/shared/ui/PerformanceSummaryCard";
-import { getStudentDetails } from "@/features/staff/peerAssessments/api/client";
+import { formatDateTime } from "@/shared/lib/dateFormatter";
+import { getStudentDetails, getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { StaffMarkingCard } from "@/features/staff/peerAssessments/components/StaffMarkingCard";
+import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import { ApiError } from "@/shared/api/errors";
-import { getCurrentUser } from "@/shared/auth/session";
+import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
   params: Promise<{
-    id: string;
+    projectId: string;
     teamId: string;
     studentId: string;
   }>;
 };
 
-async function getStaffIdFromSession() {
-  const user = await getCurrentUser();
-  if (!user || (!user.isStaff && !user.isAdmin)) {
-    throw new ApiError("You don’t have permission to view staff peer assessments.", { status: 403 });
-  }
-  return user.id;
-}
-
 function memberName(m: { firstName: string; lastName: string }) {
   return `${m.firstName} ${m.lastName}`.trim() || "—";
 }
 
-function formatStableDateTime(value: string) {
-  const date = new Date(value);
+function formatMarkingUpdatedAt(iso: string): string {
+  const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "Unknown time";
-
-  return `${new Intl.DateTimeFormat("en-GB", {
-    timeZone: "UTC",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(date)} UTC`;
+  const formatted = formatDateTime(iso);
+  return formatted === "" ? "Unknown time" : formatted;
 }
 
-export default async function StudentPage({ params }: PageProps) {
-  const { id: moduleIdParam, teamId: teamIdParam, studentId: studentIdParam } =
-    await params;
-  const moduleId = Number.parseInt(moduleIdParam, 10);
-  const teamId = Number.parseInt(teamIdParam, 10);
+function peerReviewHref(
+  projectId: string,
+  teamId: string,
+  subjectStudentId: number,
+  tab: "given" | "received",
+  counterpartId: number
+) {
+  const q = new URLSearchParams({
+    peerTab: tab,
+    peerCounterpart: String(counterpartId),
+  });
+  return `/staff/projects/${encodeURIComponent(projectId)}/teams/${encodeURIComponent(teamId)}/peer-assessment/${encodeURIComponent(String(subjectStudentId))}?${q}`;
+}
+
+export default async function StaffTeamGradingStudentPage({ params }: PageProps) {
+  const { projectId, teamId, studentId: studentIdParam } = await params;
+  const ctx = await getStaffTeamContext(projectId, teamId);
+
+  if (!ctx.ok) {
+    return null;
+  }
+
   const studentId = Number.parseInt(studentIdParam, 10);
-  if (Number.isNaN(moduleId) || Number.isNaN(teamId) || Number.isNaN(studentId)) {
+  if (Number.isNaN(studentId)) {
     return (
-      <div className="stack">
+      <div className="stack ui-page">
         <p className="muted">Invalid student route. Please open the student from the team list.</p>
       </div>
     );
   }
-  let staffId: number | null = null;
+
+  const { user, project, team } = ctx;
+  const moduleId = project.moduleId;
+  const numericTeamId = team.id;
 
   let data: Awaited<ReturnType<typeof getStudentDetails>> | null = null;
+  let teamMarkingFallback: Awaited<ReturnType<typeof getTeamDetails>>["teamMarking"] = null;
   let errorMessage: string | null = null;
 
   try {
-    staffId = await getStaffIdFromSession();
-    data = await getStudentDetails(staffId, moduleId, teamId, studentId);
+    const [studentRes, teamRes] = await Promise.allSettled([
+      getStudentDetails(user.id, moduleId, numericTeamId, studentId),
+      getTeamDetails(user.id, moduleId, numericTeamId),
+    ]);
+
+    if (studentRes.status === "rejected") {
+      throw studentRes.reason;
+    }
+    data = studentRes.value;
+    if (teamRes.status === "fulfilled") {
+      teamMarkingFallback = teamRes.value.teamMarking;
+    }
   } catch (error) {
     if (error instanceof ApiError && error.status === 403) {
       errorMessage = "You don’t have permission to view staff peer assessments.";
@@ -75,7 +92,7 @@ export default async function StudentPage({ params }: PageProps) {
     }
   }
 
-  if (!data || staffId == null) {
+  if (!data) {
     return (
       <div className="stack ui-page">
         <p className="muted">{errorMessage}</p>
@@ -84,13 +101,14 @@ export default async function StudentPage({ params }: PageProps) {
   }
 
   const studentName = memberName(data.student);
-  const markingReadOnly = Boolean(data.module.archivedAt);
+  const markingReadOnly = Boolean(project.moduleArchivedAt);
+  const teamMarkingDisplay = data.teamMarking ?? teamMarkingFallback;
 
   return (
-    <div className="stack ui-page">
+    <div className="stack ui-page staff-projects">
       <Placeholder
-        title={`${data.module.title} – ${data.team.title} – ${studentName}`}
-        description={`Detailed view of ${studentName}'s peer assessments for their team.`}
+        title={`Grading ${studentName}`}
+        description={`Summary view of ${studentName}'s work and marking panel for individual feedback and grading.`}
       />
 
       <div
@@ -108,14 +126,24 @@ export default async function StudentPage({ params }: PageProps) {
             {data.teamMembers.map((m) => (
               <div
                 key={m.id}
-                style={{ display: "flex", alignItems: "center", gap: 8 }}
+                style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
               >
                 {m.reviewedByCurrentStudent ? (
                   <span style={{ fontSize: "1.25rem", color: "var(--status-success)" }}>✓</span>
                 ) : (
                   <span style={{ fontSize: "1.25rem", color: "var(--status-danger)" }}>✗</span>
                 )}
-                <span>{memberName(m)}</span>
+                <Link
+                  href={peerReviewHref(projectId, teamId, studentId, "given", m.id)}
+                  className="pill-nav__link staff-projects__team-action"
+                  title={
+                    m.reviewedByCurrentStudent
+                      ? `View peer assessment given to ${memberName(m)}`
+                      : `Open peer assessments for ${studentName} (not yet submitted for ${memberName(m)})`
+                  }
+                >
+                  {memberName(m)}
+                </Link>
               </div>
             ))}
           </div>
@@ -129,14 +157,24 @@ export default async function StudentPage({ params }: PageProps) {
             {data.teamMembers.map((m) => (
               <div
                 key={m.id}
-                style={{ display: "flex", alignItems: "center", gap: 8 }}
+                style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
               >
                 {m.reviewedCurrentStudent ? (
                   <span style={{ fontSize: "1.25rem", color: "var(--status-success)" }}>✓</span>
                 ) : (
                   <span style={{ fontSize: "1.25rem", color: "var(--status-danger)" }}>✗</span>
                 )}
-                <span>{memberName(m)}</span>
+                <Link
+                  href={peerReviewHref(projectId, teamId, studentId, "received", m.id)}
+                  className="pill-nav__link staff-projects__team-action"
+                  title={
+                    m.reviewedCurrentStudent
+                      ? `View peer assessment received from ${memberName(m)}`
+                      : `Open peer assessments for ${studentName} (no submission from ${memberName(m)} yet)`
+                  }
+                >
+                  {memberName(m)}
+                </Link>
               </div>
             ))}
           </div>
@@ -149,18 +187,18 @@ export default async function StudentPage({ params }: PageProps) {
       />
 
       <Card title="Current team-level marking">
-        {data.teamMarking ? (
+        {teamMarkingDisplay ? (
           <div className="stack" style={{ gap: 8 }}>
             <p>
               <strong>Team mark:</strong>{" "}
-              {data.teamMarking.mark == null ? "Not set" : data.teamMarking.mark}
+              {teamMarkingDisplay.mark == null ? "Not set" : teamMarkingDisplay.mark}
             </p>
             <p className="muted">
-              {data.teamMarking.formativeFeedback ?? "No team formative feedback yet."}
+              {teamMarkingDisplay.formativeFeedback ?? "No team formative feedback yet."}
             </p>
             <p className="ui-note ui-note--muted">
-              Updated by {memberName(data.teamMarking.marker)} on{" "}
-              {formatStableDateTime(data.teamMarking.updatedAt)}
+              Updated by {memberName(teamMarkingDisplay.marker)} on{" "}
+              {formatMarkingUpdatedAt(teamMarkingDisplay.updatedAt)}
             </p>
           </div>
         ) : (
@@ -171,9 +209,9 @@ export default async function StudentPage({ params }: PageProps) {
       <StaffMarkingCard
         title="Student marking and formative feedback"
         description={`Set an individual mark and formative feedback for ${studentName}.`}
-        staffId={staffId}
+        staffId={user.id}
         moduleId={moduleId}
-        teamId={teamId}
+        teamId={numericTeamId}
         studentId={studentId}
         initialMarking={data.studentMarking}
         readOnly={markingReadOnly}
