@@ -3,7 +3,7 @@ import {
   prisma,
   resolveTeamHealthMessageWithDeadlineOverride,
   reviewTeamHealthMessage,
-} from "./repo.test.shared.js";
+} from "./repo.shared-test-helpers.js";
 
 describe("projects/team-health-review repo", () => {
   beforeEach(() => {

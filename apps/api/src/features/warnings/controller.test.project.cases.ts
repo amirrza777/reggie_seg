@@ -6,7 +6,7 @@ import {
   mockResponse,
   service,
   updateProjectWarningsConfigHandler,
-} from "./controller.test.shared.js";
+} from "./controller.shared-test-helpers.js";
 
 describe("project warnings controller", () => {
   beforeEach(() => {

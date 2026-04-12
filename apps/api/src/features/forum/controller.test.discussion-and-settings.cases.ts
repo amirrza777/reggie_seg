@@ -9,7 +9,7 @@ import {
   service,
   updateForumSettingsHandler,
   updateProjectDiscussionPostHandler,
-} from "./controller.test.shared.js";
+} from "./controller.shared-test-helpers.js";
 
 describe("forum controller", () => {
   beforeEach(() => vi.clearAllMocks());

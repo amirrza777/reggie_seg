@@ -8,7 +8,7 @@ import {
   getTeamHealthMessagesForUserInProject,
   hasAnotherResolvedTeamHealthMessage,
   prisma,
-} from "./repo.test.shared.js";
+} from "./repo.shared-test-helpers.js";
 
 describe("projects/team-health-review repo", () => {
   beforeEach(() => {

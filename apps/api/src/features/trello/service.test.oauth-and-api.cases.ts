@@ -5,7 +5,7 @@ import {
   TrelloService,
   setupTrelloServiceCaseDefaults,
   vi,
-} from "./service.test.shared.js";
+} from "./service.shared-test-helpers.js";
 
 describe("TrelloService", () => {
   beforeEach(() => {
