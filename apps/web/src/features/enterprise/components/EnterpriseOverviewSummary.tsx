@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card } from "@/shared/ui/Card";
-import { useEnterpriseOverviewSummary } from "./useEnterpriseOverviewSummary";
+import { useEnterpriseOverviewSummary } from "./hooks/useEnterpriseOverviewSummary";
 
 type OverviewSummaryData = ReturnType<typeof useEnterpriseOverviewSummary>;
 

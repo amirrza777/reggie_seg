@@ -1,9 +1,9 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { searchEnterpriseModuleAccessUsers } from "../api/client";
+import { searchEnterpriseModuleAccessUsers } from "../../api/client";
 import { useEnterpriseModuleAccessBuckets } from "./useEnterpriseModuleAccessBuckets";
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   searchEnterpriseModuleAccessUsers: vi.fn(),
 }));
 

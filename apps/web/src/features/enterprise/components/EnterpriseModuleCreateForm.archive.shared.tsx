@@ -1,5 +1,5 @@
 import { Button } from "@/shared/ui/Button";
-import { useEnterpriseModuleCreateFormState } from "./useEnterpriseModuleCreateFormState";
+import { useEnterpriseModuleCreateFormState } from "./hooks/useEnterpriseModuleCreateFormState";
 
 type ModuleCreateFormState = ReturnType<typeof useEnterpriseModuleCreateFormState>;
 

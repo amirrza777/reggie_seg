@@ -8,7 +8,7 @@ import {
   deleteEnterpriseModule,
   getEnterpriseModuleAccessSelection,
   updateEnterpriseModule,
-} from "../api/client";
+} from "../../api/client";
 import {
   applyModuleSelection,
   buildModuleUpdatePayload,

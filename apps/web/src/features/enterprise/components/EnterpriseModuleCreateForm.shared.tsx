@@ -7,7 +7,7 @@ import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
 import { EnterpriseModuleAccessSection } from "./EnterpriseModuleAccessSection";
 import { CharacterCount, EnterpriseModuleEditFields } from "./EnterpriseModuleFormFields";
-import { useEnterpriseModuleCreateFormState } from "./useEnterpriseModuleCreateFormState";
+import { useEnterpriseModuleCreateFormState } from "./hooks/useEnterpriseModuleCreateFormState";
 
 const MODULE_NAME_MAX_LENGTH = 120;
 const MODULE_CODE_MAX_LENGTH = 32;

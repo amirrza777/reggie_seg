@@ -4,11 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const getEnterpriseOverviewMock = vi.fn();
 const buildEnterpriseOverviewSummaryViewMock = vi.fn();
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   getEnterpriseOverview: (...args: unknown[]) => getEnterpriseOverviewMock(...args),
 }));
 
-vi.mock("./enterpriseOverviewSummary.logic", () => ({
+vi.mock("../enterpriseOverviewSummary.logic", () => ({
   buildEnterpriseOverviewSummaryView: (...args: unknown[]) =>
     buildEnterpriseOverviewSummaryViewMock(...args),
 }));

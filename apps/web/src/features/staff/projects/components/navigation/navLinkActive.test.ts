@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isStaffNavLinkActive } from "../navLinkActive";
+import { isStaffNavLinkActive } from "./navLinkActive";
 
 describe("isStaffNavLinkActive", () => {
   it("returns false when pathname is missing", () => {

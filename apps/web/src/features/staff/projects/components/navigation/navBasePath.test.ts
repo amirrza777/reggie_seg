@@ -4,7 +4,7 @@ import {
   inferModuleIdFromStaffProjectPath,
   resolveStaffProjectBasePath,
   resolveStaffTeamBasePath,
-} from "../navBasePath";
+} from "./navBasePath";
 
 describe("navBasePath", () => {
   it("decodes module id path segments and preserves invalid encodings", () => {

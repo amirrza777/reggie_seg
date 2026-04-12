@@ -1,6 +1,6 @@
 "use client";
 
-import { StaffProjectNavFlagsPanel } from "../../StaffProjectNavFlagsPanel";
+import { StaffProjectNavFlagsPanel } from "../../navigation/StaffProjectNavFlagsPanel";
 import { StaffProjectManageFormCollapsible } from "../../StaffProjectManageFormCollapsible";
 import { useStaffProjectManageSetup } from "../StaffProjectManageSetupContext";
 

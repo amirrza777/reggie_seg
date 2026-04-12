@@ -2,7 +2,7 @@
 
 import { Button } from "@/shared/ui/Button";
 import { MeetingSettingsSection } from "./MeetingSettingsSection";
-import { useEnterpriseModuleCreateFormState } from "./useEnterpriseModuleCreateFormState";
+import { useEnterpriseModuleCreateFormState } from "./hooks/useEnterpriseModuleCreateFormState";
 import {
   fieldsetResetStyle,
   ModuleCodeField,

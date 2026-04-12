@@ -6,7 +6,7 @@ import {
   deleteEnterpriseModule,
   getEnterpriseModuleAccessSelection,
   updateEnterpriseModule,
-} from "../api/client";
+} from "../../api/client";
 import { useEnterpriseModuleAccessBuckets } from "./useEnterpriseModuleAccessBuckets";
 import { useEnterpriseModuleCreateFormState } from "./useEnterpriseModuleCreateFormState";
 
@@ -17,7 +17,7 @@ vi.mock("next/navigation", () => ({
   useRouter: vi.fn(),
 }));
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   createEnterpriseModule: vi.fn(),
   deleteEnterpriseModule: vi.fn(),
   getEnterpriseModuleAccessSelection: vi.fn(),

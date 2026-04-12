@@ -1,4 +1,4 @@
-import type { getEnterpriseModuleAccessSelection } from "../api/client";
+import type { getEnterpriseModuleAccessSelection } from "../../api/client";
 
 export type ModuleSelectionResponse = Awaited<ReturnType<typeof getEnterpriseModuleAccessSelection>>;
 

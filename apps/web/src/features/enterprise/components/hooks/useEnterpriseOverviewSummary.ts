@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getEnterpriseOverview } from "../api/client";
-import type { EnterpriseOverview } from "../types";
-import { buildEnterpriseOverviewSummaryView } from "./enterpriseOverviewSummary.logic";
+import { getEnterpriseOverview } from "../../api/client";
+import type { EnterpriseOverview } from "../../types";
+import { buildEnterpriseOverviewSummaryView } from "../enterpriseOverviewSummary.logic";
 
 type RequestState = "idle" | "loading" | "success" | "error";
 

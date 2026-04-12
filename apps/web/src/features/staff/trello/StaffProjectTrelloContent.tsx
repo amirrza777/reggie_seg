@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useTrelloBoard } from "@/features/trello/context/TrelloBoardContext";
 import { useTeamBoardState } from "@/features/trello/hooks/useTeamBoardState";
 import { TrelloNav } from "@/features/trello/components/TrelloNav";
-import { resolveStaffTeamBasePath } from "@/features/staff/projects/components/navBasePath";
+import { resolveStaffTeamBasePath } from "@/features/staff/projects/components/navigation/navBasePath";
 import { getMyBoards } from "@/features/trello/api/client";
 import type { ProjectDeadline } from "@/features/projects/types";
 import type { BoardView } from "@/features/trello/api/client";

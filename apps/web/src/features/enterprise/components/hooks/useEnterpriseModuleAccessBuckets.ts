@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { searchEnterpriseModuleAccessUsers } from "../api/client";
-import type { EnterpriseAccessUserSearchScope, EnterpriseAssignableUser } from "../types";
+import { searchEnterpriseModuleAccessUsers } from "../../api/client";
+import type { EnterpriseAccessUserSearchScope, EnterpriseAssignableUser } from "../../types";
 import { getPaginationEnd, getPaginationStart, parsePageInput } from "@/shared/lib/pagination";
 import { normalizeSearchQuery } from "@/shared/lib/search";
 
