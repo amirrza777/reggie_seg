@@ -1,8 +1,8 @@
 /* eslint-disable max-lines-per-function, @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { deadlinePayload, mockResponse } from "./controller.core.shared-test-helpers.js";
-import * as service from "./service.js";
-import { createProjectHandler } from "./controller.js";
+import * as service from "../../service.js";
+import { createProjectHandler } from "../../controller.js";
 
 describe("createProjectHandler", () => {
   beforeEach(() => {

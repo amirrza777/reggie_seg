@@ -1,15 +1,15 @@
 /* eslint-disable max-lines-per-function, max-statements, @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockResponse } from "./controller.core.shared-test-helpers.js";
-import * as service from "./service.js";
+import * as service from "../../service.js";
 import {
   getProjectNavFlagsConfigHandler,
   getTeamAllocationQuestionnaireForProjectHandler,
   getTeamAllocationQuestionnaireStatusForProjectHandler,
   submitTeamAllocationQuestionnaireResponseHandler,
   updateProjectNavFlagsConfigHandler,
-} from "./controller.js";
-import { AssessmentAnswerValidationError } from "../peerAssessment/answers.js";
+} from "../../controller.js";
+import { AssessmentAnswerValidationError } from "../../../peerAssessment/answers.js";
 
 describe("project questionnaire and nav handlers", () => {
   beforeEach(() => {

@@ -1,13 +1,13 @@
 /* eslint-disable max-lines-per-function, max-statements, @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockResponse } from "./controller.core.shared-test-helpers.js";
-import * as service from "./service.js";
+import * as service from "../../service.js";
 import {
   getProjectMarkingHandler,
   getStaffMarkingProjectsHandler,
   getStaffProjectTeamsHandler,
   getStaffProjectsHandler,
-} from "./controller.js";
+} from "../../controller.js";
 
 describe("project staff handlers", () => {
   beforeEach(() => {

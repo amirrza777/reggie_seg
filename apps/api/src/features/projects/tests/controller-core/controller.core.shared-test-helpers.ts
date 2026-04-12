@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import type { Response } from "express";
 
-vi.mock("./service.js", () => ({
+vi.mock("../../service.js", () => ({
   createProject: vi.fn(),
   fetchProjectById: vi.fn(),
   fetchProjectMarking: vi.fn(),
