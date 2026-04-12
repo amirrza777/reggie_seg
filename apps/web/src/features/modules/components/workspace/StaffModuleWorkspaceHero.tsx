@@ -1,5 +1,5 @@
-import { buildModuleDashboardData } from "../moduleDashboardData";
-import type { StaffModuleWorkspaceContext } from "../staffModuleWorkspaceLayoutData";
+import { buildModuleDashboardData } from "../../moduleDashboardData";
+import type { StaffModuleWorkspaceContext } from "../../staffModuleWorkspaceLayoutData";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 function roleBadgeLabel(ctx: StaffModuleWorkspaceContext): string | null {

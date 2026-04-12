@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { StaffModuleWorkspaceContext } from "../staffModuleWorkspaceLayoutData";
+import type { StaffModuleWorkspaceContext } from "../../staffModuleWorkspaceLayoutData";
 import { StaffModuleWorkspaceHero } from "./StaffModuleWorkspaceHero";
 
 function makeCtx(overrides: Partial<StaffModuleWorkspaceContext> = {}): StaffModuleWorkspaceContext {
