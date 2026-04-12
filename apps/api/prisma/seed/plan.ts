@@ -19,6 +19,7 @@ import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios
 import { seedMeetings } from "./meetings";
 import { seedTeamHealthWarningScenario } from "./team-health-warning-scenario";
 import { seedNotifications } from "./notifications";
+import { seedSyncProjectStudentsFromTeamAllocations } from "./projectStudentsFromAllocations";
 import { seedTeamInvites } from "./teamInvites";
 import { seedAdminUser } from "./core";
 
@@ -91,6 +92,7 @@ function buildScenarioSeedPlan(context: SeedContext, config: SeedProfileConfig):
     buildForumPostsStep(context),
     buildMeetingsStep(context),
     buildNotificationsStep(context),
+    buildSyncProjectStudentsFromTeamAllocationsStep(context),
   ];
 }
 
@@ -191,4 +193,10 @@ function buildMeetingsStep(context: SeedContext) {
 
 function buildNotificationsStep(context: SeedContext) {
   return buildScenarioStep("seedNotifications", () => seedNotifications(context));
+}
+
+function buildSyncProjectStudentsFromTeamAllocationsStep(context: SeedContext) {
+  return buildScenarioStep("seedSyncProjectStudentsFromTeamAllocations", () =>
+    seedSyncProjectStudentsFromTeamAllocations(context.enterprise.id),
+  );
 }

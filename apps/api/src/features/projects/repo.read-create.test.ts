@@ -109,6 +109,7 @@ describe("projects repo read and create flows", () => {
         moduleId: true,
         archivedAt: true,
         module: { select: { name: true } },
+        deadline: { select: { taskOpenDate: true } },
       },
     });
   });

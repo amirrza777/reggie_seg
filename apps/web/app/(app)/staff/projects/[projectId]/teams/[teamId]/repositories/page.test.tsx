@@ -111,7 +111,5 @@ describe("StaffRepositoriesSectionPage", () => {
       params: Promise.resolve({ projectId: "15", teamId: "44" }),
     });
     render(page);
-
-    expect(screen.getByText("Team: Team Luna · 3 on this team")).toBeInTheDocument();
   });
 });

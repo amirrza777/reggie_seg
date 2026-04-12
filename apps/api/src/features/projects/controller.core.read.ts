@@ -7,6 +7,7 @@ import {
   fetchProjectDeadline,
   fetchProjectMarking,
   fetchProjectTeamsForStaff,
+  fetchStaffProjectPeerAssessmentOverview,
   fetchProjectsForStaff,
   fetchProjectsWithTeamsForStaffMarking,
   fetchProjectsForUser,
@@ -226,6 +227,31 @@ export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Respons
     }
     console.error("Error fetching staff project teams:", error);
     res.status(500).json({ error: "Failed to fetch staff project teams" });
+  }
+}
+
+export async function getStaffProjectPeerAssessmentOverviewHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  const projectId = Number(req.params.projectId);
+  if (userId === null) {
+    return;
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const result = await fetchStaffProjectPeerAssessmentOverview(userId, projectId);
+    if (!result) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    res.json(result);
+  } catch (error) {
+    if (isTeamLifecycleMigrationError(error)) {
+      return res.status(503).json({ error: TEAM_LIFECYCLE_MIGRATION_ERROR });
+    }
+    console.error("Error fetching staff project peer assessment overview:", error);
+    res.status(500).json({ error: "Failed to load peer assessment overview" });
   }
 }
 

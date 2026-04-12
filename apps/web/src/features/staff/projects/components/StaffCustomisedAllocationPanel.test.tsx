@@ -56,6 +56,9 @@ async function selectQuestionnaire(questionnaireId = 101) {
   await waitFor(() => {
     expect(getCustomAllocationCoverageMock).toHaveBeenCalledWith(9, questionnaireId);
   });
+  await waitFor(() => {
+    expect(screen.getByRole("button", { name: /preview customised teams/i })).toBeEnabled();
+  });
 }
 
 async function previewTeams() {

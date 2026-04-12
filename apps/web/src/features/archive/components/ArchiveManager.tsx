@@ -32,18 +32,16 @@ export function ArchiveManager() {
           onScopeChange: state.setModuleListScope,
           ariaLabel: "Module list filter" as const,
         }
-      : state.activeTab === "projects"
-        ? {
-            scope: state.projectListScope,
-            onScopeChange: state.setProjectListScope,
-            ariaLabel: "Project list filter" as const,
-          }
-        : null;
+      : {
+          scope: state.projectListScope,
+          onScopeChange: state.setProjectListScope,
+          ariaLabel: "Project list filter" as const,
+        };
 
   return (
     <div className="archive-manager">
       <ArchiveTabs activeTab={state.activeTab} setActiveTab={state.setActiveTab} />
-      {listScopeToolbar ? <ArchiveListScopeToolbar {...listScopeToolbar} /> : null}
+      <ArchiveListScopeToolbar {...listScopeToolbar} />
       <ArchiveTable
         rows={getArchiveTableRows(state.activeTab, modulesForTable, projectsForTable)}
         type={state.activeTab}

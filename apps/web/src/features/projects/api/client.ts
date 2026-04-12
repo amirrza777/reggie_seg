@@ -21,6 +21,8 @@ import type {
   ProjectNavFlagsConfig,
   StaffProjectNavFlagsConfigResponse,
   StaffProjectManageSummary,
+  StaffProjectManageDeadlinePatchPayload,
+  StaffProjectPeerAssessmentOverview,
   TeamWarning,
 } from "../types";
 
@@ -141,11 +143,26 @@ export async function getStaffProjectManage(projectId: number): Promise<StaffPro
 
 export async function patchStaffProjectManage(
   projectId: number,
-  body: { name?: string; archived?: boolean },
+  body: {
+    name?: string;
+    archived?: boolean;
+    questionnaireTemplateId?: number;
+    deadline?: StaffProjectManageDeadlinePatchPayload;
+    informationText?: string | null;
+    projectStudentIds?: number[];
+  },
 ): Promise<StaffProjectManageSummary> {
   return apiFetch<StaffProjectManageSummary>(`/projects/staff/${projectId}/manage`, {
     method: "PATCH",
     body: JSON.stringify(body),
+  });
+}
+
+export async function getStaffProjectPeerAssessmentOverview(
+  projectId: number,
+): Promise<StaffProjectPeerAssessmentOverview> {
+  return apiFetch<StaffProjectPeerAssessmentOverview>(`/projects/staff/${projectId}/peer-assessments`, {
+    cache: "no-store",
   });
 }
 

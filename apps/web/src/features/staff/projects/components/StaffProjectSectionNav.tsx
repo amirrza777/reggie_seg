@@ -15,6 +15,7 @@ const projectTabsBase = [
   { key: "overview", label: "Overview", hrefSuffix: "" },
   { key: "team-allocation", label: "Team allocation", hrefSuffix: "/team-allocation" },
   { key: "meetings", label: "Meetings", hrefSuffix: "/meetings" },
+  { key: "peer-assessments", label: "Peer assessments", hrefSuffix: "/peer-assessments" },
   { key: "discussion", label: "Discussion Forum", hrefSuffix: "/discussion" },
   { key: "warnings", label: "Warnings", hrefSuffix: "/warnings" },
   { key: "manage", label: "Manage", hrefSuffix: "/manage" },

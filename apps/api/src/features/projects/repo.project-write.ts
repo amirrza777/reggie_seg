@@ -87,7 +87,7 @@ async function assertCanCreateProjectInModule(
   }
 }
 
-async function assertTemplatePurpose(templateId: number, purpose: "PEER_ASSESSMENT" | "CUSTOMISED_ALLOCATION") {
+export async function assertTemplatePurpose(templateId: number, purpose: "PEER_ASSESSMENT" | "CUSTOMISED_ALLOCATION") {
   const template = await prisma.questionnaireTemplate.findUnique({
     where: { id: templateId },
     select: { id: true, purpose: true },

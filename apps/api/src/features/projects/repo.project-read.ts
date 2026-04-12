@@ -11,6 +11,11 @@ const USER_PROJECTS_SELECT = {
       name: true,
     },
   },
+  deadline: {
+    select: {
+      taskOpenDate: true,
+    },
+  },
 } as const;
 
 function userProjectsWhere(userId: number): Prisma.ProjectWhereInput {

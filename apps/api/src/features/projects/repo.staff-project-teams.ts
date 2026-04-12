@@ -7,6 +7,7 @@ const STAFF_PROJECT_TEAMS_SELECT = {
   name: true,
   moduleId: true,
   archivedAt: true,
+  informationText: true,
   module: {
     select: {
       name: true,

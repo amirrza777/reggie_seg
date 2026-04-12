@@ -34,11 +34,15 @@ describe("staff project team-allocation page", () => {
     getCurrentUserMock.mockResolvedValue({ id: 7, role: "STAFF", isStaff: true } as any);
     getStaffProjectTeamsMock.mockResolvedValue({
       project: { id: 12, moduleId: 3, name: "P", moduleName: "M" },
+      projectStudentCount: 4,
+      unassignedProjectStudentCount: 2,
       teams: [{ id: 1, teamName: "T", allocations: [] }],
     } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
 
     await renderPage("12");
-    expect(screen.getByText(/empty team/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/2 students not yet assigned to a team \(4 students in project\)/),
+    ).toBeInTheDocument();
     expect(getStaffProjectTeamsMock).toHaveBeenCalledWith(7, 12);
   });
 });

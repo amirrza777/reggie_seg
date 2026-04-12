@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { Card } from "@/shared/ui/Card";
 
 export type StaffPeerSerialisedAssessment = {
@@ -29,6 +29,7 @@ type StaffPeerStudentAssessmentsPanelProps = {
   expectedPeerReviews: number;
   givenGroups: StaffPeerAssessmentGroup[];
   receivedGroups: StaffPeerAssessmentGroup[];
+  initialPeerFocus?: { tab: TabKey; counterpartId: number } | null;
 };
 
 export function StaffPeerStudentAssessmentsPanel({
@@ -36,8 +37,9 @@ export function StaffPeerStudentAssessmentsPanel({
   expectedPeerReviews,
   givenGroups,
   receivedGroups,
+  initialPeerFocus = null,
 }: StaffPeerStudentAssessmentsPanelProps) {
-  const [tab, setTab] = useState<TabKey>("given");
+  const [tab, setTab] = useState<TabKey>(() => initialPeerFocus?.tab ?? "given");
 
   const groups = tab === "given" ? givenGroups : receivedGroups;
   const emptyMessage =
@@ -55,6 +57,14 @@ export function StaffPeerStudentAssessmentsPanel({
 
   const tabCountLabel = (done: number) =>
     expectedPeerReviews > 0 ? `${done}/${expectedPeerReviews}` : String(done);
+
+  useLayoutEffect(() => {
+    if (!initialPeerFocus) return;
+    const id = `staff-peer-${initialPeerFocus.tab}-group-${initialPeerFocus.counterpartId}`;
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [initialPeerFocus]);
 
   return (
     <div className="stack" style={{ gap: 16, marginTop: 10 }}>
@@ -87,7 +97,11 @@ export function StaffPeerStudentAssessmentsPanel({
       ) : (
         <section className="staff-projects__team-list">
           {sortedGroups.map((group) => (
-            <Card key={`${tab}-${group.counterpartId}`} title={group.counterpartName}>
+            <div
+              key={`${tab}-${group.counterpartId}`}
+              id={`staff-peer-${tab}-group-${group.counterpartId}`}
+            >
+            <Card title={group.counterpartName}>
               <div className="stack" style={{ gap: 16 }}>
                 {group.assessments.map((assessment) => {
                   const answers = Object.entries(assessment.answers ?? {});
@@ -142,6 +156,7 @@ export function StaffPeerStudentAssessmentsPanel({
                 })}
               </div>
             </Card>
+            </div>
           ))}
         </section>
       )}

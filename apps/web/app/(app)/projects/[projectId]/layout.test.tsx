@@ -77,6 +77,8 @@ describe("ProjectLayout", () => {
     } as Awaited<ReturnType<typeof resolveStudentProjectWorkspaceCapability>>);
     getProjectMock.mockResolvedValue({
       name: "Project Atlas",
+      moduleId: 17,
+      moduleName: "Large-Scale Systems",
       moduleArchivedAt: "2025-01-01T00:00:00Z",
       archivedAt: null,
     } as Awaited<ReturnType<typeof getProject>>);
@@ -91,7 +93,11 @@ describe("ProjectLayout", () => {
     expect(getProjectNavFlagsMock).toHaveBeenCalledWith(7, 42);
     expect(resolveWorkspaceCapabilityMock).toHaveBeenCalledWith(7, 42);
     expect(getProjectMock).toHaveBeenCalledWith("42");
-    expect(screen.getByTestId("breadcrumbs")).toHaveTextContent("Projects / Project Atlas");
+    expect(screen.getByTestId("breadcrumbs")).toHaveTextContent("Large-Scale Systems / Projects / Project Atlas");
+    expect(breadcrumbsProps.at(-1)?.items[0]).toEqual({
+      label: "Large-Scale Systems",
+      href: "/modules/17",
+    });
     expect(screen.getByTestId("archived-banner")).toBeInTheDocument();
     expect(screen.getByTestId("project-nav")).toBeInTheDocument();
     expect(screen.getByTestId("workspace-provider")).toBeInTheDocument();

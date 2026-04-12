@@ -37,6 +37,7 @@ export default defineConfig({
         "**/*.test.{ts,tsx}",
         "**/*.d.ts",
         "src/features/trello/types.ts",
+        "src/features/archive/types.ts",
         "**/node_modules/**",
         "**/node_modules_broken*/**",
         "**/.next/**",

@@ -43,10 +43,12 @@ export type ModuleAccessSearchSectionProps = {
   selectedCountLabel: string;
   /** When set, rows that were selected on load but are now unchecked show a removal highlight. */
   baselineSelectedSet?: Set<number>;
-  /** Limit search to users not yet on this module (header switch). */
+  /** Limit search to users not yet on this module */
   onlyWithoutModuleAccess: boolean;
   onToggleOnlyWithoutModuleAccess: () => void;
   onlyWithoutModuleAccessDisabled: boolean;
+  onlyWithoutAccessLabel?: string;
+  prioritisedSet?: Set<number>;
 };
 
 function AccessSummaryLabel({
@@ -74,6 +76,7 @@ function AccessUserItem({
   groupLabel,
   isSelected,
   isPendingRemoval,
+  isPrioritised,
   onToggle,
   disabled,
 }: {
@@ -81,6 +84,7 @@ function AccessUserItem({
   groupLabel: string;
   isSelected: boolean;
   isPendingRemoval: boolean;
+  isPrioritised: boolean;
   onToggle: (userId: number, checked: boolean) => void;
   disabled: boolean;
 }) {
@@ -88,6 +92,7 @@ function AccessUserItem({
     "enterprise-module-create__access-item",
     isSelected ? "is-selected" : "",
     isPendingRemoval ? "is-pending-removal" : "",
+    isPrioritised && !isPendingRemoval ? "enterprise-module-create__access-item--prioritised" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -162,6 +167,7 @@ function AccessPagination({
  */
 export function ModuleAccessSearchSection(props: ModuleAccessSearchSectionProps) {
   const enrollmentScopeLabelId = useId();
+  const hideWithoutAccessLabel = props.onlyWithoutAccessLabel ?? "Hide users already on this module";
 
   return (
     <div className="enterprise-modules__create-field enterprise-module-create__field">
@@ -177,7 +183,7 @@ export function ModuleAccessSearchSection(props: ModuleAccessSearchSectionProps)
         <div className="module-access-search__head-actions">
           <div className="enterprise-module-create__filter-toggle enterprise-module-create__filter-toggle--header-inline">
             <span id={enrollmentScopeLabelId} className="enterprise-module-create__filter-toggle-label">
-              Hide users already on this module
+              {hideWithoutAccessLabel}
             </span>
             <button
               type="button"
@@ -217,6 +223,7 @@ export function ModuleAccessSearchSection(props: ModuleAccessSearchSectionProps)
           const isPendingRemoval = Boolean(
             props.baselineSelectedSet?.has(user.id) && !isSelected,
           );
+          const isPrioritised = Boolean(props.prioritisedSet?.has(user.id));
           return (
             <AccessUserItem
               key={`${props.groupLabel}-${user.id}`}
@@ -224,6 +231,7 @@ export function ModuleAccessSearchSection(props: ModuleAccessSearchSectionProps)
               groupLabel={props.groupLabel}
               isSelected={isSelected}
               isPendingRemoval={isPendingRemoval}
+              isPrioritised={isPrioritised}
               onToggle={props.onToggle}
               disabled={props.isCheckedDisabled ? props.isCheckedDisabled(user) : false}
             />

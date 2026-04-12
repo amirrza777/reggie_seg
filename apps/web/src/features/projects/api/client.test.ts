@@ -25,6 +25,7 @@ import {
   getStaffProjectNavFlagsConfig,
   getStaffProjectTeams,
   getStaffProjectManage,
+  getStaffProjectPeerAssessmentOverview,
   patchStaffProjectManage,
   deleteStaffProjectManage,
   getStaffProjectWarningsConfig,
@@ -124,6 +125,13 @@ describe("projects api client", () => {
   it("gets staff project manage summary without cache", async () => {
     await getStaffProjectManage(42);
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/manage", {
+      cache: "no-store",
+    });
+  });
+
+  it("gets staff project peer assessment overview without cache", async () => {
+    await getStaffProjectPeerAssessmentOverview(42);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/peer-assessments", {
       cache: "no-store",
     });
   });

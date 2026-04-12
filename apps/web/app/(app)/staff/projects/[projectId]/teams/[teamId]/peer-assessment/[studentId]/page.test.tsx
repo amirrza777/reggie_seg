@@ -59,6 +59,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
 
     const page = await StaffPeerAssessmentStudentPage({
       params: Promise.resolve({ projectId: "50", teamId: "60", studentId: "101" }),
+      searchParams: Promise.resolve({}),
     });
 
     expect(page).toBeNull();
@@ -69,6 +70,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
 
     const page = await StaffPeerAssessmentStudentPage({
       params: Promise.resolve({ projectId: "x", teamId: "60", studentId: "101" }),
+      searchParams: Promise.resolve({}),
     });
     render(page);
 
@@ -82,6 +84,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
 
     const page = await StaffPeerAssessmentStudentPage({
       params: Promise.resolve({ projectId: "50", teamId: "60", studentId: "101" }),
+      searchParams: Promise.resolve({}),
     });
     render(page);
 
@@ -95,6 +98,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
 
     const page = await StaffPeerAssessmentStudentPage({
       params: Promise.resolve({ projectId: "50", teamId: "60", studentId: "101" }),
+      searchParams: Promise.resolve({}),
     });
     render(page);
 
@@ -146,15 +150,15 @@ describe("StaffPeerAssessmentStudentPage", () => {
 
     const page = await StaffPeerAssessmentStudentPage({
       params: Promise.resolve({ projectId: "50", teamId: "60", studentId: "101" }),
+      searchParams: Promise.resolve({ peerTab: "received", peerCounterpart: "301" }),
     });
     render(page);
 
-    expect(screen.getByText(/Alice Roe.*assessment record/)).toBeInTheDocument();
     expect(studentPanelMock).toHaveBeenCalledWith(
       expect.objectContaining({
         questionLabels: { q1: "Communication quality" },
         expectedPeerReviews: 2,
-        backHref: "/staff/projects/50/teams/60/peer-assessment",
+        initialPeerFocus: { tab: "received", counterpartId: 301 },
         givenGroups: [
           {
             counterpartId: 201,
@@ -219,10 +223,10 @@ describe("StaffPeerAssessmentStudentPage", () => {
 
     const page = await StaffPeerAssessmentStudentPage({
       params: Promise.resolve({ projectId: "50", teamId: "60", studentId: "999" }),
+      searchParams: Promise.resolve({}),
     });
     render(page);
 
-    expect(screen.getByText(/Student 999.*assessment record/)).toBeInTheDocument();
     expect(studentPanelMock).toHaveBeenCalledWith(
       expect.objectContaining({
         questionLabels: {},
@@ -245,10 +249,11 @@ describe("StaffPeerAssessmentStudentPage", () => {
 
     const page = await StaffPeerAssessmentStudentPage({
       params: Promise.resolve({ projectId: "50", teamId: "60", studentId: "101" }),
+      searchParams: Promise.resolve({}),
     });
     render(page);
 
-    expect(screen.getByText(/Unknown student.*assessment record/)).toBeInTheDocument();
+    expect(studentPanelMock).toHaveBeenCalled();
   });
 
   it("continues when the optional feedback layer throws at Promise.all level", async () => {
@@ -283,6 +288,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
 
     const page = await StaffPeerAssessmentStudentPage({
       params: Promise.resolve({ projectId: "50", teamId: "60", studentId: "101" }),
+      searchParams: Promise.resolve({}),
     });
     render(page);
 
@@ -336,6 +342,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
 
     const page = await StaffPeerAssessmentStudentPage({
       params: Promise.resolve({ projectId: "50", teamId: "60", studentId: "101" }),
+      searchParams: Promise.resolve({}),
     });
     render(page);
 

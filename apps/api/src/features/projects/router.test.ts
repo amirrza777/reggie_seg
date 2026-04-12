@@ -33,6 +33,7 @@ describe("projects router", () => {
         { path: "/modules/:moduleId/student-project-matrix", methods: { get: true } },
         { path: "/staff/mine", methods: { get: true } },
         { path: "/staff/:projectId/teams", methods: { get: true } },
+        { path: "/staff/:projectId/peer-assessments", methods: { get: true } },
         { path: "/staff/:projectId/teams/:teamId/team-health-messages", methods: { get: true } },
         { path: "/staff/:projectId/teams/:teamId/warnings", methods: { post: true } },
         { path: "/staff/:projectId/teams/:teamId/warnings", methods: { get: true } },

@@ -50,6 +50,38 @@
   background: color-mix(in srgb, var(--status-warning-soft, var(--color-fixed-fef3c7)) 42%, var(--surface));
 }
 
+.project-card--archived,
+.project-card--archived.project-card--completed,
+.project-card--archived.project-card--awaiting-mark {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--muted) 12%, var(--surface));
+}
+
+.project-card--archived .project-card__title {
+  color: var(--muted);
+}
+
+.project-card--archived .project-card__summary,
+.project-card--archived .project-card__mark,
+.project-card--archived .project-card__dates {
+  color: var(--muted-subtle);
+}
+
+.project-card--archived .project-card__cta {
+  color: var(--muted);
+}
+
+.project-card--archived:hover {
+  border-color: color-mix(in srgb, var(--muted) 35%, var(--border));
+  background: color-mix(in srgb, var(--muted) 16%, var(--surface));
+}
+
+.project-card--archived.project-card--completed:hover,
+.project-card--archived.project-card--awaiting-mark:hover {
+  border-color: color-mix(in srgb, var(--muted) 35%, var(--border));
+  background: color-mix(in srgb, var(--muted) 18%, var(--surface));
+}
+
 .project-card:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
@@ -67,6 +99,13 @@
   color: var(--ink-strong);
   line-height: 1.2;
   letter-spacing: -0.01em;
+}
+
+.project-card__dates {
+  margin: 0;
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-medium);
+  color: var(--muted);
 }
 
 .project-card__module {

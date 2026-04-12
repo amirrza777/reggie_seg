@@ -217,9 +217,6 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
 
   return (
     <>
-      <p className="muted">
-        Team: {team.teamName} · {team.allocations?.length ?? 0} on this team
-      </p>
 
       <section className="staff-projects__team-overview-top" aria-label="Team summary">
         <section className="staff-projects__team-card" aria-label="Team members">
@@ -268,7 +265,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
                         Assessment <strong>{formatPercent(assessmentPercent)}</strong>
                       </Link>
                       <Link
-                        href={`/staff/projects/${projectId}/teams/${teamId}/peer-feedback/${allocation.userId}`}
+                        href={`/staff/projects/${projectId}/teams/${teamId}/peer-assessment/${allocation.userId}`}
                         className="staff-projects__member-metric-link"
                       >
                         Feedback <strong>{formatPercent(feedbackPercent)}</strong>
@@ -276,7 +273,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
                     </div>
                     <div className="staff-projects__member-stat-column">
                       <Link
-                        href={`/staff/peer-assessments/module/${encodeURIComponent(String(data.project.moduleId))}/team/${encodeURIComponent(String(teamId))}/student/${encodeURIComponent(String(allocation.userId))}`}
+                        href={`/staff/projects/${encodeURIComponent(String(projectId))}/teams/${encodeURIComponent(String(teamId))}/grading/student/${encodeURIComponent(String(allocation.userId))}`}
                         className="staff-projects__member-metric-link"
                       >
                         Final mark <strong>{finalMark == null ? "--" : String(finalMark)}</strong>

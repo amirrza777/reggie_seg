@@ -36,10 +36,6 @@ export default async function StaffRepositoriesSectionPage({ params }: PageProps
 
   return (
     <div className="staff-projects">
-      <p className="muted">
-        Team: {team.teamName} · {team.allocations?.length ?? 0} on this team
-      </p>
-
       <StaffProjectReposReadOnlyClient
         projectId={projectId}
         projectName={data.project.name}

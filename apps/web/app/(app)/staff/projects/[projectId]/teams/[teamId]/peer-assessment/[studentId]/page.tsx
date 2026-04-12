@@ -14,7 +14,21 @@ import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
   params: Promise<{ projectId: string; teamId: string; studentId: string }>;
+  searchParams: Promise<{ peerTab?: string | string[]; peerCounterpart?: string | string[] }>;
 };
+
+function parsePeerDrilldown(search: {
+  peerTab?: string | string[];
+  peerCounterpart?: string | string[];
+}): { tab: "given" | "received"; counterpartId: number } | null {
+  const tabRaw = Array.isArray(search.peerTab) ? search.peerTab[0] : search.peerTab;
+  const idRaw = Array.isArray(search.peerCounterpart) ? search.peerCounterpart[0] : search.peerCounterpart;
+  if (tabRaw == null || idRaw == null || idRaw === "") return null;
+  const tab = tabRaw === "received" ? "received" : tabRaw === "given" ? "given" : null;
+  const counterpartId = Number.parseInt(String(idRaw), 10);
+  if (tab == null || !Number.isFinite(counterpartId)) return null;
+  return { tab, counterpartId };
+}
 
 function fullName(firstName: string, lastName: string) {
   return `${firstName} ${lastName}`.trim() || "Unknown student";
@@ -74,8 +88,10 @@ function buildReceivedGroups(
   return Array.from(map.values());
 }
 
-export default async function StaffPeerAssessmentStudentPage({ params }: PageProps) {
+export default async function StaffPeerAssessmentStudentPage({ params, searchParams }: PageProps) {
   const { projectId, teamId, studentId } = await params;
+  const sp = await searchParams;
+  const initialPeerFocus = parsePeerDrilldown(sp);
   const ctx = await getStaffTeamContext(projectId, teamId);
 
   if (!ctx.ok) {
@@ -154,15 +170,8 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
   const receivedGroups = buildReceivedGroups(receivedAssessments, feedbackById);
   const expectedPeerReviews = Math.max(0, team.allocations.length - 1);
 
-  const recordCount = givenAssessments.length + receivedAssessments.length;
-
   return (
     <>
-      <p className="muted">
-        {studentTitle}: {recordCount} assessment record{recordCount === 1 ? "" : "s"}; up to {expectedPeerReviews}{" "}
-        peer review{expectedPeerReviews === 1 ? "" : "s"} per student
-      </p>
-
       {loadError ? (
         <section className="staff-projects__team-card">
           <p className="muted" style={{ margin: 0 }}>
@@ -175,7 +184,7 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
           expectedPeerReviews={expectedPeerReviews}
           givenGroups={givenGroups}
           receivedGroups={receivedGroups}
-          backHref={`/staff/projects/${project.id}/teams/${team.id}/peer-assessment`}
+          initialPeerFocus={initialPeerFocus}
         />
       )}
     </>

@@ -23,6 +23,7 @@ export type StaffProjectManageSetupContextValue = {
   isSaving: boolean;
   isArchiving: boolean;
   isDeleting: boolean;
+  busy: string | null;
   scopeDisabled: boolean;
   detailsSuccess: string | null;
   detailsError: string | null;
@@ -191,6 +192,7 @@ export function StaffProjectManageSetupProvider({ projectId, initial, children }
       isSaving,
       isArchiving,
       isDeleting,
+      busy,
       scopeDisabled,
       detailsSuccess,
       detailsError,
@@ -221,6 +223,7 @@ export function StaffProjectManageSetupProvider({ projectId, initial, children }
       isSaving,
       isArchiving,
       isDeleting,
+      busy,
       scopeDisabled,
       detailsSuccess,
       detailsError,
