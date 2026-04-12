@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
-import { createTeamHealthMessage } from "../api/client";
-import type { TeamHealthMessage } from "../types";
+import { createTeamHealthMessage } from "../../api/client";
+import type { TeamHealthMessage } from "../../types";
 
 type TeamHealthMessagePanelProps = {
   projectId: number;

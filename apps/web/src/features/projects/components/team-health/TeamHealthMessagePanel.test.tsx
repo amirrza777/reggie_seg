@@ -3,10 +3,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createTeamHealthMessage } from "../api/client";
+import { createTeamHealthMessage } from "../../api/client";
 import { TeamHealthMessagePanel } from "./TeamHealthMessagePanel";
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   createTeamHealthMessage: vi.fn(),
 }));
 

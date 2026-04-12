@@ -5,7 +5,7 @@ import { Card } from "@/shared/ui/Card";
 import { Button } from "@/shared/ui/Button";
 import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { TeamHealthMessagePanel } from "./TeamHealthMessagePanel";
-import type { TeamHealthMessage, TeamWarning } from "../types";
+import type { TeamHealthMessage, TeamWarning } from "../../types";
 
 type TeamHealthTab = "warnings" | "messages";
 
