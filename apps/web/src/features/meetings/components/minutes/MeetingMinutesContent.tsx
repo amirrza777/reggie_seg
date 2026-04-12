@@ -2,14 +2,14 @@
 
 import { useUser } from "@/features/auth/context";
 import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
-import { isMeetingMember } from "../lib/meetingMember";
-import { daysToMs } from "../lib/meetingTime";
-import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
-import { MeetingBreadcrumbs } from "./MeetingBreadcrumbs";
+import { isMeetingMember } from "../../lib/meetingMember";
+import { daysToMs } from "../../lib/meetingTime";
+import { useMeetingWithSettings } from "../../hooks/useMeetingWithSettings";
+import { MeetingBreadcrumbs } from "../MeetingBreadcrumbs";
 import { MeetingMinutes } from "./MeetingMinutes";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { Card } from "@/shared/ui/Card";
-import "../styles/meeting-detail.css";
+import "../../styles/meeting-detail.css";
 
 type MeetingMinutesContentProps = {
   meetingId: number;

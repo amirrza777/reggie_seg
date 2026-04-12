@@ -4,11 +4,11 @@ import { MeetingMinutes } from "./MeetingMinutes";
 
 const saveNowMock = vi.fn();
 
-vi.mock("../hooks/useAutosave", () => ({
+vi.mock("../../hooks/useAutosave", () => ({
   useAutosave: vi.fn(() => ({ status: "idle", saveNow: saveNowMock })),
 }));
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   saveMinutes: vi.fn(),
 }));
 
@@ -18,8 +18,8 @@ vi.mock("@/shared/ui/RichTextEditor", () => ({
   ),
 }));
 
-import { useAutosave } from "../hooks/useAutosave";
-import { saveMinutes } from "../api/client";
+import { useAutosave } from "../../hooks/useAutosave";
+import { saveMinutes } from "../../api/client";
 
 const useAutosaveMock = vi.mocked(useAutosave);
 const saveMinutesMock = vi.mocked(saveMinutes);

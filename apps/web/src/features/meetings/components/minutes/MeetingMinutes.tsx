@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
-import { useAutosave } from "../hooks/useAutosave";
-import { saveMinutes } from "../api/client";
+import { useAutosave } from "../../hooks/useAutosave";
+import { saveMinutes } from "../../api/client";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 
 type MeetingMinutesProps = {
