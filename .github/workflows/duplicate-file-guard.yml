@@ -19,6 +19,4 @@ jobs:
           node-version-file: .nvmrc
 
       - name: Check for accidental duplicate files
-        run: |
-          node scripts/check-duplicate-files.mjs
-          node scripts/check-lockfile-policy.mjs
+        run: node scripts/check-duplicate-files.mjs

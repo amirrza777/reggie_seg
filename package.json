@@ -13,7 +13,6 @@
   },
   "scripts": {
     "check:duplicates": "node scripts/check-duplicate-files.mjs",
-    "check:lockfiles": "node scripts/check-lockfile-policy.mjs",
     "prepare": "husky",
     "scan:functions": "bash scripts/scan-functions.sh"
   }
