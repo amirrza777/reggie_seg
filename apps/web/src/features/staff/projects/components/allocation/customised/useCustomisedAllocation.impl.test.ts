@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { useCustomisedAllocation } from "./useCustomisedAllocation";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-vi.mock("./allocationDraftEvents", () => ({ emitStaffAllocationDraftsRefresh: vi.fn() }));
+vi.mock("../allocationDraftEvents", () => ({ emitStaffAllocationDraftsRefresh: vi.fn() }));
 vi.mock("@/features/projects/api/teamAllocation", () => ({
   applyCustomAllocation: vi.fn(),
   getCustomAllocationCoverage: vi.fn().mockResolvedValue({}),

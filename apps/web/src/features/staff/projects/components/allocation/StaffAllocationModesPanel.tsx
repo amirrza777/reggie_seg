@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { StaffRandomAllocationPreview } from "./StaffRandomAllocationPreview";
 import { StaffManualAllocationPanel } from "./StaffManualAllocationPanel";
-import { StaffCustomisedAllocationPanel } from "./StaffCustomisedAllocationPanel";
+import { StaffCustomisedAllocationPanel } from "./customised/StaffCustomisedAllocationPanel";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type AllocationMode = "random" | "manual" | "custom";

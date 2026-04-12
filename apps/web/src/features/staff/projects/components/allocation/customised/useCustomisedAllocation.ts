@@ -7,7 +7,7 @@ import {
   type CustomAllocationPreview,
 } from "@/features/projects/api/teamAllocation";
 import { filterBySearchQuery } from "@/shared/lib/search";
-import { emitStaffAllocationDraftsRefresh } from "./allocationDraftEvents";
+import { emitStaffAllocationDraftsRefresh } from "../allocationDraftEvents";
 import { useCustomisedAllocationLoading } from "./useCustomisedAllocationLoading";
 import {
   getCurrentPreviewInputSnapshot,

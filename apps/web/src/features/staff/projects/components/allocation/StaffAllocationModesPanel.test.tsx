@@ -14,7 +14,7 @@ vi.mock("./StaffManualAllocationPanel", () => ({
   ),
 }));
 
-vi.mock("./StaffCustomisedAllocationPanel", () => ({
+vi.mock("./customised/StaffCustomisedAllocationPanel", () => ({
   StaffCustomisedAllocationPanel: () => (
     <div data-testid="custom-allocation-content">Custom allocation content</div>
   ),

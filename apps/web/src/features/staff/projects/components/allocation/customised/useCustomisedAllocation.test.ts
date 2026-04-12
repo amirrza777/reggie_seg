@@ -7,11 +7,11 @@ import {
   getCustomAllocationQuestionnaires,
   previewCustomAllocation,
 } from "@/features/projects/api/teamAllocation";
-import { emitStaffAllocationDraftsRefresh } from "./allocationDraftEvents";
+import { emitStaffAllocationDraftsRefresh } from "../allocationDraftEvents";
 
 const refreshMock = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: refreshMock }) }));
-vi.mock("./allocationDraftEvents", () => ({ emitStaffAllocationDraftsRefresh: vi.fn() }));
+vi.mock("../allocationDraftEvents", () => ({ emitStaffAllocationDraftsRefresh: vi.fn() }));
 vi.mock("@/features/projects/api/teamAllocation", () => ({
   applyCustomAllocation: vi.fn(),
   getCustomAllocationCoverage: vi.fn(),
