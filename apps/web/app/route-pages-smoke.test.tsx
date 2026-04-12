@@ -54,7 +54,7 @@ vi.mock("@/features/enterprise/components/feature-flags/EnterpriseFeatureFlagsCa
 vi.mock("@/features/enterprise/reports/components/ForumReportsTable", () => ({
   ForumReportsTable: () => <div data-testid="enterprise-forum-reports-table" />,
 }));
-vi.mock("@/features/enterprise/components/EnterpriseModuleCreateForm", () => ({
+vi.mock("@/features/enterprise/components/module-create/EnterpriseModuleCreateForm", () => ({
   EnterpriseModuleCreateForm: () => <div data-testid="enterprise-module-create-form" />,
 }));
 vi.mock("@/features/admin/components/EnterpriseManagementTable", () => ({

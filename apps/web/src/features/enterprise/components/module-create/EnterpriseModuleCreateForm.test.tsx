@@ -23,7 +23,7 @@ vi.mock("@/features/auth/useUser", () => ({
   }),
 }));
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   createEnterpriseModule: vi.fn(),
   deleteEnterpriseModule: vi.fn(),
   getEnterpriseModuleAccessSelection: vi.fn(),
@@ -41,7 +41,7 @@ import {
   searchEnterpriseModuleAccessUsers,
   updateModuleMeetingSettings,
   updateEnterpriseModule,
-} from "../api/client";
+} from "../../api/client";
 import { archiveItem, unarchiveItem } from "@/features/archive/api/client";
 import { EnterpriseModuleCreateForm } from "./EnterpriseModuleCreateForm";
 import React from "react";

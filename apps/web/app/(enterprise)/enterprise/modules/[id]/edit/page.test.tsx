@@ -22,7 +22,7 @@ vi.mock("@/features/enterprise/api/client", () => ({
   getEnterpriseModuleJoinCode: vi.fn(),
 }));
 
-vi.mock("@/features/enterprise/components/EnterpriseModuleCreateForm", () => ({
+vi.mock("@/features/enterprise/components/module-create/EnterpriseModuleCreateForm", () => ({
   EnterpriseModuleCreateForm: ({
     mode,
     moduleId,
