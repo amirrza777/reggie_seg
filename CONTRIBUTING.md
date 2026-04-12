@@ -21,3 +21,14 @@ Notes:
 - Commit authorship stays unchanged.
 - It improves practical line attribution in blame output.
 - After merging a large mechanical refactor (mass renames/moves/reformat), append that commit hash to `.git-blame-ignore-revs` so future blame keeps credit on original contributors.
+
+## Structural and naming conventions (conservative)
+
+- Prefer minimal change over broad reorganization. Keep refactors incremental and scoped.
+- Preserve the existing top-level structure: `apps/api`, `apps/web`, and `packages/shared`.
+- Add new domain logic under existing feature roots (`apps/api/src/features/<domain>`, `apps/web/src/features/<domain>`) rather than creating parallel patterns.
+- Keep route segments kebab-case and dynamic params descriptive (for example `[projectId]` instead of generic `[id]` when practical).
+- Match naming style used by the local domain. Do not introduce a second alias for the same concept in the same scope.
+- Keep directories scannable. When practical, split folders that grow beyond roughly 20-25 files into clear sub-concerns.
+- If a path must change, prefer compatibility wrappers/re-exports first to reduce import and route breakage.
+- Keep tests co-located with the code they validate.
