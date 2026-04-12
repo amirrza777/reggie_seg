@@ -1,7 +1,7 @@
 import { useCallback, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { parsePageInput } from "@/shared/lib/pagination";
-import { inviteEnterpriseAdmin, updateEnterpriseUser } from "../api/client";
-import type { AdminUser, EnterpriseRecord, UserRole } from "../types";
+import { inviteEnterpriseAdmin, updateEnterpriseUser } from "../../api/client";
+import type { AdminUser, EnterpriseRecord, UserRole } from "../../types";
 import {
   DEFAULT_ENTERPRISE_USER_SORT_VALUE,
   type EnterpriseUserSortValue,

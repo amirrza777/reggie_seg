@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import type { AdminUser, AdminUserRecord, EnterpriseRecord, UserRole } from "../types";
+import type { AdminUser, AdminUserRecord, EnterpriseRecord, UserRole } from "../../types";
 
 export type RequestState = "idle" | "loading" | "success" | "error";
 export type EnterpriseUserSortValue = "default" | "joinDateDesc" | "joinDateAsc" | "nameAsc" | "nameDesc";

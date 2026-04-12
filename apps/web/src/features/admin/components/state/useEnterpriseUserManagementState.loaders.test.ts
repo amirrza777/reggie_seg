@@ -1,9 +1,9 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { searchEnterpriseUsers } from "../api/client";
+import { searchEnterpriseUsers } from "../../api/client";
 import { useEnterpriseUserLoaders } from "./useEnterpriseUserManagementState.loaders";
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   searchEnterpriseUsers: vi.fn(),
 }));
 

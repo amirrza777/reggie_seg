@@ -1,5 +1,5 @@
 import { useEffect, type Dispatch, type SetStateAction } from "react";
-import type { EnterpriseRecord } from "../types";
+import type { EnterpriseRecord } from "../../types";
 import type { EnterpriseUserLoaders, EnterpriseUserSortValue } from "./useEnterpriseUserManagementState.shared";
 
 type EnterpriseUserEffectsOptions = {

@@ -3,7 +3,7 @@ import { getEffectiveTotalPages, getPaginationEnd, getPaginationStart, parsePage
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { createEnterprise, deleteEnterprise, inviteEnterpriseAdmin, searchEnterprises } from "../api/client";
 import type { EnterpriseRecord } from "../types";
-import { useEnterpriseUserManagementState } from "./useEnterpriseUserManagementState";
+import { useEnterpriseUserManagementState } from "./state/useEnterpriseUserManagementState";
 
 type RequestState = "idle" | "loading" | "success" | "error";
 

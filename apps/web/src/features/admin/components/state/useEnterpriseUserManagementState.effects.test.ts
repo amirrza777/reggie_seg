@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { normalizeSearchQuery } from "@/shared/lib/search";
-import type { EnterpriseRecord } from "../types";
+import type { EnterpriseRecord } from "../../types";
 import { useEnterpriseUserEffects } from "./useEnterpriseUserManagementState.effects";
 
 const enterprise: EnterpriseRecord = {

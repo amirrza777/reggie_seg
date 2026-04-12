@@ -1,7 +1,7 @@
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { useRef, useState } from "react";
 import { getEffectiveTotalPages, getPaginationEnd, getPaginationStart } from "@/shared/lib/pagination";
-import type { AdminUser, EnterpriseRecord } from "../types";
+import type { AdminUser, EnterpriseRecord } from "../../types";
 import {
   DEFAULT_ENTERPRISE_USER_SORT_VALUE,
   ENTERPRISE_USERS_PER_PAGE,

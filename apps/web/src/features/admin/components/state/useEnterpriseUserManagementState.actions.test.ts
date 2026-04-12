@@ -1,12 +1,12 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { inviteEnterpriseAdmin, updateEnterpriseUser } from "../api/client";
+import { inviteEnterpriseAdmin, updateEnterpriseUser } from "../../api/client";
 import { useEnterpriseUserActions } from "./useEnterpriseUserManagementState.actions";
-import type { AdminUser, EnterpriseRecord } from "../types";
+import type { AdminUser, EnterpriseRecord } from "../../types";
 import type { EnterpriseUserSortValue } from "./useEnterpriseUserManagementState.shared";
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   inviteEnterpriseAdmin: vi.fn(),
   updateEnterpriseUser: vi.fn(),
 }));

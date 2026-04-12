@@ -6,7 +6,7 @@ import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationCo
 import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 import type { EnterpriseRecord } from "../types";
-import type { EnterpriseUserSortValue } from "./useEnterpriseUserManagementState.shared";
+import type { EnterpriseUserSortValue } from "./state/useEnterpriseUserManagementState.shared";
 
 type RequestState = "idle" | "loading" | "success" | "error";
 

@@ -1,6 +1,6 @@
 import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
-import { searchEnterpriseUsers } from "../api/client";
-import type { AdminUser } from "../types";
+import { searchEnterpriseUsers } from "../../api/client";
+import type { AdminUser } from "../../types";
 import {
   type EnterpriseUserSortValue,
   ENTERPRISE_USERS_PER_PAGE,
