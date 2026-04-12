@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
 /** Returns the GitHub snapshots by project link ID. */
 export function listGithubSnapshotsByProjectLinkId(projectGithubRepositoryId: number) {

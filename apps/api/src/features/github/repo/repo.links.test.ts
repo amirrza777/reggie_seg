@@ -10,9 +10,9 @@ import {
   upsertGithubRepository,
   upsertProjectGithubRepositoryLink,
 } from "./repo.links.js";
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
-vi.mock("../../shared/db.js", () => ({
+vi.mock("../../../shared/db.js", () => ({
   prisma: {
     project: { findFirst: vi.fn() },
     teamAllocation: { findMany: vi.fn() },

@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
 /** Returns the user by ID. */
 export function findUserById(userId: number) {

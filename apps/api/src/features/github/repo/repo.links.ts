@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
 /** Checks whether user in project. */
 export async function isUserInProject(userId: number, projectId: number) {

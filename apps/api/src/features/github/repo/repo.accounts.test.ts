@@ -8,9 +8,9 @@ import {
   updateGithubAccountTokens,
   upsertGithubAccount,
 } from "./repo.accounts.js";
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
-vi.mock("../../shared/db.js", () => ({
+vi.mock("../../../shared/db.js", () => ({
   prisma: {
     user: { findUnique: vi.fn() },
     githubAccount: {

@@ -6,9 +6,9 @@ import {
   findLatestGithubSnapshotCoverageByProjectLinkId,
   listGithubSnapshotsByProjectLinkId,
 } from "./repo.snapshots.js";
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
-vi.mock("../../shared/db.js", () => ({
+vi.mock("../../../shared/db.js", () => ({
   prisma: {
     githubRepoSnapshot: { findMany: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn() },
     $transaction: vi.fn(),
