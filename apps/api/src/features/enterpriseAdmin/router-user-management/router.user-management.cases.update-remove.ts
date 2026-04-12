@@ -5,7 +5,7 @@ import {
   mockRes,
   prisma,
   setupEnterpriseAdminRouterTestDefaults,
-} from "./router.test-helpers.js";
+} from "../router.test-helpers.js";
 
 describe("enterpriseAdmin user-management routes", () => {
   const searchUsers = getRouteHandler("get", "/users/search");

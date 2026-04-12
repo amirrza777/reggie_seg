@@ -5,7 +5,7 @@ import { resolveEnterpriseUser } from "./middleware.js";
 import { registerOverviewAndFeatureFlagRoutes } from "./router.overview-flags.js";
 import { registerModuleRoutes } from "./router.modules.js";
 import { registerForumReportRoutes } from "./router.forum-reports.js";
-import { registerUserManagementRoutes } from "./router.user-management.js";
+import { registerUserManagementRoutes } from "./router-user-management/router.user-management.js";
 
 const router = Router();
 
