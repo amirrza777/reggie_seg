@@ -229,6 +229,34 @@ export async function fetchTeamAllocationQuestionnaireStatusForUser(userId: numb
   };
 }
 
+function validateQuestionnaireTemplate(template: any) {
+  if (template.purpose !== "CUSTOMISED_ALLOCATION") {
+    throw { code: "TEMPLATE_INVALID_PURPOSE" };
+  }
+}
+
+function validateQuestionnaireWindow(openDate: Date | null, closeDate: Date | null) {
+  const now = Date.now();
+  const opensAtMs = openDate?.getTime() ?? null;
+  const closesAtMs = closeDate?.getTime() ?? null;
+  if (opensAtMs !== null && now < opensAtMs) {
+    throw { code: "QUESTIONNAIRE_WINDOW_NOT_OPEN" };
+  }
+  if (closesAtMs !== null && now > closesAtMs) {
+    throw { code: "QUESTIONNAIRE_WINDOW_CLOSED" };
+  }
+}
+
+function validateQuestionTypes(questions: any[]) {
+  const unsupported = questions.some((q) => {
+    const normalized = String(q.type ?? "").trim().toLowerCase();
+    return !(normalized === "multiple-choice" || normalized === "multiple_choice" || normalized === "rating" || normalized === "slider");
+  });
+  if (unsupported) {
+    throw { code: "TEMPLATE_CONTAINS_UNSUPPORTED_QUESTION_TYPES" };
+  }
+}
+
 /** Saves a student's response to the project team-allocation questionnaire. */
 export async function submitTeamAllocationQuestionnaireResponse(
   userId: number,
@@ -240,35 +268,11 @@ export async function submitTeamAllocationQuestionnaireResponse(
     throw { code: "PROJECT_OR_TEMPLATE_NOT_FOUND_OR_FORBIDDEN" };
   }
 
-  if (context.template.purpose !== "CUSTOMISED_ALLOCATION") {
-    throw { code: "TEMPLATE_INVALID_PURPOSE" };
-  }
+  validateQuestionnaireTemplate(context.template);
+  validateQuestionnaireWindow(context.teamAllocationQuestionnaireOpenDate, context.teamAllocationQuestionnaireDueDate);
+  validateQuestionTypes(context.template.questions);
 
-  const now = Date.now();
-  const opensAtMs = context.teamAllocationQuestionnaireOpenDate?.getTime() ?? null;
-  const closesAtMs = context.teamAllocationQuestionnaireDueDate?.getTime() ?? null;
-  if (opensAtMs !== null && now < opensAtMs) {
-    throw { code: "QUESTIONNAIRE_WINDOW_NOT_OPEN" };
-  }
-  if (closesAtMs !== null && now > closesAtMs) {
-    throw { code: "QUESTIONNAIRE_WINDOW_CLOSED" };
-  }
-
-  const hasUnsupportedTextQuestions = context.template.questions.some((question) => {
-    const normalized = String(question.type ?? "").trim().toLowerCase();
-    return !(
-      normalized === "multiple-choice" ||
-      normalized === "multiple_choice" ||
-      normalized === "rating" ||
-      normalized === "slider"
-    );
-  });
-  if (hasUnsupportedTextQuestions) {
-    throw { code: "TEMPLATE_CONTAINS_UNSUPPORTED_QUESTION_TYPES" };
-  }
-
-  const userAlreadyAssigned = await hasActiveTeamForUserInProject(userId, projectId);
-  if (userAlreadyAssigned) {
+  if (await hasActiveTeamForUserInProject(userId, projectId)) {
     throw { code: "USER_ALREADY_IN_TEAM" };
   }
 
@@ -281,10 +285,7 @@ export async function submitTeamAllocationQuestionnaireResponse(
     answersJson: normalizedAnswers,
   });
 
-  return {
-    id: saved.id,
-    updatedAt: saved.updatedAt.toISOString(),
-  };
+  return { id: saved.id, updatedAt: saved.updatedAt.toISOString() };
 }
 
 /** Returns all projects with teams for the staff marking overview. */

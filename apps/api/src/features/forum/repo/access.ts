@@ -1,59 +1,44 @@
 import { prisma } from "../../../shared/db.js";
 
-export async function isUserInProject(userId: number, projectId: number) {
-  const project = await prisma.project.findFirst({
+async function isUserTeamMemberInProject(userId: number, projectId: number) {
+  return prisma.project.findFirst({
+    where: { id: projectId, teams: { some: { allocations: { some: { userId } } } } },
+    select: { id: true },
+  });
+}
+
+async function isUserModuleLeadInProject(userId: number, projectId: number) {
+  return prisma.project.findFirst({
+    where: { id: projectId, module: { moduleLeads: { some: { userId } } } },
+    select: { id: true },
+  });
+}
+
+async function isUserModuleAssistantInProject(userId: number, projectId: number) {
+  return prisma.project.findFirst({
+    where: { id: projectId, module: { moduleTeachingAssistants: { some: { userId } } } },
+    select: { id: true },
+  });
+}
+
+async function isUserEnterpriseAdminInProject(userId: number, projectId: number) {
+  return prisma.project.findFirst({
     where: {
       id: projectId,
-      OR: [
-        {
-          teams: {
-            some: {
-              allocations: {
-                some: {
-                  userId,
-                },
-              },
-            },
-          },
-        },
-        {
-          module: {
-            moduleLeads: {
-              some: {
-                userId,
-              },
-            },
-          },
-        },
-        {
-          module: {
-            moduleTeachingAssistants: {
-              some: {
-                userId,
-              },
-            },
-          },
-        },
-        {
-          module: {
-            enterprise: {
-              users: {
-                some: {
-                  id: userId,
-                  role: {
-                    in: ["ADMIN", "ENTERPRISE_ADMIN"],
-                  },
-                },
-              },
-            },
-          },
-        },
-      ],
+      module: { enterprise: { users: { some: { id: userId, role: { in: ["ADMIN", "ENTERPRISE_ADMIN"] } } } } },
     },
     select: { id: true },
   });
+}
 
-  return Boolean(project);
+export async function isUserInProject(userId: number, projectId: number) {
+  const [isTeamMember, isLead, isAssistant, isEnterpriseAdmin] = await Promise.all([
+    isUserTeamMemberInProject(userId, projectId),
+    isUserModuleLeadInProject(userId, projectId),
+    isUserModuleAssistantInProject(userId, projectId),
+    isUserEnterpriseAdminInProject(userId, projectId),
+  ]);
+  return Boolean(isTeamMember || isLead || isAssistant || isEnterpriseAdmin);
 }
 
 export async function getUserRole(userId: number) {

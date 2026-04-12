@@ -21,90 +21,68 @@ function fmt(date: Date): string {
   return date.toISOString();
 }
 
-/** Returns the calendar events for user. */
-export async function getCalendarEventsForUser(userId: number): Promise<CalendarEvent[]> {
+async function buildTeamAllocationEvents(
+  userId: number,
+  seen: Set<string>
+): Promise<CalendarEvent[]> {
   const teams = await prisma.teamAllocation.findMany({
     where: { userId },
     select: {
       team: {
         select: {
-          id: true,
-          project: {
-            select: {
-              id: true,
-              name: true,
-              deadline: {
-                select: {
-                  taskOpenDate: true,
-                  taskDueDate: true,
-                  assessmentOpenDate: true,
-                  assessmentDueDate: true,
-                  feedbackOpenDate: true,
-                  feedbackDueDate: true,
-                },
-              },
-            },
-          },
-          deadlineOverride: {
-            select: {
-              taskOpenDate: true,
-              taskDueDate: true,
-              assessmentOpenDate: true,
-              assessmentDueDate: true,
-              feedbackOpenDate: true,
-              feedbackDueDate: true,
-            },
-          },
+          project: { select: { id: true, name: true, deadline: true } },
+          deadlineOverride: true,
         },
       },
     },
   });
 
   const events: CalendarEvent[] = [];
-  const seen = new Set<string>();
-
   for (const allocation of teams) {
     const { project, deadlineOverride } = allocation.team;
-    const base = project.deadline;
-    if (!base) continue;
+    if (!project.deadline) continue;
 
-    const d = deadlineOverride;
-    const projectName = project.name;
-    const pid = project.id;
-
-    const pairs: Array<[string, "task_open" | "task_due" | "assessment_open" | "assessment_due" | "feedback_open" | "feedback_due", Date]> = [
-      [`${pid}-task_open`, "task_open", d?.taskOpenDate ?? base.taskOpenDate],
-      [`${pid}-task_due`, "task_due", d?.taskDueDate ?? base.taskDueDate],
-      [`${pid}-assessment_open`, "assessment_open", d?.assessmentOpenDate ?? base.assessmentOpenDate],
-      [`${pid}-assessment_due`, "assessment_due", d?.assessmentDueDate ?? base.assessmentDueDate],
-      [`${pid}-feedback_open`, "feedback_open", d?.feedbackOpenDate ?? base.feedbackOpenDate],
-      [`${pid}-feedback_due`, "feedback_due", d?.feedbackDueDate ?? base.feedbackDueDate],
+    const pairs: Array<
+      [string, "task_open" | "task_due" | "assessment_open" | "assessment_due" | "feedback_open" | "feedback_due", Date]
+    > = [
+      [`${project.id}-task_open`, "task_open", deadlineOverride?.taskOpenDate ?? project.deadline.taskOpenDate],
+      [`${project.id}-task_due`, "task_due", deadlineOverride?.taskDueDate ?? project.deadline.taskDueDate],
+      [`${project.id}-assessment_open`, "assessment_open", deadlineOverride?.assessmentOpenDate ?? project.deadline.assessmentOpenDate],
+      [`${project.id}-assessment_due`, "assessment_due", deadlineOverride?.assessmentDueDate ?? project.deadline.assessmentDueDate],
+      [`${project.id}-feedback_open`, "feedback_open", deadlineOverride?.feedbackOpenDate ?? project.deadline.feedbackOpenDate],
+      [`${project.id}-feedback_due`, "feedback_due", deadlineOverride?.feedbackDueDate ?? project.deadline.feedbackDueDate],
     ];
 
+    const labels: Record<string, string> = {
+      task_open: "Task Opens",
+      task_due: "Task Due",
+      assessment_open: "Assessment Opens",
+      assessment_due: "Assessment Due",
+      feedback_open: "Feedback Opens",
+      feedback_due: "Feedback Due",
+    };
+
     for (const [key, type, date] of pairs) {
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      const label: Record<typeof type, string> = {
-        task_open: "Task Opens",
-        task_due: "Task Due",
-        assessment_open: "Assessment Opens",
-        assessment_due: "Assessment Due",
-        feedback_open: "Feedback Opens",
-        feedback_due: "Feedback Due",
-      };
-
-      events.push({
-        id: key,
-        title: `${label[type]} – ${projectName}`,
-        date: fmt(date),
-        type,
-        projectName,
-      });
+      if (!seen.has(key)) {
+        seen.add(key);
+        events.push({
+          id: key,
+          title: `${labels[type]} – ${project.name}`,
+          date: fmt(date),
+          type,
+          projectName: project.name,
+        });
+      }
     }
   }
+  return events;
+}
 
-  const projectMemberships = await prisma.projectStudent.findMany({
+async function buildQuestionnaireEvents(
+  userId: number,
+  seen: Set<string>
+): Promise<CalendarEvent[]> {
+  const memberships = await prisma.projectStudent.findMany({
     where: { userId },
     select: {
       project: {
@@ -123,56 +101,41 @@ export async function getCalendarEventsForUser(userId: number): Promise<Calendar
     },
   });
 
-  for (const membership of projectMemberships) {
-    const project = membership.project;
-    if (!project.teamAllocationQuestionnaireTemplateId) continue;
-    const openDate = project.deadline?.teamAllocationQuestionnaireOpenDate ?? null;
-    const dueDate = project.deadline?.teamAllocationQuestionnaireDueDate ?? null;
-    const projectName = project.name;
-    const pid = project.id;
+  const events: CalendarEvent[] = [];
+  const labels: Record<string, string> = {
+    team_allocation_questionnaire_open: "Team Allocation Questionnaire Opens",
+    team_allocation_questionnaire_due: "Team Allocation Questionnaire Due",
+  };
 
-    const pairs: Array<
-      [string, "team_allocation_questionnaire_open" | "team_allocation_questionnaire_due", Date | null]
-    > = [
-      [
-        `${pid}-team_allocation_questionnaire_open`,
-        "team_allocation_questionnaire_open",
-        openDate,
-      ],
-      [
-        `${pid}-team_allocation_questionnaire_due`,
-        "team_allocation_questionnaire_due",
-        dueDate,
-      ],
+  for (const m of memberships) {
+    if (!m.project.teamAllocationQuestionnaireTemplateId) continue;
+    const openDate = m.project.deadline?.teamAllocationQuestionnaireOpenDate;
+    const dueDate = m.project.deadline?.teamAllocationQuestionnaireDueDate;
+
+    const pairs: Array<[string, string, Date | null]> = [
+      [`${m.project.id}-team_allocation_questionnaire_open`, "team_allocation_questionnaire_open", openDate ?? null],
+      [`${m.project.id}-team_allocation_questionnaire_due`, "team_allocation_questionnaire_due", dueDate ?? null],
     ];
 
     for (const [key, type, date] of pairs) {
-      if (!date) continue;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      const label: Record<typeof type, string> = {
-        team_allocation_questionnaire_open: "Team Allocation Questionnaire Opens",
-        team_allocation_questionnaire_due: "Team Allocation Questionnaire Due",
-      };
-
-      events.push({
-        id: key,
-        title: `${label[type]} - ${projectName}`,
-        date: fmt(date),
-        type,
-        projectName,
-      });
+      if (date && !seen.has(key)) {
+        seen.add(key);
+        events.push({
+          id: key,
+          title: `${labels[type]} - ${m.project.name}`,
+          date: fmt(date),
+          type: type as any,
+          projectName: m.project.name,
+        });
+      }
     }
   }
+  return events;
+}
 
+async function buildMeetingEvents(userId: number): Promise<CalendarEvent[]> {
   const meetings = await prisma.meeting.findMany({
-    where: {
-      OR: [
-        { organiserId: userId },
-        { attendances: { some: { userId } } },
-      ],
-    },
+    where: { OR: [{ organiserId: userId }, { attendances: { some: { userId } } }] },
     select: {
       id: true,
       title: true,
@@ -181,16 +144,25 @@ export async function getCalendarEventsForUser(userId: number): Promise<Calendar
     },
   });
 
-  for (const m of meetings) {
-    events.push({
-      id: `meeting-${m.id}`,
-      title: m.title,
-      date: fmt(m.date),
-      type: "meeting",
-      projectName: m.team.project.name,
-    });
-  }
+  return meetings.map((m) => ({
+    id: `meeting-${m.id}`,
+    title: m.title,
+    date: fmt(m.date),
+    type: "meeting" as const,
+    projectName: m.team.project.name,
+  }));
+}
 
+/** Returns the calendar events for user. */
+export async function getCalendarEventsForUser(userId: number): Promise<CalendarEvent[]> {
+  const seen = new Set<string>();
+  const [teamEvents, questionnaireEvents, meetingEvents] = await Promise.all([
+    buildTeamAllocationEvents(userId, seen),
+    buildQuestionnaireEvents(userId, seen),
+    buildMeetingEvents(userId),
+  ]);
+
+  const events = [...teamEvents, ...questionnaireEvents, ...meetingEvents];
   events.sort((a, b) => a.date.localeCompare(b.date));
   return events;
 }

@@ -85,49 +85,45 @@ export async function fetchProjectsForStaff(userId: number, options?: { query?: 
   });
 }
 
+function canUserManageProjectSettings(actorRole: string, moduleId: number, userId: number): Promise<boolean> | boolean {
+  if (actorRole === "ADMIN" || actorRole === "ENTERPRISE_ADMIN") return true;
+  if (actorRole !== "STAFF") return false;
+  // Falls through to async check
+  return (async () => {
+    const lead = await prisma.moduleLead.findUnique({
+      where: { moduleId_userId: { moduleId, userId } },
+      select: { userId: true },
+    });
+    return Boolean(lead);
+  })();
+}
+
+async function fetchProjectStudentCounts(projectId: number) {
+  const [projectStudents, allocationUserRows] = await Promise.all([
+    prisma.projectStudent.findMany({ where: { projectId }, select: { userId: true } }),
+    prisma.teamAllocation.findMany({
+      where: { team: { projectId, archivedAt: null, allocationLifecycle: "ACTIVE" } },
+      select: { userId: true },
+    }),
+  ]);
+  const allocatedUserIds = new Set(allocationUserRows.map((r) => r.userId));
+  return { projectStudentCount: projectStudents.length, unassignedProjectStudentCount: projectStudents.filter((r) => !allocatedUserIds.has(r.userId)).length };
+}
+
 /** Returns the project teams for staff. */
 export async function fetchProjectTeamsForStaff(userId: number, projectId: number) {
   const project = await getStaffProjectTeams(userId, projectId);
   if (!project) return null;
 
-  const actor = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true },
-  });
+  const actor = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
   const viewerAccessLabel = await getStaffViewerModuleAccessLabel(userId, actor?.role ?? "STAFF", project.moduleId);
-
   const role = actor?.role ?? "STAFF";
-  let canManageProjectSettings = role === "ADMIN" || role === "ENTERPRISE_ADMIN";
-  if (!canManageProjectSettings && role === "STAFF") {
-    const lead = await prisma.moduleLead.findUnique({
-      where: { moduleId_userId: { moduleId: project.moduleId, userId } },
-      select: { userId: true },
-    });
-    canManageProjectSettings = Boolean(lead);
-  }
+
+  let canManageProjectSettings = typeof canUserManageProjectSettings(role, project.moduleId, userId) === "boolean" ? canUserManageProjectSettings(role, project.moduleId, userId) : await canUserManageProjectSettings(role, project.moduleId, userId);
+  const { projectStudentCount, unassignedProjectStudentCount } = await fetchProjectStudentCounts(projectId);
 
   const moduleArchivedAt = project.module?.archivedAt ?? null;
   const projectArchivedAt = project.archivedAt ? new Date(project.archivedAt).toISOString() : null;
-
-  const [projectStudents, allocationUserRows] = await Promise.all([
-    prisma.projectStudent.findMany({
-      where: { projectId },
-      select: { userId: true },
-    }),
-    prisma.teamAllocation.findMany({
-      where: {
-        team: {
-          projectId,
-          archivedAt: null,
-          allocationLifecycle: "ACTIVE",
-        },
-      },
-      select: { userId: true },
-    }),
-  ]);
-  const allocatedUserIds = new Set(allocationUserRows.map((row) => row.userId));
-  const projectStudentCount = projectStudents.length;
-  const unassignedProjectStudentCount = projectStudents.filter((row) => !allocatedUserIds.has(row.userId)).length;
 
   return {
     project: {
@@ -179,38 +175,26 @@ export type StaffProjectPeerAssessmentOverview = {
   hasSubmittedPeerAssessments: boolean;
 };
 
+async function calculateTeamPeerAssessmentProgress(teams: any[]) {
+  const teamProgress = await Promise.all(
+    teams.map(async (team) => {
+      const [submitted, memberCount] = await Promise.all([countSubmittedPAsForTeam(team.id), countStudentsInTeam(team.id)]);
+      return { id: team.id, title: team.teamName, submitted, expected: Math.max(0, memberCount * (memberCount - 1)) };
+    })
+  );
+  return teamProgress;
+}
+
 export async function fetchStaffProjectPeerAssessmentOverview(
   userId: number,
   projectId: number,
 ): Promise<StaffProjectPeerAssessmentOverview | null> {
   const base = await fetchProjectTeamsForStaff(userId, projectId);
-  if (!base) {
-    return null;
-  }
+  if (!base) return null;
 
-  const projectRow = await prisma.project.findFirst({
-    where: { id: projectId },
-    select: {
-      questionnaireTemplate: { select: { id: true, templateName: true } },
-    },
-  });
-
-  const [teams, submittedPeerAssessmentCount] = await Promise.all([
-    Promise.all(
-      base.teams.map(async (team) => {
-        const [submitted, memberCount] = await Promise.all([
-          countSubmittedPAsForTeam(team.id),
-          countStudentsInTeam(team.id),
-        ]);
-        const expected = Math.max(0, memberCount * (memberCount - 1));
-        return {
-          id: team.id,
-          title: team.teamName,
-          submitted,
-          expected,
-        };
-      }),
-    ),
+  const [projectRow, teamProgress, submittedPeerAssessmentCount] = await Promise.all([
+    prisma.project.findFirst({ where: { id: projectId }, select: { questionnaireTemplate: { select: { id: true, templateName: true } } } }),
+    calculateTeamPeerAssessmentProgress(base.teams),
     prisma.peerAssessment.count({ where: { projectId } }),
   ]);
 
@@ -218,7 +202,7 @@ export async function fetchStaffProjectPeerAssessmentOverview(
     project: { id: base.project.id, name: base.project.name },
     moduleId: base.project.moduleId,
     questionnaireTemplate: projectRow?.questionnaireTemplate ?? null,
-    teams,
+    teams: teamProgress,
     canManageProjectSettings: base.project.canManageProjectSettings === true,
     hasSubmittedPeerAssessments: submittedPeerAssessmentCount > 0,
   };

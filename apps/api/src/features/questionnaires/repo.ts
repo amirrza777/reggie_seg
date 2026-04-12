@@ -123,6 +123,39 @@ export async function isQuestionnaireTemplateInUse(templateId: number) {
   return template._count.projects > 0 || template._count.assessments > 0;
 }
 
+function separateQuestions(questions: IncomingQuestion[], existingIds: number[]) {
+  return {
+    toUpdate: questions.filter((q) => q.id && existingIds.includes(q.id)),
+    toCreate: questions.filter((q) => !q.id),
+    toDeleteIds: existingIds.filter((id) => !questions.some((q) => q.id === id)),
+  };
+}
+
+function buildOrderMaps(questions: IncomingQuestion[]) {
+  const byId = new Map<number, number>();
+  const byRef = new Map<IncomingQuestion, number>();
+  questions.forEach((q, idx) => {
+    byRef.set(q, idx);
+    if (typeof q.id === "number") byId.set(q.id, idx);
+  });
+  return { byId, byRef };
+}
+
+async function updateExistingQuestions(tx: any, toUpdate: IncomingQuestion[], orderById: Map<number, number>) {
+  for (const q of toUpdate) {
+    await tx.question.update({
+      where: { id: q.id! },
+      data: { label: q.label, type: q.type, configs: q.configs ?? Prisma.JsonNull, order: orderById.get(q.id!) ?? 0 },
+    });
+  }
+}
+
+async function createNewQuestions(tx: any, toCreate: IncomingQuestion[], templateId: number, orderByRef: Map<IncomingQuestion, number>) {
+  if (toCreate.length === 0) return;
+  const createData = toCreate.map((q) => ({ templateId, label: q.label, type: q.type, order: orderByRef.get(q) ?? 0, configs: q.configs ?? Prisma.JsonNull }));
+  await tx.question.createMany({ data: createData });
+}
+
 /** Updates the questionnaire template. */
 export async function updateQuestionnaireTemplate(
   templateId: number,
@@ -131,76 +164,21 @@ export async function updateQuestionnaireTemplate(
   isPublic?: boolean,
   purpose?: QuestionnairePurpose,
 ) {
-  //update in transaction so no data is lost if error occurs
   return prisma.$transaction(async (tx) => {
     await tx.questionnaireTemplate.update({
       where: { id: templateId },
-      data: {
-        templateName,
-        ...(typeof isPublic === "boolean" ? { isPublic } : {}),
-        ...(purpose !== undefined ? { purpose } : {}),
-      },
+      data: { templateName, ...(typeof isPublic === "boolean" ? { isPublic } : {}), ...(purpose !== undefined ? { purpose } : {}) },
     });
 
-    const existingQuestions = await tx.question.findMany({
-      where: { templateId },
-      select: { id: true },
-    });
-
+    const existingQuestions = await tx.question.findMany({ where: { templateId }, select: { id: true } });
     const existingIds = existingQuestions.map((q) => q.id);
+    const { toUpdate, toCreate, toDeleteIds } = separateQuestions(questions, existingIds);
+    const { byId, byRef } = buildOrderMaps(questions);
 
-    //Separates incoming questions
-    const toUpdate = questions.filter(
-      (q) => q.id && existingIds.includes(q.id)
-    );
-    const toCreate = questions.filter((q) => !q.id);
-    const toDeleteIds = existingIds.filter(
-      (id) => !toUpdate.some((q) => q.id === id)
-    );
-
-    const incomingOrderById = new Map<number, number>();
-    const incomingOrderByRef = new Map<IncomingQuestion, number>();
-    questions.forEach((q, idx) => {
-      incomingOrderByRef.set(q, idx);
-      if (typeof q.id === "number") incomingOrderById.set(q.id, idx);
-    });
-
-    //Updates existing questions
-    for (const q of toUpdate) {
-      await tx.question.update({
-        where: { id: q.id! },
-        data: {
-          label: q.label,
-          type: q.type,
-          configs: q.configs ?? Prisma.JsonNull,
-          order: incomingOrderById.get(q.id!) ?? 0,
-        },
-      });
-    }
-
-    //Creates new questions
-    if (toCreate.length > 0) {
-      const createData = toCreate.map((q) => {
-        const order = incomingOrderByRef.get(q);
-        return {
-          templateId,
-          label: q.label,
-          type: q.type,
-          order: typeof order === "number" ? order : 0,
-          configs: q.configs ?? Prisma.JsonNull,
-        };
-      });
-
-      await tx.question.createMany({
-        data: createData,
-      });
-    }
-
-    //Deletes removed questions
+    await updateExistingQuestions(tx, toUpdate, byId);
+    await createNewQuestions(tx, toCreate, templateId, byRef);
     if (toDeleteIds.length > 0) {
-      await tx.question.deleteMany({
-        where: { id: { in: toDeleteIds } },
-      });
+      await tx.question.deleteMany({ where: { id: { in: toDeleteIds } } });
     }
   });
 }

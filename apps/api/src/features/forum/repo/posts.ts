@@ -86,105 +86,69 @@ export function buildPostTree(posts: EnrichedPost[]) {
   return { roots, byId };
 }
 
-export async function getFlatPostsForProject(userId: number, projectId: number) {
+async function fetchPostData(userId: number, projectId: number) {
   const [posts, project, reports, myStudentReports] = await Promise.all([
     prisma.discussionPost.findMany({
       where: { projectId },
       orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        body: true,
-        createdAt: true,
-        updatedAt: true,
-        parentPostId: true,
-        author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            role: true,
-          },
-        },
-      },
+      select: { id: true, title: true, body: true, createdAt: true, updatedAt: true, parentPostId: true, author: { select: { id: true, firstName: true, lastName: true, role: true } } },
     }),
-    prisma.project.findUnique({
-      where: { id: projectId },
-      select: {
-        forumIsAnonymous: true,
-        moduleId: true,
-      },
-    }),
-    prisma.forumReport.findMany({
-      where: { projectId },
-      select: { postId: true },
-    }),
-    prisma.forumStudentReport.findMany({
-      where: { projectId, reporterId: userId },
-      select: { postId: true, status: true },
-    }),
+    prisma.project.findUnique({ where: { id: projectId }, select: { forumIsAnonymous: true, moduleId: true } }),
+    prisma.forumReport.findMany({ where: { projectId }, select: { postId: true } }),
+    prisma.forumStudentReport.findMany({ where: { projectId, reporterId: userId }, select: { postId: true, status: true } }),
   ]);
+  return { posts, project, reports, myStudentReports };
+}
 
+function buildReportedPostsSet(posts: any[], reports: any[]) {
   const reportedIds = new Set<number>(reports.map((report) => report.postId));
-  if (reportedIds.size > 0) {
-    const childrenByParent = new Map<number | null, number[]>();
-    for (const post of posts) {
-      const bucket = childrenByParent.get(post.parentPostId ?? null) ?? [];
-      bucket.push(post.id);
-      childrenByParent.set(post.parentPostId ?? null, bucket);
-    }
+  if (reportedIds.size === 0) return reportedIds;
 
-    const queue = [...reportedIds];
-    while (queue.length > 0) {
-      const current = queue.pop();
-      if (!current) continue;
-      const children = childrenByParent.get(current) ?? [];
-      for (const childId of children) {
-        if (!reportedIds.has(childId)) {
-          reportedIds.add(childId);
-          queue.push(childId);
-        }
+  const childrenByParent = new Map<number | null, number[]>();
+  for (const post of posts) {
+    const bucket = childrenByParent.get(post.parentPostId ?? null) ?? [];
+    bucket.push(post.id);
+    childrenByParent.set(post.parentPostId ?? null, bucket);
+  }
+
+  const queue = [...reportedIds];
+  while (queue.length > 0) {
+    const current = queue.pop();
+    if (!current) continue;
+    const children = childrenByParent.get(current) ?? [];
+    for (const childId of children) {
+      if (!reportedIds.has(childId)) {
+        reportedIds.add(childId);
+        queue.push(childId);
       }
     }
   }
+  return reportedIds;
+}
 
-  const visiblePosts = reportedIds.size ? posts.filter((post) => !reportedIds.has(post.id)) : posts;
+async function fetchReactionData(visiblePosts: any[], moduleId: number | null, authorIds: number[]) {
+  const postIds = visiblePosts.map((p) => p.id);
+  if (postIds.length === 0) return { myReactions: [], reactionCounts: [], moduleLeadIds: new Set(), moduleTeachingAssistantIds: new Set() };
 
-  const postIds = visiblePosts.map((post) => post.id);
-  if (postIds.length === 0) {
-    return [];
+  const queries: any[] = [
+    prisma.forumReaction.findMany({ where: { postId: { in: postIds } }, select: { postId: true, userId: true, type: true } }),
+    prisma.forumReaction.groupBy({ by: ["postId", "type"], where: { postId: { in: postIds } }, _count: { _all: true } }),
+  ];
+
+  if (moduleId && authorIds.length > 0) {
+    queries.push(
+      prisma.moduleLead.findMany({ where: { moduleId, userId: { in: authorIds } }, select: { userId: true } }),
+      prisma.moduleTeachingAssistant.findMany({ where: { moduleId, userId: { in: authorIds } }, select: { userId: true } })
+    );
   }
-  const authorIds = [...new Set(visiblePosts.map((post) => post.author.id))];
-  const moduleId = project?.moduleId ?? null;
 
-  const [myReactions, reactionCounts] = await Promise.all([
-    prisma.forumReaction.findMany({
-      where: { userId, postId: { in: postIds } },
-      select: { postId: true, type: true },
-    }),
-    prisma.forumReaction.groupBy({
-      by: ["postId", "type"],
-      where: { postId: { in: postIds } },
-      _count: { _all: true },
-    }),
-  ]);
-  const [moduleLeadRows, moduleTeachingAssistantRows] =
-    moduleId && authorIds.length > 0
-      ? await Promise.all([
-          prisma.moduleLead.findMany({
-            where: { moduleId, userId: { in: authorIds } },
-            select: { userId: true },
-          }),
-          prisma.moduleTeachingAssistant.findMany({
-            where: { moduleId, userId: { in: authorIds } },
-            select: { userId: true },
-          }),
-        ])
-      : [[], []];
+  const results = await Promise.all(queries);
+  const [myReactions, reactionCounts, moduleLeadRows = [], moduleTeachingAssistantRows = []] = results;
+  return { myReactions, reactionCounts, moduleLeadIds: new Set(moduleLeadRows.map((l: any) => l.userId)), moduleTeachingAssistantIds: new Set(moduleTeachingAssistantRows.map((t: any) => t.userId)) };
+}
 
-  const reactionByPostId = new Map<number, "LIKE" | "DISLIKE">(
-    myReactions.map((reaction) => [reaction.postId, reaction.type])
-  );
+function aggregateReactionMaps(myReactions: any[], reactionCounts: any[]) {
+  const reactionByPostId = new Map<number, "LIKE" | "DISLIKE">(myReactions.map((r) => [r.postId, r.type]));
   const countsByPostId = new Map<number, { likeCount: number; dislikeCount: number }>();
   for (const entry of reactionCounts) {
     const existing = countsByPostId.get(entry.postId) ?? { likeCount: 0, dislikeCount: 0 };
@@ -192,26 +156,36 @@ export async function getFlatPostsForProject(userId: number, projectId: number) 
     if (entry.type === "DISLIKE") existing.dislikeCount = entry._count._all;
     countsByPostId.set(entry.postId, existing);
   }
+  return { reactionByPostId, countsByPostId };
+}
 
+function enrichPostWithReactions(post: any, userId: number, countsByPostId: Map<number, any>, reactionByPostId: Map<number, any>, hideStudentNames: boolean, moduleLeadIds: Set<number>, moduleTeachingAssistantIds: Set<number>, studentReportByPostId: Map<number, any>) {
+  const counts = countsByPostId.get(post.id) ?? { likeCount: 0, dislikeCount: 0 };
+  const score = counts.likeCount - counts.dislikeCount;
+  return {
+    ...post,
+    author: mapForumAuthor(post.author, hideStudentNames, userId, moduleLeadIds, moduleTeachingAssistantIds),
+    reactionScore: score,
+    myReaction: reactionByPostId.get(post.id) ?? null,
+    myStudentReportStatus: studentReportByPostId.get(post.id) ?? null,
+    replies: [],
+  };
+}
+
+export async function getFlatPostsForProject(userId: number, projectId: number) {
+  const { posts, project, reports, myStudentReports } = await fetchPostData(userId, projectId);
+  const reportedIds = buildReportedPostsSet(posts, reports);
+  const visiblePosts = reportedIds.size ? posts.filter((p) => !reportedIds.has(p.id)) : posts;
+
+  if (visiblePosts.length === 0) return [];
+
+  const authorIds = [...new Set(visiblePosts.map((p) => p.author.id))];
+  const { myReactions, reactionCounts, moduleLeadIds, moduleTeachingAssistantIds } = await fetchReactionData(visiblePosts, project?.moduleId ?? null, authorIds);
+  const { reactionByPostId, countsByPostId } = aggregateReactionMaps(myReactions, reactionCounts);
   const hideStudentNames = project?.forumIsAnonymous ?? false;
-  const moduleLeadIds = new Set(moduleLeadRows.map((lead) => lead.userId));
-  const moduleTeachingAssistantIds = new Set(moduleTeachingAssistantRows.map((assistant) => assistant.userId));
-  const studentReportByPostId = new Map<number, "PENDING" | "APPROVED" | "IGNORED">(
-    myStudentReports.map((report) => [report.postId, report.status])
-  );
+  const studentReportByPostId = new Map(myStudentReports.map((r) => [r.postId, r.status]));
 
-  return visiblePosts.map((post) => {
-    const counts = countsByPostId.get(post.id) ?? { likeCount: 0, dislikeCount: 0 };
-    const score = counts.likeCount - counts.dislikeCount;
-    return {
-      ...post,
-      author: mapForumAuthor(post.author, hideStudentNames, userId, moduleLeadIds, moduleTeachingAssistantIds),
-      reactionScore: score,
-      myReaction: reactionByPostId.get(post.id) ?? null,
-      myStudentReportStatus: studentReportByPostId.get(post.id) ?? null,
-      replies: [],
-    };
-  });
+  return visiblePosts.map((post) => enrichPostWithReactions(post, userId, countsByPostId, reactionByPostId, hideStudentNames, moduleLeadIds, moduleTeachingAssistantIds, studentReportByPostId));
 }
 
 export async function getDiscussionPostsForProject(userId: number, projectId: number) {

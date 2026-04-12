@@ -64,13 +64,54 @@ function applyBrandLinkStyles(html: string) {
   });
 }
 
+function buildEmailStyles(shellBackgroundImage: string) {
+  return `
+    :root { color-scheme: light; supported-color-schemes: light; }
+    .email-shell a, .email-shell a:visited { color: #20ad78 !important; text-decoration: underline !important; }
+    a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+    @media (prefers-color-scheme: dark) {
+      .email-body { background: #d8efe2 !important; color: #111111 !important; }
+      .email-bg { background: #d8efe2 !important; background-image: ${shellBackgroundImage} !important; }
+      .email-card { background: #ffffff !important; border-color: rgba(32, 173, 120, 0.44) !important; }
+      .email-eyebrow { color: #6d6d6d !important; }
+      .email-title { color: #111111 !important; }
+      .email-copy { color: #1f1f1f !important; }
+      .email-footer { color: #6d6d6d !important; }
+    }
+    [data-ogsc] .email-body, [data-ogsb] .email-body { background: #d8efe2 !important; color: #111111 !important; }
+    [data-ogsc] .email-bg, [data-ogsb] .email-bg { background: #d8efe2 !important; background-image: ${shellBackgroundImage} !important; }
+    [data-ogsc] .email-card, [data-ogsb] .email-card { background: #ffffff !important; border-color: rgba(32, 173, 120, 0.44) !important; }
+    [data-ogsc] .email-eyebrow, [data-ogsb] .email-eyebrow { color: #6d6d6d !important; }
+    [data-ogsc] .email-title, [data-ogsb] .email-title { color: #111111 !important; }
+    [data-ogsc] .email-copy, [data-ogsb] .email-copy { color: #1f1f1f !important; }
+    [data-ogsc] .email-footer, [data-ogsb] .email-footer { color: #6d6d6d !important; }
+  `;
+}
+
+function buildEmailBody(safeSubject: string, safeAppName: string, brandedContentHtml: string, year: number, shellBackgroundImage: string) {
+  return `<body class="email-body" link="#20ad78" vlink="#20ad78" style="margin:0; padding:0; background:#d8efe2; color:#111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;">
+    <table class="email-bg" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#d8efe2; background-image:${shellBackgroundImage}; padding:20px 12px;">
+      <tr><td align="center">
+        <table class="email-shell" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;">
+          <tr><td class="email-rail" style="height:10px; background:#157a4d; background-image:linear-gradient(90deg, #0d5d3a 0%, #157a4d 45%, #20ad78 100%); border-radius:12px 12px 0 0;"></td></tr>
+          <tr><td class="email-card" style="background:#ffffff; border:1px solid rgba(32, 173, 120, 0.44); border-top:0; border-radius:0 0 12px 12px; padding:28px 24px;">
+            <p class="email-eyebrow" style="margin:0 0 14px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#6d6d6d;">${safeAppName}</p>
+            <h1 class="email-title" style="margin:0 0 18px 0; font-size:24px; line-height:1.2; color:#111111;">${safeSubject}</h1>
+            <div class="email-copy" style="font-size:15px; line-height:1.6; color:#1f1f1f;">${brandedContentHtml}</div>
+          </td></tr>
+          <tr><td class="email-footer" style="padding:14px 4px 0 4px; font-size:12px; line-height:1.5; color:#6d6d6d; text-align:center;">© ${year} ${safeAppName}</td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>`;
+}
+
 function renderBrandedEmail(subject: string, contentHtml: string) {
   const safeSubject = escapeHtml(subject);
   const safeAppName = escapeHtml(APP_NAME);
   const year = new Date().getFullYear();
   const brandedContentHtml = applyBrandLinkStyles(contentHtml);
-  const shellBackgroundImage =
-    "radial-gradient(125% 62% at 0% 0%, rgba(32,173,120,0.42) 0%, rgba(32,173,120,0.16) 46%, rgba(32,173,120,0) 74%), radial-gradient(125% 62% at 100% 100%, rgba(32,173,120,0.38) 0%, rgba(32,173,120,0.14) 44%, rgba(32,173,120,0) 72%)";
+  const shellBackgroundImage = "radial-gradient(125% 62% at 0% 0%, rgba(32,173,120,0.42) 0%, rgba(32,173,120,0.16) 46%, rgba(32,173,120,0) 74%), radial-gradient(125% 62% at 100% 100%, rgba(32,173,120,0.38) 0%, rgba(32,173,120,0.14) 44%, rgba(32,173,120,0) 72%)";
 
   return `<!doctype html>
 <html lang="en">
@@ -81,104 +122,9 @@ function renderBrandedEmail(subject: string, contentHtml: string) {
     <meta name="color-scheme" content="light" />
     <meta name="supported-color-schemes" content="light" />
     <title>${safeSubject}</title>
-    <style>
-      :root {
-        color-scheme: light;
-        supported-color-schemes: light;
-      }
-      .email-shell a,
-      .email-shell a:visited {
-        color: #20ad78 !important;
-        text-decoration: underline !important;
-      }
-      a[x-apple-data-detectors] {
-        color: inherit !important;
-        text-decoration: none !important;
-      }
-      @media (prefers-color-scheme: dark) {
-        .email-body {
-          background: #d8efe2 !important;
-          color: #111111 !important;
-        }
-        .email-bg {
-          background: #d8efe2 !important;
-          background-image: ${shellBackgroundImage} !important;
-        }
-        .email-card {
-          background: #ffffff !important;
-          border-color: rgba(32, 173, 120, 0.44) !important;
-        }
-        .email-eyebrow {
-          color: #6d6d6d !important;
-        }
-        .email-title {
-          color: #111111 !important;
-        }
-        .email-copy {
-          color: #1f1f1f !important;
-        }
-        .email-footer {
-          color: #6d6d6d !important;
-        }
-      }
-      [data-ogsc] .email-body,
-      [data-ogsb] .email-body {
-        background: #d8efe2 !important;
-        color: #111111 !important;
-      }
-      [data-ogsc] .email-bg,
-      [data-ogsb] .email-bg {
-        background: #d8efe2 !important;
-        background-image: ${shellBackgroundImage} !important;
-      }
-      [data-ogsc] .email-card,
-      [data-ogsb] .email-card {
-        background: #ffffff !important;
-        border-color: rgba(32, 173, 120, 0.44) !important;
-      }
-      [data-ogsc] .email-eyebrow,
-      [data-ogsb] .email-eyebrow {
-        color: #6d6d6d !important;
-      }
-      [data-ogsc] .email-title,
-      [data-ogsb] .email-title {
-        color: #111111 !important;
-      }
-      [data-ogsc] .email-copy,
-      [data-ogsb] .email-copy {
-        color: #1f1f1f !important;
-      }
-      [data-ogsc] .email-footer,
-      [data-ogsb] .email-footer {
-        color: #6d6d6d !important;
-      }
-    </style>
+    <style>${buildEmailStyles(shellBackgroundImage)}</style>
   </head>
-  <body class="email-body" link="#20ad78" vlink="#20ad78" style="margin:0; padding:0; background:#d8efe2; color:#111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;">
-    <table class="email-bg" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#d8efe2; background-image:${shellBackgroundImage}; padding:20px 12px;">
-      <tr>
-        <td align="center">
-          <table class="email-shell" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;">
-            <tr>
-              <td class="email-rail" style="height:10px; background:#157a4d; background-image:linear-gradient(90deg, #0d5d3a 0%, #157a4d 45%, #20ad78 100%); border-radius:12px 12px 0 0;"></td>
-            </tr>
-            <tr>
-              <td class="email-card" style="background:#ffffff; border:1px solid rgba(32, 173, 120, 0.44); border-top:0; border-radius:0 0 12px 12px; padding:28px 24px;">
-                <p class="email-eyebrow" style="margin:0 0 14px 0; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:#6d6d6d;">${safeAppName}</p>
-                <h1 class="email-title" style="margin:0 0 18px 0; font-size:24px; line-height:1.2; color:#111111;">${safeSubject}</h1>
-                <div class="email-copy" style="font-size:15px; line-height:1.6; color:#1f1f1f;">${brandedContentHtml}</div>
-              </td>
-            </tr>
-            <tr>
-              <td class="email-footer" style="padding:14px 4px 0 4px; font-size:12px; line-height:1.5; color:#6d6d6d; text-align:center;">
-                © ${year} ${safeAppName}
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
+  ${buildEmailBody(safeSubject, safeAppName, brandedContentHtml, year, shellBackgroundImage)}
 </html>`;
 }
 

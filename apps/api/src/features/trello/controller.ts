@@ -28,187 +28,181 @@ function parseTrelloLinkTokenPayload(payload: string | jwt.JwtPayload): TrelloLi
   return { sub, purpose }
 }
 
-export const TrelloController = {
+function extractUserId(req: Request): number | null {
+  const userId = (req.user as any)?.sub;
+  return typeof userId === "number" && Number.isFinite(userId) ? userId : null;
+}
 
+function handleTrelloError(err: any, defaultStatus: number = 400): [number, string] {
+  if (err?.name === "TokenExpiredError") return [401, "Link token expired. Start the flow again from the project Trello page."];
+  return [defaultStatus, err?.message ?? "An error occurred"];
+}
+
+export const TrelloController = {
   async getMyTrelloMemberId(req: Request, res: Response) {
     try {
-      const userId = (req.user as any)?.sub
-      if (!userId) return res.status(401).json({ error: "Not authenticated" })
-      const user = await TrelloRepo.getUserById(userId)
-      return res.status(200).json({ trelloMemberId: user?.trelloMemberId ?? null })
+      const userId = extractUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await TrelloRepo.getUserById(userId);
+      return res.status(200).json({ trelloMemberId: user?.trelloMemberId ?? null });
     } catch (err: any) {
-      return res.status(500).json({ error: err.message })
+      const [status, msg] = handleTrelloError(err, 500);
+      return res.status(status).json({ error: msg });
     }
   },
 
-  /** Returns linked Trello profile (fullName, username) when user has connected Trello. */
   async getMyTrelloProfile(req: Request, res: Response) {
     try {
-      const userId = (req.user as any)?.sub
-      if (!userId) return res.status(401).json({ error: "Not authenticated" })
-      const user = await TrelloRepo.getUserById(userId)
-      if (!user?.trelloToken) {
-        return res.status(200).json({ trelloMemberId: null })
-      }
-      const member = await TrelloService.getTrelloMember(user.trelloToken)
-      return res.status(200).json({
-        trelloMemberId: member?.id ?? null,
-        fullName: member?.fullName ?? null,
-        username: member?.username ?? null,
-      })
+      const userId = extractUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await TrelloRepo.getUserById(userId);
+      if (!user?.trelloToken) return res.status(200).json({ trelloMemberId: null });
+      const member = await TrelloService.getTrelloMember(user.trelloToken);
+      return res.status(200).json({ trelloMemberId: member?.id ?? null, fullName: member?.fullName ?? null, username: member?.username ?? null });
     } catch (err: any) {
-      return res.status(500).json({ error: err.message })
+      const [status, msg] = handleTrelloError(err, 500);
+      return res.status(status).json({ error: msg });
     }
   },
 
-  /** Returns a short-lived link token so the callback page can complete the flow without cookies. */
   getLinkToken(req: Request, res: Response) {
     try {
-      const userId = (req.user as any)?.sub
-      if (!userId) return res.status(401).json({ error: "Not authenticated" })
-      const linkToken = jwt.sign(
-        { sub: userId, purpose: "trello-link" },
-        accessSecret,
-        { expiresIn: "5m" }
-      )
-      return res.status(200).json({ linkToken })
+      const userId = extractUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const linkToken = jwt.sign({ sub: userId, purpose: "trello-link" }, accessSecret, { expiresIn: "5m" });
+      return res.status(200).json({ linkToken });
     } catch (err: any) {
-      return res.status(500).json({ error: err.message })
+      const [status, msg] = handleTrelloError(err, 500);
+      return res.status(status).json({ error: msg });
     }
   },
 
-  //Returns an auth URL the frontend can redirect to
   getConnectUrl(req: Request, res: Response) {
     try {
-      const callbackUrl = parseCallbackUrlQuery(req.query?.callbackUrl)
-      if (!callbackUrl.ok) return res.status(400).json({ error: callbackUrl.error })
-      const url = TrelloService.getAuthoriseUrl(callbackUrl.value)
-      return res.status(200).json({ url })
+      const callbackUrl = parseCallbackUrlQuery(req.query?.callbackUrl);
+      if (!callbackUrl.ok) return res.status(400).json({ error: callbackUrl.error });
+      const url = TrelloService.getAuthoriseUrl(callbackUrl.value);
+      return res.status(200).json({ url });
     } catch (err: any) {
-      return res.status(503).json({ error: err.message })
+      const [status, msg] = handleTrelloError(err, 503);
+      return res.status(status).json({ error: msg });
     }
   },
 
-  //Redirects endpoint for browser navigation.
   connect(req: Request, res: Response) {
     try {
-      const callbackUrl = parseCallbackUrlQuery(req.query?.callbackUrl)
-      if (!callbackUrl.ok) return res.status(400).json({ error: callbackUrl.error })
-      const url = TrelloService.getAuthoriseUrl(callbackUrl.value)
-      return res.redirect(url)
+      const callbackUrl = parseCallbackUrlQuery(req.query?.callbackUrl);
+      if (!callbackUrl.ok) return res.status(400).json({ error: callbackUrl.error });
+      const url = TrelloService.getAuthoriseUrl(callbackUrl.value);
+      return res.redirect(url);
     } catch (err: any) {
-      return res.status(503).json({ error: err.message })
+      const [status, msg] = handleTrelloError(err, 503);
+      return res.status(status).json({ error: msg });
     }
   },
 
-  //Receives Trello token from frontend callback page and links it to current user
   async callback(req: Request, res: Response) {
     try {
-      const parsedBody = parseTrelloCallbackBody(req.body)
-      if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
-      const userId = (req.user as any).sub as number
-      await TrelloService.completeOauthCallback(userId, parsedBody.value.token)
-      return res.status(200).json({ ok: true })
+      const parsedBody = parseTrelloCallbackBody(req.body);
+      if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+      const userId = extractUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      await TrelloService.completeOauthCallback(userId, parsedBody.value.token);
+      return res.status(200).json({ ok: true });
     } catch (err: any) {
-      return res.status(500).json({ error: err.message })
+      const [status, msg] = handleTrelloError(err, 500);
+      return res.status(status).json({ error: msg });
     }
   },
 
-  /** Completes Trello link using a short-lived link token (no session cookie needed). */
   async callbackWithLinkToken(req: Request, res: Response) {
     try {
-      const parsedBody = parseLinkTokenCallbackBody(req.body)
-      if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
-      const verified = jwt.verify(parsedBody.value.linkToken, accessSecret)
-      const payload = parseTrelloLinkTokenPayload(verified)
-      if (!payload) {
-        return res.status(400).json({ error: "Invalid link token" })
-      }
-      if (payload.purpose !== "trello-link") {
-        return res.status(400).json({ error: "Invalid link token" })
-      }
-      await TrelloService.completeOauthCallback(payload.sub, parsedBody.value.token)
-      return res.status(200).json({ ok: true })
+      const parsedBody = parseLinkTokenCallbackBody(req.body);
+      if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+      const verified = jwt.verify(parsedBody.value.linkToken, accessSecret);
+      const payload = parseTrelloLinkTokenPayload(verified);
+      if (!payload || payload.purpose !== "trello-link") return res.status(400).json({ error: "Invalid link token" });
+      await TrelloService.completeOauthCallback(payload.sub, parsedBody.value.token);
+      return res.status(200).json({ ok: true });
     } catch (err: any) {
       if (err?.name === "TokenExpiredError") {
-        return res.status(401).json({ error: "Link token expired. Start the flow again from the project Trello page." })
+        return res.status(401).json({ error: "Link token expired. Start the flow again from the project Trello page." });
       }
-      return res.status(400).json({ error: err?.message ?? "Invalid link token" })
+      return res.status(400).json({ error: "Invalid link token" });
     }
   },
 
-  //Trello token flow is handled via POST. GET is intentionally halted
   callbackGetUnsupported(_req: Request, res: Response) {
-    return res
-      .status(405)
-      .json({ error: "Use POST /trello/callback after handling Trello token on the frontend callback page." })
+    return res.status(405).json({ error: "Use POST /trello/callback after handling Trello token on the frontend callback page." });
   },
 
-  //Assigns one Trello board to one team
   async assignBoardToTeam(req: Request, res: Response) {
     try {
-      const parsedBody = parseAssignBoardBody(req.body)
-      if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
-      const ownerId = (req.user as any).sub as number
-
-      await TrelloService.assignBoardToTeam(parsedBody.value.teamId, parsedBody.value.boardId, ownerId)
-      res.status(200).json({ message: "Board assigned" })
+      const parsedBody = parseAssignBoardBody(req.body);
+      if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+      const ownerId = extractUserId(req);
+      if (!ownerId) return res.status(401).json({ error: "Not authenticated" });
+      await TrelloService.assignBoardToTeam(parsedBody.value.teamId, parsedBody.value.boardId, ownerId);
+      res.status(200).json({ message: "Board assigned" });
     } catch (err: any) {
-      res.status(400).json({ error: err.message })
+      const [status, msg] = handleTrelloError(err);
+      res.status(status).json({ error: msg });
     }
   },
 
-  //Returns the board assigned to a team
   async fetchAssignedTeamBoard(req: Request, res: Response) {
     try {
-      const teamId = parseTeamIdQuery(req.query.teamId)
-      if (!teamId.ok) return res.status(400).json({ error: teamId.error })
-      const userId = (req.user as any).sub
-      const board = await TrelloService.fetchAssignedTeamBoard(teamId.value, userId)
-      res.status(200).json(board)
+      const teamId = parseTeamIdQuery(req.query.teamId);
+      if (!teamId.ok) return res.status(400).json({ error: teamId.error });
+      const userId = extractUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const board = await TrelloService.fetchAssignedTeamBoard(teamId.value, userId);
+      res.status(200).json(board);
     } catch (err: any) {
-      res.status(400).json({ error: err.message })
+      const [status, msg] = handleTrelloError(err);
+      res.status(status).json({ error: msg });
     }
   },
 
-  //Returns boards visible to the logged-in Trello account
   async fetchMyBoards(req: Request, res: Response) {
     try {
-      const userId = (req.user as any).sub
-      const parsedSearchQuery = parseSearchQuery(req.query?.q)
-      if (!parsedSearchQuery.ok) {
-        return res.status(400).json({ error: parsedSearchQuery.error })
-      }
-      const boards = await TrelloService.fetchMyBoards(userId, { query: parsedSearchQuery.value })
-      res.status(200).json(boards)
+      const userId = extractUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const parsedSearchQuery = parseSearchQuery(req.query?.q);
+      if (!parsedSearchQuery.ok) return res.status(400).json({ error: parsedSearchQuery.error });
+      const boards = await TrelloService.fetchMyBoards(userId, { query: parsedSearchQuery.value });
+      res.status(200).json(boards);
     } catch (err: any) {
-      res.status(400).json({ error: err.message })
+      const [status, msg] = handleTrelloError(err);
+      res.status(status).json({ error: msg });
     }
   },
 
-  /** Saves trello status config (list name -> status). */
   async putTrelloSectionConfig(req: Request, res: Response) {
     try {
-      const parsedBody = parseSectionConfigBody(req.body)
-      if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
-      const userId = (req.user as any).sub
-      await TrelloService.updateTeamTrelloSectionConfig(parsedBody.value.teamId, userId, parsedBody.value.config)
-      return res.status(200).json({ ok: true })
+      const parsedBody = parseSectionConfigBody(req.body);
+      if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+      const userId = extractUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      await TrelloService.updateTeamTrelloSectionConfig(parsedBody.value.teamId, userId, parsedBody.value.config);
+      return res.status(200).json({ ok: true });
     } catch (err: any) {
-      if (err?.message === "Not a member of this team") return res.status(403).json({ error: err.message })
-      return res.status(500).json({ error: err.message })
+      if (err?.message === "Not a member of this team") return res.status(403).json({ error: err.message });
+      const [status, msg] = handleTrelloError(err, 500);
+      return res.status(status).json({ error: msg });
     }
   },
 
-  //Returns a board by id
   async fetchBoardById(req: Request, res: Response) {
     try {
-      const userId = (req.user as any).sub
-      const boardId = parseBoardIdParam(req.params.boardId)
-      const board = await TrelloService.fetchBoardById(userId, boardId)
-      res.status(200).json(board)
+      const userId = extractUserId(req);
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const boardId = parseBoardIdParam(req.params.boardId);
+      const board = await TrelloService.fetchBoardById(userId, boardId);
+      res.status(200).json(board);
     } catch (err: any) {
-      res.status(400).json({ error: err.message })
+      const [status, msg] = handleTrelloError(err);
+      res.status(status).json({ error: msg });
     }
   },
 }

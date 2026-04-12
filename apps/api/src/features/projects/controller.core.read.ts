@@ -343,53 +343,51 @@ export async function getTeamAllocationQuestionnaireStatusForProjectHandler(req:
   }
 }
 
+function validateTeamAllocationParams(userId: number | null, projectId: number, answersJson: unknown) {
+  if (userId === null) return { valid: false, error: null };
+  if (isNaN(projectId)) return { valid: false, error: "Invalid project ID" };
+  if (answersJson == null) return { valid: false, error: "answersJson is required" };
+  return { valid: true, error: null };
+}
+
+function handleTeamAllocationError(error: unknown): { statusCode: number; message: string } | null {
+  const code = typeof error === "object" && error !== null && "code" in error ? (error as { code?: unknown }).code : undefined;
+  const errorMap: Record<string, [number, string]> = {
+    PROJECT_OR_TEMPLATE_NOT_FOUND_OR_FORBIDDEN: [404, "Team allocation questionnaire template not found for this project"],
+    TEMPLATE_INVALID_PURPOSE: [400, "Questionnaire template must have CUSTOMISED_ALLOCATION purpose"],
+    TEMPLATE_CONTAINS_UNSUPPORTED_QUESTION_TYPES: [400, "Custom allocation questionnaires can only include multiple-choice, rating, or slider questions"],
+    QUESTIONNAIRE_WINDOW_NOT_OPEN: [409, "The team allocation questionnaire is not open yet"],
+    QUESTIONNAIRE_WINDOW_CLOSED: [409, "The team allocation questionnaire deadline has passed"],
+    USER_ALREADY_IN_TEAM: [409, "You are already assigned to a team in this project"],
+  };
+  if (code && code in errorMap) {
+    const [statusCode, message] = errorMap[code];
+    return { statusCode, message };
+  }
+  return null;
+}
+
 export async function submitTeamAllocationQuestionnaireResponseHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
-
-  if (userId === null) {
-    return;
-  }
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
-
   const answersJson = req.body?.answersJson;
-  if (answersJson == null) {
-    return res.status(400).json({ error: "answersJson is required" });
+
+  const validation = validateTeamAllocationParams(userId, projectId, answersJson);
+  if (!validation.valid) {
+    return res.status(validation.error ? 400 : 401).json({ error: validation.error || "Unauthorized" });
   }
 
   try {
-    const result = await submitTeamAllocationQuestionnaireResponse(userId, projectId, answersJson);
+    const result = await submitTeamAllocationQuestionnaireResponse(userId!, projectId, answersJson);
     return res.status(201).json({ response: result });
   } catch (error: unknown) {
-    const code =
-      typeof error === "object" && error !== null && "code" in error ? (error as { code?: unknown }).code : undefined;
-
-    if (code === "PROJECT_OR_TEMPLATE_NOT_FOUND_OR_FORBIDDEN") {
-      return res.status(404).json({ error: "Team allocation questionnaire template not found for this project" });
-    }
-    if (code === "TEMPLATE_INVALID_PURPOSE") {
-      return res.status(400).json({ error: "Questionnaire template must have CUSTOMISED_ALLOCATION purpose" });
-    }
-    if (code === "TEMPLATE_CONTAINS_UNSUPPORTED_QUESTION_TYPES") {
-      return res.status(400).json({
-        error: "Custom allocation questionnaires can only include multiple-choice, rating, or slider questions",
-      });
-    }
-    if (code === "QUESTIONNAIRE_WINDOW_NOT_OPEN") {
-      return res.status(409).json({ error: "The team allocation questionnaire is not open yet" });
-    }
-    if (code === "QUESTIONNAIRE_WINDOW_CLOSED") {
-      return res.status(409).json({ error: "The team allocation questionnaire deadline has passed" });
-    }
-    if (code === "USER_ALREADY_IN_TEAM") {
-      return res.status(409).json({ error: "You are already assigned to a team in this project" });
-    }
     if (error instanceof AssessmentAnswerValidationError) {
       return res.status(400).json({ error: error.message });
     }
-
+    const mappedError = handleTeamAllocationError(error);
+    if (mappedError) {
+      return res.status(mappedError.statusCode).json({ error: mappedError.message });
+    }
     console.error("Error saving team allocation questionnaire response:", error);
     return res.status(500).json({ error: "Failed to submit team allocation questionnaire response" });
   }
