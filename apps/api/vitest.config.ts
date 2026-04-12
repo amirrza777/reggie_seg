@@ -36,7 +36,7 @@ export default defineConfig({
         "src/features/projects/project-manage/controller.ts",
         "src/features/projects/controller.modules.ts",
         "src/features/forum/repo/posts.ts",
-        "src/features/projects/controller.core.ts",
+        "src/features/projects/controller.handlers.ts",
         "src/features/forum/repo/access.ts",
         "src/features/forum/repo/studentReports.ts",
         "src/shared/rateLimit.ts",

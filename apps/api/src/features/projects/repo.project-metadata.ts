@@ -12,7 +12,7 @@ export async function getProjectById(projectId: number) {
       questionnaireTemplateId: true,
       teamAllocationQuestionnaireTemplateId: true,
       projectNavFlags: true,
-      module: { select: { archivedAt: true, name: true } },
+      module: { select: { name: true, archivedAt: true } },
     },
   });
 }

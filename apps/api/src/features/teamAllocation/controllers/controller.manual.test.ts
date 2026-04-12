@@ -47,6 +47,13 @@ describe("controller.manual", () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
+  it("returns 400 when workspace project id is invalid", async () => {
+    const req = { user: { sub: 4 }, params: { projectId: "x" }, query: {} };
+    const res = createResponse();
+    await getManualAllocationWorkspaceHandler(req as any, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
   it("returns workspace payload from service", async () => {
     const req = { user: { sub: 4 }, params: { projectId: "7" }, query: { q: "ada" } };
     const res = createResponse();
@@ -92,6 +99,22 @@ describe("controller.manual", () => {
     const res = createResponse();
     await applyManualAllocationHandler(req as any, res);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("returns 401/400 when apply auth or project id is invalid", async () => {
+    const unauthRes = createResponse();
+    await applyManualAllocationHandler(
+      { params: { projectId: "7" }, body: { teamName: "Gamma", studentIds: [1] } } as any,
+      unauthRes,
+    );
+    expect(unauthRes.status).toHaveBeenCalledWith(401);
+
+    const invalidProjectRes = createResponse();
+    await applyManualAllocationHandler(
+      { user: { sub: 4 }, params: { projectId: "x" }, body: { teamName: "Gamma", studentIds: [1] } } as any,
+      invalidProjectRes,
+    );
+    expect(invalidProjectRes.status).toHaveBeenCalledWith(400);
   });
 
   it.each([

@@ -92,8 +92,8 @@ describe("ProjectList", () => {
       <ProjectList
         projects={[project({ id: "77" }), project({ id: "78", name: "Project Nova" })]}
         projectMetaById={{
-          "77": { completed: true, finishedUnmarked: false, mark: 72 },
-          "78": { completed: true, finishedUnmarked: false, mark: 72.5 },
+          "77": { state: "completed_marked", mark: 72 },
+          "78": { state: "completed_marked", mark: 72.5 },
         }}
       />,
     );
@@ -107,8 +107,8 @@ describe("ProjectList", () => {
       <ProjectList
         projects={[project({ id: "81" }), project({ id: "82", name: "Project Helios" })]}
         projectMetaById={{
-          "81": { completed: true, finishedUnmarked: false, mark: null },
-          "82": { completed: false, finishedUnmarked: true, mark: null },
+          "81": { state: "completed_marked", mark: null },
+          "82": { state: "completed_unmarked", mark: null },
         }}
       />,
     );

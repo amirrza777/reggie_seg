@@ -68,6 +68,10 @@ describe("customAllocation validation", () => {
       ok: false,
       code: "INVALID_TEAM_NAMES",
     });
+    expect(parseCustomAllocationApplyBody({ previewId: 123 as any })).toEqual({
+      ok: false,
+      code: "INVALID_PREVIEW_ID",
+    });
   });
 
   it("parses apply payload without team names", () => {

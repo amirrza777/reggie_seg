@@ -27,7 +27,7 @@ import {
   buildModuleScopeWhere,
   mapModuleRecord,
   toEnterpriseModuleSearchResponse,
-} from "./service.core.js";
+} from "./service.shared.js";
 import type { EnterpriseUser } from "./types.js";
 import {
   listAssignableUsersByEnterprise,

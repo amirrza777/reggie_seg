@@ -78,6 +78,21 @@ describe("controller.invites", () => {
     expect(res.json).toHaveBeenCalledWith({ ok: true, inviteId: "inv-1" });
   });
 
+  it("createTeamInvite uses protocol+host fallback baseUrl and forwards inviteeId", async () => {
+    const req = {
+      user: { sub: 4 },
+      body: { teamId: 2, inviteeEmail: "x@y.com", inviteeId: 99 },
+      headers: {},
+      get: vi.fn().mockReturnValue("fallback-host"),
+      protocol: "https",
+    };
+    const res = createResponse();
+    await createTeamInviteHandler(req as any, res);
+    expect(mocks.service.createTeamInvite).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl: "https://fallback-host", inviteeId: 99 }),
+    );
+  });
+
   it.each([
     ["TEAM_NOT_FOUND", 404],
     ["TEAM_ARCHIVED", 409],
@@ -109,6 +124,12 @@ describe("controller.invites", () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
+  it("listInviteEligibleStudents requires authenticated staff actor", async () => {
+    const res = createResponse();
+    await listInviteEligibleStudentsHandler({ params: { teamId: "2" } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(401);
+  });
+
   it.each([
     ["TEAM_NOT_FOUND_OR_INACTIVE", 404],
     ["TEAM_ACCESS_FORBIDDEN", 403],
@@ -127,10 +148,26 @@ describe("controller.invites", () => {
     expect(res.json).toHaveBeenCalledWith([{ id: 2 }]);
   });
 
+  it("listInviteEligibleStudents maps unexpected service errors to 500", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const req = { user: { sub: 4 }, params: { teamId: "2" } };
+    const res = createResponse();
+    mocks.service.listInviteEligibleStudents.mockRejectedValueOnce(new Error("boom"));
+    await listInviteEligibleStudentsHandler(req as any, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+    errorSpy.mockRestore();
+  });
+
   it("listTeamInvites validates team id", async () => {
     const res = createResponse();
     await listTeamInvitesHandler({ user: { sub: 4 }, params: { teamId: "x" } } as any, res);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("listTeamInvites requires authenticated staff actor", async () => {
+    const res = createResponse();
+    await listTeamInvitesHandler({ params: { teamId: "2" } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(401);
   });
 
   it.each([
@@ -244,5 +281,11 @@ describe("controller.invites", () => {
     const res = createResponse();
     await handler({ params: { inviteId: "inv-z" } } as any, res);
     expect(res.json).toHaveBeenCalledWith({ ok: true, invite: { id: "inv-z" } });
+  });
+
+  it("transition wrappers return 400 for invalid invite ids", async () => {
+    const res = createResponse();
+    await rejectTeamInviteHandler({ params: { inviteId: " " } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 });

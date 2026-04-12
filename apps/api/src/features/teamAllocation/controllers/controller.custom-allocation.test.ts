@@ -58,6 +58,18 @@ describe("controller custom-allocation", () => {
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
+  it("returns 400 for invalid project id in questionnaires listing", async () => {
+    const res = createResponse();
+    await listCustomAllocationQuestionnairesHandler({ user: { sub: 7 }, params: { projectId: "x" } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("returns questionnaires payload from service on success", async () => {
+    const res = createResponse();
+    await listCustomAllocationQuestionnairesHandler({ user: { sub: 7 }, params: { projectId: "9" } } as any, res);
+    expect(res.json).toHaveBeenCalledWith({ questionnaires: [] });
+  });
+
   it("returns 400 for invalid project/template input", async () => {
     const res = createResponse();
     await getCustomAllocationCoverageHandler(
@@ -111,6 +123,24 @@ describe("controller custom-allocation", () => {
     await listCustomAllocationQuestionnairesHandler(req as any, failed);
     expect(failed.status).toHaveBeenCalledWith(500);
     errorSpy.mockRestore();
+  });
+
+  it("listCustomAllocationQuestionnairesHandler maps archived conflicts via project guard", async () => {
+    const req = { user: { sub: 7 }, params: { projectId: "9" } };
+    const res = createResponse();
+    mocks.sendProjectOrModuleArchivedConflict.mockReturnValueOnce(true);
+    mocks.service.listCustomAllocationQuestionnairesForProject.mockRejectedValueOnce({ code: "PROJECT_ARCHIVED" });
+    await listCustomAllocationQuestionnairesHandler(req as any, res);
+    expect(mocks.sendProjectOrModuleArchivedConflict).toHaveBeenCalled();
+  });
+
+  it("returns 401 for missing auth in coverage handler", async () => {
+    const res = createResponse();
+    await getCustomAllocationCoverageHandler(
+      { user: undefined, params: { projectId: "9" }, query: { questionnaireTemplateId: "3" } } as any,
+      res,
+    );
+    expect(res.status).toHaveBeenCalledWith(401);
   });
 
   it("returns preview payload from service", async () => {
@@ -271,6 +301,21 @@ describe("controller custom-allocation", () => {
     expect(res.json).toHaveBeenCalledWith({
       error: "Some students are no longer vacant. Regenerate preview and try again.",
       staleStudents: [null],
+    });
+  });
+
+  it("omits staleStudents from payload when staleStudents value is not an array", async () => {
+    mocks.service.applyCustomAllocationForProject.mockRejectedValueOnce({
+      code: "STUDENTS_NO_LONGER_VACANT",
+      staleStudents: "n/a",
+    });
+    const res = createResponse();
+    await applyCustomAllocationHandler(
+      { user: { sub: 7 }, params: { projectId: "9" }, body: { previewId: "p-1" } } as any,
+      res,
+    );
+    expect(res.json).toHaveBeenCalledWith({
+      error: "Some students are no longer vacant. Regenerate preview and try again.",
     });
   });
 

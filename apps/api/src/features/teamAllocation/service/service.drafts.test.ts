@@ -142,6 +142,20 @@ describe("service allocation drafts", () => {
     });
   });
 
+  it("updateAllocationDraftForProject rejects inaccessible projects", async () => {
+    mocks.findStaffScopedProjectAccess.mockResolvedValue(null);
+    await expect(updateAllocationDraftForProject(1, 9, 7, { teamName: "Blue" })).rejects.toEqual({
+      code: "PROJECT_NOT_FOUND_OR_FORBIDDEN",
+    });
+  });
+
+  it("updateAllocationDraftForProject rejects missing current draft rows", async () => {
+    mocks.findDraftTeamById.mockResolvedValueOnce(null);
+    await expect(updateAllocationDraftForProject(1, 9, 7, { teamName: "Blue" })).rejects.toEqual({
+      code: "DRAFT_TEAM_NOT_FOUND",
+    });
+  });
+
   it("updateAllocationDraftForProject rejects stale expectedUpdatedAt", async () => {
     mocks.parseExpectedUpdatedAt.mockReturnValue(new Date("2026-01-03T00:00:00.000Z"));
     await expect(updateAllocationDraftForProject(1, 9, 7, { teamName: "Blue", expectedUpdatedAt: "x" })).rejects.toEqual(
@@ -186,6 +200,11 @@ describe("service allocation drafts", () => {
     expect(mocks.updateDraftTeam).toHaveBeenCalledWith(7, { teamName: "Blue", studentIds: [21, 22] });
   });
 
+  it("updateAllocationDraftForProject updates only student ids when team name is omitted", async () => {
+    await updateAllocationDraftForProject(1, 9, 7, { studentIds: [21, 22] });
+    expect(mocks.updateDraftTeam).toHaveBeenCalledWith(7, { studentIds: [21, 22] });
+  });
+
   it("updateAllocationDraftForProject forwards expectedUpdatedAt to update write", async () => {
     const stamp = "2026-01-01T00:00:00.000Z";
     const result = await updateAllocationDraftForProject(1, 9, 7, { teamName: "Blue", expectedUpdatedAt: stamp });
@@ -193,6 +212,13 @@ describe("service allocation drafts", () => {
     expect(mocks.updateDraftTeam).toHaveBeenCalledWith(7, {
       teamName: "Blue",
       expectedUpdatedAt: new Date(stamp),
+    });
+  });
+
+  it("updateAllocationDraftForProject rejects when draft disappears after update write", async () => {
+    mocks.findDraftTeamById.mockResolvedValueOnce(baseDraft).mockResolvedValueOnce(null);
+    await expect(updateAllocationDraftForProject(1, 9, 7, { teamName: "Blue" })).rejects.toEqual({
+      code: "DRAFT_TEAM_NOT_FOUND",
     });
   });
 

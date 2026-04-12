@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
 import { usePieCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
@@ -11,6 +12,13 @@ type ActivityDonutProps = {
 };
 
 const COLORS = { active: "#22c55e", low: "#f59e0b", inactive: "#ef4444" };
+const STAFF_ACTIVITY_DONUT_HEIGHT = 220;
+const STAFF_ACTIVITY_DONUT_STYLE: CSSProperties = {
+  width: "100%",
+  minWidth: 0,
+  minHeight: STAFF_ACTIVITY_DONUT_HEIGHT,
+  height: STAFF_ACTIVITY_DONUT_HEIGHT,
+};
 
 function buildActivityData(active: number, lowActivity: number, inactive: number) {
   return [{ name: "Active", value: active, fill: COLORS.active }, { name: "Low activity", value: lowActivity, fill: COLORS.low }, { name: "Inactive", value: inactive, fill: COLORS.inactive }].filter((entry) => entry.value > 0);
@@ -38,8 +46,13 @@ function StaffActivityDonutChartBody({
   pieTooltipContentProps: ReturnType<typeof usePieCursorTooltip>["pieTooltipContentProps"];
 }) {
   return (
-    <div className="ui-no-select" style={{ height: 220 }} {...containerHandlers}>
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="ui-no-select" style={STAFF_ACTIVITY_DONUT_STYLE} {...containerHandlers}>
+      <ResponsiveContainer
+        width="100%"
+        height={STAFF_ACTIVITY_DONUT_HEIGHT}
+        minWidth={0}
+        initialDimension={{ width: 1, height: STAFF_ACTIVITY_DONUT_HEIGHT }}
+      >
         <PieChart accessibilityLayer={false}>
           <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={54} outerRadius={82} paddingAngle={data.length > 1 ? 2 : 0} stroke="none" isAnimationActive rootTabIndex={-1} onClick={(_sector, _index, event) => { event.stopPropagation(); }} {...pieHandlers}>
             {data.map((entry) => <Cell key={entry.name} fill={entry.fill} />)}

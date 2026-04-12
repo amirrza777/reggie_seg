@@ -82,6 +82,11 @@ describe("service.manual", () => {
     expect(mocks.repo.findModuleStudentsForManualAllocation).toHaveBeenCalledWith("ent-1", 3, 2);
   });
 
+  it("loads workspace without search filter when query is non-string", async () => {
+    await getManualAllocationWorkspaceForProject(1, 2, undefined as any);
+    expect(mocks.repo.findModuleStudentsForManualAllocation).toHaveBeenCalledWith("ent-1", 3, 2);
+  });
+
   it("rejects students outside module", async () => {
     mocks.repo.findModuleStudentsForManualAllocation.mockResolvedValue([
       { id: 11, firstName: "Ada", lastName: "Lovelace", email: "ada@example.com", currentTeamId: null, currentTeamName: null },
@@ -101,5 +106,16 @@ describe("service.manual", () => {
     const applied = await applyManualAllocationForProject(5, 2, { teamName: " Blue ", studentIds: [11] });
     expect(applied).toEqual(expect.objectContaining({ team: { id: 7, teamName: "Blue", memberCount: 2 } }));
     expect(mocks.repo.applyManualAllocationTeam).toHaveBeenCalledWith(2, "ent-1", "Blue", [11], { draftCreatedById: 5 });
+  });
+
+  it("treats missing map lookups as not already assigned", async () => {
+    const mapGetSpy = vi.spyOn(Map.prototype, "get").mockReturnValue(undefined as any);
+    try {
+      await expect(applyManualAllocationForProject(5, 2, { teamName: "Blue", studentIds: [11] })).resolves.toEqual(
+        expect.objectContaining({ team: { id: 7, teamName: "Blue", memberCount: 2 } }),
+      );
+    } finally {
+      mapGetSpy.mockRestore();
+    }
   });
 });

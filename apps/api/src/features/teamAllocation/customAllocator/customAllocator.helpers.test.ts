@@ -28,7 +28,10 @@ describe("customAllocator.helpers", () => {
     expect(normalizeResponseValue("  4 ")).toBe(4);
     expect(normalizeResponseValue(" yes ")).toBe("yes");
     expect(normalizeResponseValue(true)).toBe("true");
+    expect(normalizeResponseValue(false)).toBe("false");
     expect(normalizeResponseValue("  ")).toBeNull();
+    expect(normalizeResponseValue(Number.POSITIVE_INFINITY)).toBeNull();
+    expect(normalizeResponseValue({ role: "owner" })).toBe("[object Object]");
   });
 
   it("calculates mean and variance", () => {

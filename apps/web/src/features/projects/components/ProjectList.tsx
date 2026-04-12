@@ -3,6 +3,7 @@ import { sortProjectsByTaskOpenDate } from "../lib/sortProjectsByTaskOpenDate";
 import { formatDate } from "@/shared/lib/formatDate";
 import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import type { Project } from "../types";
+import type { ProjectWorkflowState } from "@/features/projects/lib/projectWorkflowState";
 import "@/features/projects/styles/project-list.css";
 
 const PROJECT_LIST_DATE_LOCALE = "en-GB";
@@ -16,8 +17,7 @@ function taskOpenDateLabel(project: Project): string | null {
 
 type ProjectListProps = {
   projects: Project[];
-  projectMetaById?: Record<string, { completed: boolean; finishedUnmarked: boolean; mark: number | null }>;
-  hideModuleLine?: boolean;
+  projectMetaById?: Record<string, { state: ProjectWorkflowState; mark: number | null }>;
 };
 
 function formatMark(mark: number): string {
@@ -42,15 +42,17 @@ export function ProjectList({ projects, projectMetaById = {}, hideModuleLine = f
         {sortedProjects.map((project) => {
           const startLabel = taskOpenDateLabel(project);
           const meta = projectMetaById[String(project.id)];
-          const isCompleted = meta?.completed === true;
-          const isFinishedUnmarked = meta?.finishedUnmarked === true;
-          const isArchived = Boolean(project.archivedAt);
+          const state = meta?.state ?? "active";
+          const isCompletedMarked = state === "completed_marked";
+          const isFinishedUnmarked = state === "completed_unmarked";
           const mark = typeof meta?.mark === "number" && Number.isFinite(meta.mark) ? meta.mark : null;
           const summary = (project as Project & { summary?: string | null }).summary;
           const markClass = `project-card__mark${isFinishedUnmarked ? " project-card__mark--awaiting" : ""}`;
+          const isArchived = Boolean(project.archivedAt);
+
           const cardClass = [
             "project-card card",
-            isCompleted ? "project-card--completed" : "",
+            isCompletedMarked ? "project-card--completed" : "",
             isFinishedUnmarked ? "project-card--awaiting-mark" : "",
             isArchived ? "project-card--archived" : "",
           ]

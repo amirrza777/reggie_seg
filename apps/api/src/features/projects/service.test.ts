@@ -110,8 +110,9 @@ describe("projects service", () => {
       archivedAt: null,
       moduleId: 2,
       questionnaireTemplateId: 3,
+      teamAllocationQuestionnaireTemplateId: 4,
       projectNavFlags: null,
-      module: { archivedAt: null, name: "SE Foundations" },
+      module: { name: "SEGP", archivedAt: null },
     });
 
     await expect(createProject(7, "P1", 2, 3, undefined, null, deadlineInput)).resolves.toEqual({ id: 9 });
@@ -120,11 +121,12 @@ describe("projects service", () => {
     await expect(fetchProjectById(9)).resolves.toEqual({
       id: 9,
       name: "P1",
+      moduleName: "SEGP",
       informationText: null,
       archivedAt: null,
       moduleId: 2,
-      moduleName: "SE Foundations",
       questionnaireTemplateId: 3,
+      teamAllocationQuestionnaireTemplateId: 4,
       moduleArchivedAt: null,
       projectNavFlags: expect.objectContaining({ version: 1 }),
     });

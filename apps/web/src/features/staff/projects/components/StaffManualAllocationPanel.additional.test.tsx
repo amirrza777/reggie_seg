@@ -109,8 +109,8 @@ describe("StaffManualAllocationPanel additional coverage", () => {
     await openWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Select" }));
     fireEvent.change(screen.getByLabelText("Manual team name"), { target: { value: "Team Delta" } });
-    fireEvent.change(screen.getByLabelText("Search students"), { target: { value: "delta" } });
     fireEvent.click(screen.getByRole("button", { name: "Create draft team" }));
+    await waitFor(() => expect(applyManualMock).toHaveBeenCalledWith(4, "Team Delta", [11]));
     expect(await screen.findByText("Draft saved, but workspace refresh failed.")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Search students"), { target: { value: "ghost" } });
     await act(async () => {

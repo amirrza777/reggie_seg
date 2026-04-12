@@ -6,7 +6,7 @@ import {
   matchesEnterpriseAccessUserSearchCandidate,
   type EnterpriseAccessUserSearchFilters,
 } from "./accessUserSearch.js";
-import { toEnterpriseAccessUserSearchResponse } from "./service.core.js";
+import { toEnterpriseAccessUserSearchResponse } from "./service.shared.js";
 
 const ASSIGNABLE_USER_SELECT = { id: true, email: true, firstName: true, lastName: true, active: true } satisfies Prisma.UserSelect;
 const ASSIGNABLE_USER_ORDER_BY: Prisma.UserOrderByWithRelationInput[] = [

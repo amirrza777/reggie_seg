@@ -1,0 +1,321 @@
+.workspace-shell .help-hub__tasks {
+  display: grid;
+  gap: 12px;
+}
+
+.workspace-shell .help-hub__tasks-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.workspace-shell .help-hub__tasks-head p {
+  margin: 0;
+  font-size: var(--fs-label);
+}
+
+.workspace-shell .help-hub__tasks-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.workspace-shell .help-hub__task-link,
+.workspace-shell .help-hub__result-link {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 13px 14px;
+  display: grid;
+  gap: 6px;
+  background: var(--surface);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.workspace-shell .help-hub__task-link:hover,
+.workspace-shell .help-hub__result-link:hover {
+  border-color: var(--accent-border);
+  transform: translateY(-1px);
+}
+
+.workspace-shell .help-hub__task-title {
+  color: var(--ink-strong);
+  font-weight: var(--fw-semibold);
+  line-height: 1.4;
+}
+
+.workspace-shell .help-hub__task-detail {
+  color: var(--muted-subtle);
+  font-size: var(--fs-body-sm);
+}
+
+.workspace-shell .help-hub__task-action,
+.workspace-shell .help-hub__result-group {
+  color: var(--muted);
+  font-size: var(--fs-label);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--fw-semibold);
+}
+
+.workspace-shell .help-faq__groups {
+  display: grid;
+  gap: 14px;
+}
+
+.workspace-shell .help-faq__group {
+  padding: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.workspace-shell .help-faq__group-shell {
+  border: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: transparent;
+}
+
+.workspace-shell .help-faq__group-toggle {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-fixed-rgba-127-127-127-0-08);
+}
+
+.workspace-shell .help-faq__group-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.workspace-shell .help-faq__group-title-wrap {
+  display: grid;
+  gap: 4px;
+}
+
+.workspace-shell .help-faq__group-title {
+  color: var(--ink-strong);
+  font-size: var(--fs-fixed-clamp-1rem-1-4vw-1-15rem);
+  font-weight: var(--fw-semibold);
+}
+
+.workspace-shell .help-faq__group-count {
+  color: var(--muted-subtle);
+  font-size: var(--fs-label);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--fw-semibold);
+}
+
+.workspace-shell .help-faq__group-indicator {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  position: relative;
+  background: var(--surface);
+}
+
+.workspace-shell .help-faq__group-indicator::before,
+.workspace-shell .help-faq__group-indicator::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 2px;
+  background: var(--ink-strong);
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+}
+
+.workspace-shell .help-faq__group-indicator::after {
+  width: 2px;
+  height: 12px;
+  transition: opacity 0.2s ease;
+}
+
+.workspace-shell .help-faq__group-shell[open] .help-faq__group-indicator::after {
+  opacity: 0;
+}
+
+.workspace-shell .help-faq__group-panel {
+  padding: 0 16px 14px;
+}
+
+.workspace-shell .help-faq__lede {
+  margin: 0 0 10px;
+  font-size: var(--fs-body-sm);
+}
+
+.workspace-shell .help-faq__group .faq {
+  border-top: 0;
+  gap: 10px;
+}
+
+.workspace-shell .help-faq__group .faq__item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0;
+  background: var(--surface);
+}
+
+.workspace-shell .help-faq__group .faq__trigger {
+  padding: 12px 14px;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  gap: 8px;
+}
+
+.workspace-shell .help-faq__group .faq__answer {
+  padding: 0 14px 14px;
+  font-size: var(--fs-body-sm);
+  color: var(--muted-subtle);
+  line-height: 1.58;
+}
+
+.workspace-shell .help-faq__group .faq__item--open .faq__answer {
+  padding: 0 14px 14px;
+}
+
+.workspace-shell .faq__links {
+  margin: 0;
+  padding: 0 14px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.workspace-shell .help-faq .faq__links .link-ghost {
+  border-width: 1px;
+  border-color: var(--border);
+  color: var(--ink-strong);
+  background: var(--surface);
+  padding: 8px 10px;
+  font-size: var(--fs-body-sm);
+}
+
+.workspace-shell .help-playbook {
+  display: grid;
+  gap: 12px;
+}
+
+.workspace-shell .help-playbook__item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.workspace-shell .help-playbook__summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 14px 16px;
+  background: var(--color-fixed-rgba-127-127-127-0-08);
+}
+
+.workspace-shell .help-playbook__summary::-webkit-details-marker {
+  display: none;
+}
+
+.workspace-shell .help-playbook__steps {
+  margin: 0;
+  padding: 14px 16px 0 34px;
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-shell .help-playbook__steps li {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.workspace-shell .help-playbook__tip {
+  margin: 0;
+  padding: 12px 16px 16px;
+  color: var(--muted-subtle);
+  font-size: var(--fs-body-sm);
+}
+
+.workspace-shell .help-section__grid {
+  margin-top: 2px;
+}
+
+.workspace-shell .help-section__card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  background: var(--surface);
+}
+
+.workspace-shell .help-section__card h3,
+.workspace-shell .help-section__card h4 {
+  margin: 0;
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
+}
+
+.workspace-shell .help-section__card p {
+  margin: 0;
+  color: var(--muted-subtle);
+  line-height: 1.55;
+}
+
+.workspace-shell .help-support__cta-wrap {
+  width: fit-content;
+}
+
+.workspace-shell .help-support__cta {
+  width: auto;
+  font-size: var(--fs-body-sm);
+  padding: 8px 12px;
+}
+
+.workspace-shell .help-support__heading {
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
+}
+
+.workspace-shell .footer {
+  width: 100%;
+  margin-top: 16px;
+}
+
+@media (max-width: 1024px) {
+  .workspace-shell .help-page__content {
+    padding: 0;
+  }
+
+  .workspace-shell .help-hub__hero {
+    border-radius: var(--radius-md);
+  }
+
+  .workspace-shell .help-nav {
+    top: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .workspace-shell .help-hub__tasks-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace-shell .help-section__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .workspace-shell .help-hub__grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}

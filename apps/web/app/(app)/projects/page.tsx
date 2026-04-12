@@ -1,52 +1,53 @@
 import { getProjectDeadline, getProjectMarking, getUserProjects } from "@/features/projects/api/client";
 import { ProjectList } from "@/features/projects/components/ProjectList";
+import {
+  resolveProjectMarkValue,
+  resolveProjectWorkflowState,
+  type ProjectWorkflowState,
+} from "@/features/projects/lib/projectWorkflowState";
 import { getCurrentUser } from "@/shared/auth/session";
 
 export default async function ProjectsListPage() {
   const user = await getCurrentUser();
   let projects: Awaited<ReturnType<typeof getUserProjects>> = [];
-  const projectMetaById: Record<string, { completed: boolean; finishedUnmarked: boolean; mark: number | null }> = {};
+  const projectMetaById: Record<string, { state: ProjectWorkflowState; mark: number | null }> = {};
 
   if (user) {
     try {
       projects = await getUserProjects(user.id);
-      const nowMs = Date.now();
 
       const metaEntries = await Promise.all(
         projects.map(async (project) => {
           const projectId = Number(project.id);
           if (!Number.isFinite(projectId)) {
-            return [String(project.id), { completed: false, finishedUnmarked: false, mark: null }] as const;
+            return [String(project.id), { state: "active", mark: null }] as const;
           }
 
-          const [mark, latestDueMs] = await Promise.all([
+          const [marking, deadline] = await Promise.all([
             (async () => {
               try {
-                const marking = await getProjectMarking(user.id, projectId);
-                return marking.studentMarking?.mark ?? marking.teamMarking?.mark ?? null;
+                return await getProjectMarking(user.id, projectId);
               } catch {
                 return null;
               }
             })(),
             (async () => {
               try {
-                const deadline = await getProjectDeadline(user.id, projectId);
-                const dueDates = [deadline.taskDueDate, deadline.assessmentDueDate, deadline.feedbackDueDate]
-                  .map((value) => (value ? Date.parse(value) : Number.NaN))
-                  .filter(Number.isFinite);
-                return dueDates.length > 0 ? Math.max(...dueDates) : null;
+                return await getProjectDeadline(user.id, projectId);
               } catch {
                 return null;
               }
             })(),
           ]);
 
-          const finishedByDeadline = latestDueMs != null && latestDueMs <= nowMs;
-          const isFinished = project.archivedAt != null || finishedByDeadline || mark != null;
-          const completed = mark != null;
-          const finishedUnmarked = isFinished && mark == null;
+          const mark = resolveProjectMarkValue(marking);
+          const state = resolveProjectWorkflowState({
+            project,
+            deadline,
+            markValue: mark,
+          });
 
-          return [String(project.id), { completed, finishedUnmarked, mark }] as const;
+          return [String(project.id), { state, mark }] as const;
         }),
       );
 

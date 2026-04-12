@@ -1,9 +1,10 @@
 import { MeetingsPageContent } from "@/features/meetings/components/MeetingsPageContent";
 import { CustomAllocationWaitingBoard } from "@/features/projects/components/CustomAllocationWaitingBoard";
-import { getProject, getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
+import { getProject, getProjectDeadline, getProjectMarking, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { PageSection } from "@/shared/ui/PageSection";
 import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
+import { resolveProjectMarkValue, resolveProjectWorkflowState } from "@/features/projects/lib/projectWorkflowState";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -30,17 +31,21 @@ export default async function ProjectMeetingsPage({ params, searchParams }: Proj
   let isCustomAllocation = false;
   if (user && !Number.isNaN(numericProjectId)) {
     try {
-      const [project, deadline] = await Promise.all([
+      const [project, deadline, marking] = await Promise.all([
         getProject(projectId),
         getProjectDeadline(user.id, numericProjectId),
+        getProjectMarking(user.id, numericProjectId).catch((error) => {
+          redirectOnUnauthorized(error);
+          return null;
+        }),
       ]);
       isCustomAllocation = Boolean(project.teamAllocationQuestionnaireTemplateId);
-      const feedbackDueDate = deadline.feedbackDueDate ? new Date(deadline.feedbackDueDate) : null;
-      const now = new Date();
-      const feedbackDueDatePassed = feedbackDueDate
-        ? !Number.isNaN(feedbackDueDate.getTime()) && feedbackDueDate.getTime() < now.getTime()
-        : false;
-      projectCompleted = Boolean(project.archivedAt) || feedbackDueDatePassed;
+      const workflowState = resolveProjectWorkflowState({
+        project,
+        deadline,
+        markValue: resolveProjectMarkValue(marking),
+      });
+      projectCompleted = workflowState === "completed_unmarked" || workflowState === "completed_marked";
     } catch (error) {
       redirectOnUnauthorized(error);
       projectCompleted = false;
