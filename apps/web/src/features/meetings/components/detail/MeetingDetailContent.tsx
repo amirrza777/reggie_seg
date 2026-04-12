@@ -1,6 +1,6 @@
 "use client";
 
-import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
+import { useMeetingWithSettings } from "../../hooks/useMeetingWithSettings";
 import { MeetingDetail } from "./MeetingDetail";
 
 type MeetingDetailContentProps = {

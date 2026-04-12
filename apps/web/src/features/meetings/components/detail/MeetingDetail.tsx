@@ -6,14 +6,14 @@ import { Table } from "@/shared/ui/Table";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { useUser } from "@/features/auth/useUser";
 import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
-import { CommentSection } from "./CommentSection";
-import { AddToCalendarDropdown } from "./AddToCalendarDropdown";
+import { CommentSection } from "../CommentSection";
+import { AddToCalendarDropdown } from "../AddToCalendarDropdown";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
-import { getMeetingPermissions } from "../lib/meetingPermissions";
-import { MeetingBreadcrumbs } from "./MeetingBreadcrumbs";
-import "../styles/meeting-detail.css";
-import "../styles/meeting-list.css";
-import type { Meeting, MeetingPermissions } from "../types";
+import { getMeetingPermissions } from "../../lib/meetingPermissions";
+import { MeetingBreadcrumbs } from "../MeetingBreadcrumbs";
+import "../../styles/meeting-detail.css";
+import "../../styles/meeting-list.css";
+import type { Meeting, MeetingPermissions } from "../../types";
 
 type MeetingDetailProps = {
   meeting: Meeting;

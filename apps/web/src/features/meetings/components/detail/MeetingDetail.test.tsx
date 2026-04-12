@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import { MeetingDetail } from "./MeetingDetail";
 import { useUser } from "@/features/auth/useUser";
-import type { Meeting } from "../types";
+import type { Meeting } from "../../types";
 
 const workspaceCapabilityMock = vi.hoisted(() => ({
   useProjectWorkspaceCanEdit: vi.fn(() => ({ canEdit: true, workspaceArchived: false, hasTeam: true })),
@@ -20,11 +20,11 @@ vi.mock("next/link", () => ({
 
 type MockChildProps = { meetingId: number };
 
-vi.mock("./CommentSection", () => ({
+vi.mock("../CommentSection", () => ({
   CommentSection: ({ meetingId }: MockChildProps) => <div data-testid="comments">{meetingId}</div>,
 }));
 
-vi.mock("./AddToCalendarDropdown", () => ({
+vi.mock("../AddToCalendarDropdown", () => ({
   AddToCalendarDropdown: () => <div data-testid="add-to-calendar" />,
 }));
 

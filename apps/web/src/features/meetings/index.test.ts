@@ -18,7 +18,7 @@ vi.mock("./components/forms/CreateMeetingForm", () => ({
 vi.mock("./components/CommentSection", () => ({
   CommentSection: () => null,
 }));
-vi.mock("./components/MeetingDetail", () => ({
+vi.mock("./components/detail/MeetingDetail", () => ({
   MeetingDetail: () => null,
 }));
 vi.mock("./components/MeetingsPageContent", () => ({

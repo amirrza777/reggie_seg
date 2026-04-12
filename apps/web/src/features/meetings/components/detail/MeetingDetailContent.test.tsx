@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const getMeetingMock = vi.fn();
 const getMeetingSettingsMock = vi.fn();
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   getMeeting: (...args: unknown[]) => getMeetingMock(...args),
   getMeetingSettings: (...args: unknown[]) => getMeetingSettingsMock(...args),
 }));

@@ -4,6 +4,6 @@ export * from "./components/MeetingList";
 export * from "./components/MeetingMinutes";
 export * from "./components/forms/CreateMeetingForm";
 export * from "./components/CommentSection";
-export * from "./components/MeetingDetail";
+export * from "./components/detail/MeetingDetail";
 export * from "./components/MeetingsPageContent";
 export * from "./types";
