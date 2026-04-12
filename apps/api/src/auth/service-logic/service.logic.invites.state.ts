@@ -1,6 +1,6 @@
 /* eslint-disable max-lines-per-function */
 import type { Prisma } from "@prisma/client";
-import { prisma } from "../shared/db.js";
+import { prisma } from "../../shared/db.js";
 import { REMOVED_USERS_ENTERPRISE_CODE } from "./service.logic.constants.js";
 import { extractHexToken, hashToken } from "./service.logic.tokens.js";
 

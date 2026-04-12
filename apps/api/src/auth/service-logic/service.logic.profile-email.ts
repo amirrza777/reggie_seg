@@ -1,8 +1,8 @@
 /* eslint-disable max-lines-per-function */
 import { randomInt } from "crypto";
 import type { Prisma } from "@prisma/client";
-import { prisma } from "../shared/db.js";
-import { sendEmail } from "../shared/email.js";
+import { prisma } from "../../shared/db.js";
+import { sendEmail } from "../../shared/email.js";
 import { emailChangeTtl } from "./service.logic.constants.js";
 import { addDurationToNow, hashToken } from "./service.logic.tokens.js";
 

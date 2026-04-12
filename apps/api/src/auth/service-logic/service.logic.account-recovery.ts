@@ -1,8 +1,8 @@
 /* eslint-disable max-lines-per-function, max-statements, complexity */
 import argon2 from "argon2";
 import { randomBytes } from "crypto";
-import { prisma } from "../shared/db.js";
-import { sendEmail } from "../shared/email.js";
+import { prisma } from "../../shared/db.js";
+import { sendEmail } from "../../shared/email.js";
 import {
   appBaseUrl,
   REMOVED_USERS_ENTERPRISE_CODE,

@@ -1,1 +1,1 @@
-export * from "./service.logic.js";
+export * from "./service-logic/service.logic.js";

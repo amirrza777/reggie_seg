@@ -1,8 +1,8 @@
 /* eslint-disable max-lines-per-function, max-statements, complexity */
 import argon2 from "argon2";
 import { randomBytes } from "crypto";
-import { prisma } from "../shared/db.js";
-import { recordAuditLog } from "../features/audit/service.js";
+import { prisma } from "../../shared/db.js";
+import { recordAuditLog } from "../../features/audit/service.js";
 import {
   bootstrapAdminEmail,
   bootstrapAdminPassword,

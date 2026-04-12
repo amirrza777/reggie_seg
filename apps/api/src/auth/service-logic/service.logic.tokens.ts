@@ -3,7 +3,7 @@ import argon2 from "argon2";
 import { createHash } from "crypto";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import type { Role } from "@prisma/client";
-import { prisma } from "../shared/db.js";
+import { prisma } from "../../shared/db.js";
 import {
   accessExpiresIn,
   accessSecret,

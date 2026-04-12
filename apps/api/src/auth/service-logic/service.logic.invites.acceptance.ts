@@ -1,6 +1,6 @@
 /* eslint-disable max-lines-per-function, complexity */
 import argon2 from "argon2";
-import { prisma } from "../shared/db.js";
+import { prisma } from "../../shared/db.js";
 import { REMOVED_USERS_ENTERPRISE_CODE } from "./service.logic.constants.js";
 import { resolveRemovedUsersEnterpriseId } from "./service.logic.enterprise.js";
 import { issueTokens } from "./service.logic.tokens.js";
