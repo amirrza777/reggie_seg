@@ -1,7 +1,7 @@
 /* eslint-disable max-lines-per-function */
 import type { Prisma } from "@prisma/client";
-import { prisma } from "../../shared/db.js";
-import type { EnterpriseUser } from "./types.js";
+import { prisma } from "../../../shared/db.js";
+import type { EnterpriseUser } from "../types.js";
 import {
   MANAGED_USER_SELECT,
   REINSTATABLE_USER_SELECT,

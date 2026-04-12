@@ -1,15 +1,15 @@
 /* eslint-disable max-lines-per-function, max-statements */
 import type { ParsedQs } from "qs";
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 import {
   DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES,
   fuzzyFilterAndPaginate,
   shouldUseFuzzyFallback,
-} from "../../shared/fuzzyFallback.js";
-import { parseSearchQuery } from "../../shared/search.js";
-import { parsePaginationQueryParams, readSingleQueryString } from "../../shared/searchParams.js";
-import { isEnterpriseAdminRole } from "./service.helpers.js";
-import type { EnterpriseUser } from "./types.js";
+} from "../../../shared/fuzzyFallback.js";
+import { parseSearchQuery } from "../../../shared/search.js";
+import { parsePaginationQueryParams, readSingleQueryString } from "../../../shared/searchParams.js";
+import { isEnterpriseAdminRole } from "../service.helpers.js";
+import type { EnterpriseUser } from "../types.js";
 import {
   buildEnterpriseUserScopeWhere,
   buildEnterpriseUserSearchOrderBy,

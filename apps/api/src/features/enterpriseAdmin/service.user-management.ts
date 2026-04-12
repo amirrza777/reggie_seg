@@ -1,1 +1,1 @@
-export * from "./service.user-management.operations.js";
+export * from "./user-management/service.user-management.operations.js";

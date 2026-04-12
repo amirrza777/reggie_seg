@@ -2,10 +2,10 @@
 import argon2 from "argon2";
 import { randomBytes } from "crypto";
 import type { Prisma } from "@prisma/client";
-import { prisma } from "../../shared/db.js";
-import { requestPasswordReset } from "../../auth/service.js";
-import { isEnterpriseAdminRole } from "./service.helpers.js";
-import type { EnterpriseUser } from "./types.js";
+import { prisma } from "../../../shared/db.js";
+import { requestPasswordReset } from "../../../auth/service.js";
+import { isEnterpriseAdminRole } from "../service.helpers.js";
+import type { EnterpriseUser } from "../types.js";
 import {
   mapManagedUser,
   resolveMembershipStatus,

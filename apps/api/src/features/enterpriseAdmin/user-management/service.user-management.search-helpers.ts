@@ -4,7 +4,7 @@ import {
   matchesFuzzySearchCandidate,
   normalizeSearchText,
   parsePositiveIntegerSearchQuery,
-} from "../../shared/fuzzySearch.js";
+} from "../../../shared/fuzzySearch.js";
 import type {
   EnterpriseManagedUser,
   EnterpriseManagedUserSearchRecord,
