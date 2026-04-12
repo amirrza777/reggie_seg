@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/shared/auth/session";
 import {
   getProject,
   getProjectDeadline,
+  getProjectMarking,
   getTeamAllocationQuestionnaireStatusForProject,
   getTeamByUserAndProject,
 } from "@/features/projects/api/client";
@@ -18,6 +19,7 @@ vi.mock("@/shared/auth/session", () => ({
 vi.mock("@/features/projects/api/client", () => ({
   getProject: vi.fn(),
   getProjectDeadline: vi.fn(),
+  getProjectMarking: vi.fn(),
   getTeamAllocationQuestionnaireStatusForProject: vi.fn(),
   getTeamByUserAndProject: vi.fn(),
 }));
@@ -72,6 +74,7 @@ vi.mock("@/features/projects/components/TeamAllocationQuestionnaireCard", () => 
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getProjectMock = vi.mocked(getProject);
 const getProjectDeadlineMock = vi.mocked(getProjectDeadline);
+const getProjectMarkingMock = vi.mocked(getProjectMarking);
 const getTeamAllocationQuestionnaireStatusForProjectMock = vi.mocked(getTeamAllocationQuestionnaireStatusForProject);
 const getTeamByUserAndProjectMock = vi.mocked(getTeamByUserAndProject);
 const apiFetchMock = vi.mocked(apiFetch);
@@ -95,6 +98,11 @@ describe("ProjectTeamPage", () => {
       feedbackDueDate: null,
       isOverridden: false,
     });
+    getProjectMarkingMock.mockResolvedValue({
+      teamId: 1,
+      teamMarking: null,
+      studentMarking: null,
+    } as Awaited<ReturnType<typeof getProjectMarking>>);
     getTeamAllocationQuestionnaireStatusForProjectMock.mockResolvedValue({
       questionnaireTemplate: {
         id: 501,

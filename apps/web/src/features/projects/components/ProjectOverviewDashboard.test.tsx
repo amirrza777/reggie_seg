@@ -158,7 +158,7 @@ describe("ProjectOverviewDashboard", () => {
     expect(screen.getByText("Updated by Staff 8 on Unknown time")).toBeInTheDocument();
   });
 
-  it("treats published marking as completed even without archived project", () => {
+  it("treats published numeric marks as completed even without archived project", () => {
     renderDashboard({
       deadline: baseDeadline({
         taskDueDate: "2026-01-20T00:00:00.000Z",
@@ -169,7 +169,7 @@ describe("ProjectOverviewDashboard", () => {
         teamId: 6,
         teamMarking: null,
         studentMarking: {
-          mark: null,
+          mark: 74,
           formativeFeedback: "Published narrative feedback",
           updatedAt: "2026-01-10T10:30:00.000Z",
           marker: { id: 2, firstName: "Grace", lastName: "Hopper" },
@@ -179,6 +179,22 @@ describe("ProjectOverviewDashboard", () => {
 
     expect(screen.queryByText("Deadlines and Schedule")).not.toBeInTheDocument();
     expect(screen.getByText("Published narrative feedback")).toBeInTheDocument();
+  });
+
+  it("shows awaiting mark card when project is complete without published marks", () => {
+    renderDashboard({
+      deadline: baseDeadline({
+        taskDueDate: "2026-01-05T00:00:00.000Z",
+        assessmentDueDate: "2026-01-06T00:00:00.000Z",
+        feedbackDueDate: "2026-01-07T00:00:00.000Z",
+      }),
+      marking: null,
+    });
+
+    expect(screen.queryByText("Deadlines and Schedule")).not.toBeInTheDocument();
+    expect(screen.getByText("Final marking status")).toBeInTheDocument();
+    expect(screen.getByText("This project is complete and currently awaiting final mark publication.")).toBeInTheDocument();
+    expect(screen.queryByText("Tutor marking and formative feedback")).not.toBeInTheDocument();
   });
 
   it("omits individual-updated meta line when student marking is missing", () => {

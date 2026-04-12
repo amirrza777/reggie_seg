@@ -1,5 +1,9 @@
-import { getProject, getProjectDeadline } from "./api/client";
-import type { ProjectNavFlagsConfig, ProjectNavFlagsState, ProjectNavPeerModes } from "./types";
+import { getProject, getProjectDeadline, getProjectMarking } from "./api/client";
+import {
+  resolveProjectMarkValue,
+  resolveProjectWorkflowState,
+} from "@/features/projects/lib/projectWorkflowState";
+import type { ProjectDeadline, ProjectNavFlagsConfig, ProjectNavFlagsState, ProjectNavPeerModes } from "./types";
 
 function isOpenDate(value: string | null | undefined) {
   if (!value) return false;
@@ -84,13 +88,48 @@ function parseProjectNavFlagsConfig(raw: unknown): ProjectNavFlagsConfig | null 
 export async function getProjectNavFlags(userId: number | null | undefined, projectId: number) {
   let flags = cloneDefaultProjectNavFlags();
   let peerModes = cloneDefaultProjectNavPeerModes();
+  let cachedDeadline: ProjectDeadline | null = null;
+  let deadlineLoaded = false;
+
+  const loadDeadline = async () => {
+    if (!userId || Number.isNaN(projectId)) {
+      return null;
+    }
+    if (deadlineLoaded) {
+      return cachedDeadline;
+    }
+    deadlineLoaded = true;
+    try {
+      cachedDeadline = await getProjectDeadline(userId, projectId);
+    } catch {
+      cachedDeadline = null;
+    }
+    return cachedDeadline;
+  };
 
   if (!Number.isNaN(projectId)) {
     try {
       const project = await getProject(String(projectId));
       const config = parseProjectNavFlagsConfig(project?.projectNavFlags);
       if (config) {
-        flags = project.archivedAt ? config.completed : config.active;
+        const projectArchived = Boolean(project.archivedAt || project.moduleArchivedAt);
+        const markValue =
+          !projectArchived && userId
+            ? await (async () => {
+                try {
+                  const marking = await getProjectMarking(userId, projectId);
+                  return resolveProjectMarkValue(marking);
+                } catch {
+                  return null;
+                }
+              })()
+            : null;
+        const state = resolveProjectWorkflowState({
+          project,
+          deadline: projectArchived ? null : await loadDeadline(),
+          markValue,
+        });
+        flags = state === "completed_unmarked" || state === "completed_marked" ? config.completed : config.active;
         peerModes = config.peerModes;
       }
     } catch {
@@ -114,11 +153,11 @@ export async function getProjectNavFlags(userId: number | null | undefined, proj
     peerModes.peer_assessment === "NATURAL" ||
     peerModes.peer_feedback === "NATURAL"
   ) {
-    try {
-      const deadline = await getProjectDeadline(userId, projectId);
+    const deadline = await loadDeadline();
+    if (deadline) {
       assessmentOpenDate = deadline.assessmentOpenDate;
       feedbackOpenDate = deadline.feedbackOpenDate;
-    } catch {
+    } else {
       assessmentOpenDate = null;
       feedbackOpenDate = null;
     }

@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getProject, getProjectDeadline } from "./api/client";
+import { getProject, getProjectDeadline, getProjectMarking } from "./api/client";
 import { getProjectNavFlags } from "./navFlags";
 import type { ProjectNavFlagsConfig } from "./types";
 
 vi.mock("./api/client", () => ({
   getProject: vi.fn(),
   getProjectDeadline: vi.fn(),
+  getProjectMarking: vi.fn(),
 }));
 
 const getProjectMock = vi.mocked(getProject);
 const getProjectDeadlineMock = vi.mocked(getProjectDeadline);
+const getProjectMarkingMock = vi.mocked(getProjectMarking);
 
 function navState(enabled = true) {
   return {
@@ -81,6 +83,7 @@ describe("getProjectNavFlags", () => {
     expect(result.peer_assessment).toBe(false);
     expect(result.peer_feedback).toBe(true);
     expect(getProjectDeadlineMock).not.toHaveBeenCalled();
+    expect(getProjectMarkingMock).not.toHaveBeenCalled();
   });
 
   it("applies natural peer mode dates from deadlines", async () => {
@@ -104,6 +107,7 @@ describe("getProjectNavFlags", () => {
     expect(result.peer_assessment).toBe(true);
     expect(result.peer_feedback).toBe(false);
     expect(getProjectDeadlineMock).toHaveBeenCalledWith(7, 22);
+    expect(getProjectMarkingMock).toHaveBeenCalledWith(7, 22);
   });
 
   it("falls back to defaults when config is invalid and deadlines fail", async () => {

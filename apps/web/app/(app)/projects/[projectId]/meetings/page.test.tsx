@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { getTeamByUserAndProject } from "@/features/projects/api/client";
+import { getProject, getProjectDeadline, getProjectMarking, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import ProjectMeetingsPage from "./page";
 
@@ -9,6 +9,9 @@ vi.mock("@/shared/auth/session", () => ({
 }));
 
 vi.mock("@/features/projects/api/client", () => ({
+  getProject: vi.fn(),
+  getProjectDeadline: vi.fn(),
+  getProjectMarking: vi.fn(),
   getTeamByUserAndProject: vi.fn(),
 }));
 
@@ -19,11 +22,34 @@ vi.mock("@/features/meetings/components/MeetingsPageContent", () => ({
 }));
 
 const getCurrentUserMock = vi.mocked(getCurrentUser);
+const getProjectMock = vi.mocked(getProject);
+const getProjectDeadlineMock = vi.mocked(getProjectDeadline);
+const getProjectMarkingMock = vi.mocked(getProjectMarking);
 const getTeamByUserAndProjectMock = vi.mocked(getTeamByUserAndProject);
 
 describe("ProjectMeetingsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getProjectMock.mockResolvedValue({
+      id: "15",
+      name: "Project",
+      questionnaireTemplateId: 1,
+      teamAllocationQuestionnaireTemplateId: null,
+    } as Awaited<ReturnType<typeof getProject>>);
+    getProjectDeadlineMock.mockResolvedValue({
+      taskOpenDate: null,
+      taskDueDate: null,
+      assessmentOpenDate: null,
+      assessmentDueDate: null,
+      feedbackOpenDate: null,
+      feedbackDueDate: null,
+      isOverridden: false,
+    } as Awaited<ReturnType<typeof getProjectDeadline>>);
+    getProjectMarkingMock.mockResolvedValue({
+      teamId: 44,
+      teamMarking: null,
+      studentMarking: null,
+    } as Awaited<ReturnType<typeof getProjectMarking>>);
   });
 
   it("renders meetings content when a team is available", async () => {

@@ -9,17 +9,16 @@ import { Card } from "@/shared/ui/Card";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { formatDateTime } from "@/shared/lib/dateFormatter";
 import Link from "next/link";
-
-type DisplayDeadlineState = {
-  label: string;
-  tone: "passed" | "soon" | "upcoming" | "muted";
-};
+import { resolveProjectMarkValue, resolveProjectWorkflowState } from "@/features/projects/lib/projectWorkflowState";
 
 function formatDateLabel(value: string | null | undefined) {
   return value ? formatDateTime(value) : "Not set";
 }
 
-function getDeadlineStateLabel(value: string | null | undefined): DisplayDeadlineState {
+function getDeadlineStateLabel(value: string | null | undefined): {
+  label: string;
+  tone: "passed" | "soon" | "upcoming" | "muted";
+} {
   if (!value) return { label: "Unscheduled", tone: "muted" };
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return { label: "Unknown", tone: "muted" };
@@ -46,33 +45,6 @@ function buildDeadlineItems(deadline: ProjectDeadline): DeadlineItem[] {
     { label: "Feedback opens", value: deadline.feedbackOpenDate, group: "Feedback" },
     { label: "Feedback deadline", value: deadline.feedbackDueDate, group: "Feedback" },
   ];
-}
-
-function isProjectCompleted(
-  project: Project,
-  deadline: ProjectDeadline,
-  marking: ProjectOverviewDashboardProps["marking"],
-) {
-  if (project.archivedAt) return true;
-
-  const dueCandidates = [deadline.taskDueDate, deadline.assessmentDueDate, deadline.feedbackDueDate]
-    .filter((value): value is string => Boolean(value))
-    .map((value) => new Date(value))
-    .filter((value) => !Number.isNaN(value.getTime()));
-
-  const hasPublishedMark = Boolean(
-    marking?.teamMarking?.mark != null ||
-    marking?.studentMarking?.mark != null ||
-    (marking?.teamMarking?.formativeFeedback ?? "").trim().length > 0 ||
-    (marking?.studentMarking?.formativeFeedback ?? "").trim().length > 0,
-  );
-  if (hasPublishedMark) return true;
-
-  if (dueCandidates.length === 0) return false;
-  const latestDue = dueCandidates.reduce((latest, current) =>
-    current.getTime() > latest.getTime() ? current : latest,
-  );
-  return latestDue.getTime() < Date.now();
 }
 
 function ProjectOverviewHero({
@@ -223,6 +195,16 @@ function TutorMarkingCard({
   );
 }
 
+function AwaitingMarkCard() {
+  return (
+    <Card title="Final marking status">
+      <p className="project-overview-info__paragraph">
+        This project is complete and currently awaiting final mark publication.
+      </p>
+    </Card>
+  );
+}
+
 function TeamFormationCard({
   project,
   team,
@@ -290,7 +272,12 @@ export function ProjectOverviewDashboard({
   teamFormationMode,
 }: ProjectOverviewDashboardProps) {
   const deadlineItems = buildDeadlineItems(deadline);
-  const completed = isProjectCompleted(project, deadline, marking);
+  const projectState = resolveProjectWorkflowState({
+    project,
+    deadline,
+    markValue: resolveProjectMarkValue(marking),
+  });
+  const completed = projectState === "completed_unmarked" || projectState === "completed_marked";
   const teamMode = teamFormationMode ?? "self";
 
   return (
@@ -305,12 +292,10 @@ export function ProjectOverviewDashboard({
         {!completed ? <DeadlinesScheduleCard items={deadlineItems} emphasize /> : null}
       </div>
 
-      {completed ? (
-        <TutorMarkingCard
-          teamMarking={marking?.teamMarking ?? null}
-          studentMarking={marking?.studentMarking ?? null}
-        />
+      {projectState === "completed_marked" ? (
+        <TutorMarkingCard teamMarking={marking?.teamMarking ?? null} studentMarking={marking?.studentMarking ?? null} />
       ) : null}
+      {projectState === "completed_unmarked" ? <AwaitingMarkCard /> : null}
     </div>
   );
 }
