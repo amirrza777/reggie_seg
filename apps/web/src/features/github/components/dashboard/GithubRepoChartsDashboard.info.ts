@@ -1,6 +1,6 @@
 "use client";
 
-import type { GithubChartInfoContent } from "./GithubChartInfo";
+import type { GithubChartInfoContent } from "../GithubChartInfo";
 
 export const githubRepoChartInfo = {
   commitsTimeline: {

@@ -12,8 +12,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { GithubChartInfoContent } from "./GithubChartInfo";
-import { GithubChartCard } from "./GithubChartCard";
+import type { GithubChartInfoContent } from "../GithubChartInfo";
+import { GithubChartCard } from "../GithubChartCard";
 import { CommitTimelineChart } from "./GithubRepoChartsDashboard.CommitTimelineChart";
 import { githubRepoChartInfo as chartInfo } from "./GithubRepoChartsDashboard.info";
 import {

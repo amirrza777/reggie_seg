@@ -1,7 +1,7 @@
 "use client";
 
-import { GithubDonutChartCard } from "./GithubDonutChartCard";
-import { GithubContributorCard } from "./GithubContributorCard";
+import { GithubDonutChartCard } from "../GithubDonutChartCard";
+import { GithubContributorCard } from "../GithubContributorCard";
 import { WeeklyCommitTotalsChart } from "./GithubRepoChartsDashboard.AnalyticsCharts";
 import { CommitTimelineChart } from "./GithubRepoChartsDashboard.CommitTimelineChart";
 import { githubRepoChartInfo as chartInfo } from "./GithubRepoChartsDashboard.info";
@@ -17,7 +17,7 @@ import {
   getDateTickInterval,
 } from "./GithubRepoChartsDashboard.helpers";
 import { GithubRepoMetricsGrid, type GithubDashboardMetric } from "./GithubRepoChartsDashboard.MetricGrid";
-import { GithubSectionContainer } from "./GithubSectionContainer";
+import { GithubSectionContainer } from "../GithubSectionContainer";
 
 export { BranchActivitySection } from "./GithubRepoChartsDashboard.BranchActivitySection";
 

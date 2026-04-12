@@ -23,7 +23,7 @@ vi.mock("recharts", () => {
   };
 });
 
-vi.mock("./GithubDonutChartCard", () => ({
+vi.mock("../GithubDonutChartCard", () => ({
   GithubDonutChartCard: ({
     title,
     data,

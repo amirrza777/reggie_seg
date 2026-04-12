@@ -19,7 +19,7 @@ import {
   getSnapshotRepoTotals,
 } from "./GithubRepoChartsDashboard.helpers";
 import { GithubRepoMetricsGrid, type GithubDashboardMetric } from "./GithubRepoChartsDashboard.MetricGrid";
-import { GithubSectionContainer } from "./GithubSectionContainer";
+import { GithubSectionContainer } from "../GithubSectionContainer";
 import type {
   GithubLatestSnapshot,
   GithubLiveProjectRepoBranchCommits,

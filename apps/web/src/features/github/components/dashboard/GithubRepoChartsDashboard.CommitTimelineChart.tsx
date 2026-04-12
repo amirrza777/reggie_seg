@@ -1,8 +1,8 @@
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
 import { useChartCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { GithubChartCard } from "./GithubChartCard";
-import type { GithubChartInfoContent } from "./GithubChartInfo";
+import { GithubChartCard } from "../GithubChartCard";
+import type { GithubChartInfoContent } from "../GithubChartInfo";
 import {
   CHART_COLOR_COMMITS,
   formatNumber,

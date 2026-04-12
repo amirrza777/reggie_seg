@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import type { GithubLatestSnapshot, GithubMappingCoverage, ProjectGithubRepoLink } from "../types";
 
-vi.mock("./GithubRepoChartsDashboard", () => ({
+vi.mock("./dashboard/GithubRepoChartsDashboard", () => ({
   GithubRepoChartsDashboard: () => <div data-testid="github-repo-charts-dashboard" />,
 }));
 
