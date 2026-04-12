@@ -1,18 +1,36 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getProject, getTeamByUserAndProject } from "@/features/projects/api/client";
+import {
+  getProject,
+  getProjectDeadline,
+  getProjectMarking,
+  getTeamByUserAndProject,
+} from "@/features/projects/api/client";
 import { resolveStudentProjectWorkspaceCapability } from "./resolveStudentProjectWorkspaceCapability";
 
 vi.mock("@/features/projects/api/client", () => ({
   getTeamByUserAndProject: vi.fn(),
   getProject: vi.fn(),
+  getProjectDeadline: vi.fn(),
+  getProjectMarking: vi.fn(),
 }));
 
 const getTeamMock = vi.mocked(getTeamByUserAndProject);
 const getProjectMock = vi.mocked(getProject);
+const getProjectDeadlineMock = vi.mocked(getProjectDeadline);
+const getProjectMarkingMock = vi.mocked(getProjectMarking);
+
+const activeWindowDeadline = {
+  taskOpenDate: "2020-01-01T00:00:00.000Z",
+  taskDueDate: "2030-01-01T00:00:00.000Z",
+  assessmentDueDate: null as string | null,
+  feedbackDueDate: null as string | null,
+};
 
 describe("resolveStudentProjectWorkspaceCapability", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getProjectDeadlineMock.mockResolvedValue(activeWindowDeadline as Awaited<ReturnType<typeof getProjectDeadline>>);
+    getProjectMarkingMock.mockResolvedValue(null as Awaited<ReturnType<typeof getProjectMarking>>);
   });
 
   it("returns empty capability when userId is missing or projectId is NaN", async () => {

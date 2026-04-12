@@ -75,6 +75,7 @@ export async function fetchProjectsForUser(userId: number) {
     moduleId: project.moduleId,
     moduleName: project.module?.name ?? "",
     archivedAt: project.archivedAt ?? null,
+    taskOpenDate: project.deadline?.taskOpenDate?.toISOString() ?? null,
   }));
 }
 

@@ -18,6 +18,7 @@ function taskOpenDateLabel(project: Project): string | null {
 type ProjectListProps = {
   projects: Project[];
   projectMetaById?: Record<string, { state: ProjectWorkflowState; mark: number | null }>;
+  hideModuleLine?: boolean;
 };
 
 function formatMark(mark: number): string {
@@ -94,7 +95,7 @@ export function ProjectList({ projects, projectMetaById = {}, hideModuleLine = f
                     Module: {project.moduleName || "Module not assigned"}
                   </p>
                 ) : null}
-                {isCompleted || isFinishedUnmarked ? (
+                {isCompletedMarked || isFinishedUnmarked ? (
                   <p className={markClass}>
                     {isFinishedUnmarked
                       ? ""

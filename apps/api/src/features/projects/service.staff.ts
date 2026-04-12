@@ -5,6 +5,7 @@ import {
   getUserProjectMarking,
 } from "./repo.js";
 import { prisma } from "../../shared/db.js";
+import { countSubmittedPAsForTeam, countStudentsInTeam } from "../peerAssessment/staff/repo.js";
 
 type StaffProjectListTeam = {
   trelloBoardId: string | null;
@@ -108,6 +109,26 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
   const moduleArchivedAt = project.module?.archivedAt ?? null;
   const projectArchivedAt = project.archivedAt ? new Date(project.archivedAt).toISOString() : null;
 
+  const [projectStudents, allocationUserRows] = await Promise.all([
+    prisma.projectStudent.findMany({
+      where: { projectId },
+      select: { userId: true },
+    }),
+    prisma.teamAllocation.findMany({
+      where: {
+        team: {
+          projectId,
+          archivedAt: null,
+          allocationLifecycle: "ACTIVE",
+        },
+      },
+      select: { userId: true },
+    }),
+  ]);
+  const allocatedUserIds = new Set(allocationUserRows.map((row) => row.userId));
+  const projectStudentCount = projectStudents.length;
+  const unassignedProjectStudentCount = projectStudents.filter((row) => !allocatedUserIds.has(row.userId)).length;
+
   return {
     project: {
       id: project.id,
@@ -118,7 +139,10 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
       projectArchivedAt,
       viewerAccessLabel,
       canManageProjectSettings,
+      informationText: project.informationText,
     },
+    projectStudentCount,
+    unassignedProjectStudentCount,
     teams: project.teams.map((team) => ({
       id: team.id,
       teamName: team.teamName,
@@ -137,4 +161,65 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
 /** Returns the project marking. */
 export async function fetchProjectMarking(userId: number, projectId: number) {
   return getUserProjectMarking(userId, projectId);
+}
+
+export type StaffProjectPeerAssessmentTeamProgress = {
+  id: number;
+  title: string;
+  submitted: number;
+  expected: number;
+};
+
+export type StaffProjectPeerAssessmentOverview = {
+  project: { id: number; name: string };
+  moduleId: number;
+  questionnaireTemplate: { id: number; templateName: string } | null;
+  teams: StaffProjectPeerAssessmentTeamProgress[];
+  canManageProjectSettings: boolean;
+  hasSubmittedPeerAssessments: boolean;
+};
+
+export async function fetchStaffProjectPeerAssessmentOverview(
+  userId: number,
+  projectId: number,
+): Promise<StaffProjectPeerAssessmentOverview | null> {
+  const base = await fetchProjectTeamsForStaff(userId, projectId);
+  if (!base) {
+    return null;
+  }
+
+  const projectRow = await prisma.project.findFirst({
+    where: { id: projectId },
+    select: {
+      questionnaireTemplate: { select: { id: true, templateName: true } },
+    },
+  });
+
+  const [teams, submittedPeerAssessmentCount] = await Promise.all([
+    Promise.all(
+      base.teams.map(async (team) => {
+        const [submitted, memberCount] = await Promise.all([
+          countSubmittedPAsForTeam(team.id),
+          countStudentsInTeam(team.id),
+        ]);
+        const expected = Math.max(0, memberCount * (memberCount - 1));
+        return {
+          id: team.id,
+          title: team.teamName,
+          submitted,
+          expected,
+        };
+      }),
+    ),
+    prisma.peerAssessment.count({ where: { projectId } }),
+  ]);
+
+  return {
+    project: { id: base.project.id, name: base.project.name },
+    moduleId: base.project.moduleId,
+    questionnaireTemplate: projectRow?.questionnaireTemplate ?? null,
+    teams,
+    canManageProjectSettings: base.project.canManageProjectSettings === true,
+    hasSubmittedPeerAssessments: submittedPeerAssessmentCount > 0,
+  };
 }
