@@ -109,6 +109,7 @@ describe("projects repo read and create flows", () => {
         moduleId: true,
         archivedAt: true,
         module: { select: { name: true } },
+        deadline: { select: { taskOpenDate: true } },
       },
     });
   });
@@ -271,7 +272,7 @@ describe("projects repo read and create flows", () => {
         questionnaireTemplateId: true,
         teamAllocationQuestionnaireTemplateId: true,
         projectNavFlags: true,
-        module: { select: { archivedAt: true } },
+        module: { select: { archivedAt: true, name: true } },
       },
     });
   });

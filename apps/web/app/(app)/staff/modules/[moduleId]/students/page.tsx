@@ -10,6 +10,7 @@ import {
 } from "@/features/modules/staffModuleWorkspaceLayoutData";
 import { ApiError } from "@/shared/api/errors";
 import { Card } from "@/shared/ui/Card";
+import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
   params: Promise<{ moduleId: string }>;

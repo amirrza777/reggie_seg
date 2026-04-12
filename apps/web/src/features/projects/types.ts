@@ -11,6 +11,7 @@ export type Project = {
   /** Set when the parent module is archived */
   moduleArchivedAt?: string | null;
   projectNavFlags?: ProjectNavFlagsConfig | null;
+  taskOpenDate?: string | null;
 };
 
 export type ProjectNavFlagKey =

@@ -84,31 +84,42 @@ export function StaffModuleStudentProjectMatrix({
 
   return (
     <div className="staff-module-students-matrix">
-      <label htmlFor={searchId} className="enterprise-modules__create-field-label">
-        Search
-      </label>
-      <p className="ui-note ui-note--muted" style={{ marginTop: 4 }}>
-      Search for students by name, email, or team name.     
-      </p>
-      <SearchField
-        id={searchId}
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="e.g. student name, email, or team…"
-        className="enterprise-modules__search"
-        style={{ marginTop: 8 }}
-        aria-label="Search students and team names in the matrix"
-      />
-      <p className="ui-note ui-note--muted" style={{ marginTop: 8 }}>
-        {hasActiveQuery
-          ? `Showing ${filteredStudents.length} of ${students.length} students`
-          : `${students.length} student${students.length === 1 ? "" : "s"}`}
-      </p>
-      <div style={{ overflowX: "auto", marginTop: 8 }}>
+      <div className="staff-module-students-matrix__controls">
+        <label htmlFor={searchId} className="enterprise-modules__create-field-label">
+          Search
+        </label>
+        <p className="ui-note ui-note--muted" style={{ marginTop: 4 }}>
+          Search for students by name, email, or team name.
+        </p>
+        <SearchField
+          id={searchId}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="e.g. student name, email, or team…"
+          className="enterprise-modules__search"
+          style={{ marginTop: 8 }}
+          aria-label="Search students and team names in the matrix"
+        />
+        <p className="ui-note ui-note--muted" style={{ marginTop: 8 }}>
+          {hasActiveQuery
+            ? `Showing ${filteredStudents.length} of ${students.length} students`
+            : `${students.length} student${students.length === 1 ? "" : "s"}`}
+        </p>
+      </div>
+      <div
+        className="staff-module-students-matrix__table-viewport"
+        role="region"
+        aria-label="Student and team matrix"
+      >
         {rows.length === 0 ? (
-          <p className="muted">No students match this search.</p>
+          <p className="muted staff-module-students-matrix__empty">No students match this search.</p>
         ) : (
-          <Table headers={headers} rows={rows} columnTemplate={columnTemplate} />
+          <Table
+            className="staff-module-students-matrix__table"
+            headers={headers}
+            rows={rows}
+            columnTemplate={columnTemplate}
+          />
         )}
       </div>
     </div>

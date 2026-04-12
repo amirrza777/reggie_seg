@@ -108,6 +108,7 @@ export async function fetchProjectById(projectId: number) {
     informationText: project.informationText,
     archivedAt: project.archivedAt,
     moduleId: project.moduleId,
+    moduleName: project.module?.name ?? "",
     questionnaireTemplateId: project.questionnaireTemplateId,
     moduleArchivedAt,
     projectNavFlags: normalizeProjectNavFlagsConfig(project.projectNavFlags),
@@ -123,6 +124,7 @@ export async function fetchProjectsForUser(userId: number) {
     moduleId: project.moduleId,
     moduleName: project.module?.name ?? "",
     archivedAt: project.archivedAt ?? null,
+    taskOpenDate: project.deadline?.taskOpenDate?.toISOString() ?? null,
   }));
 }
 

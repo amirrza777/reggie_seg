@@ -697,6 +697,16 @@
   outline-offset: 2px;
 }
 
+.staff-module-students-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.staff-module-students-matrix__controls {
+  flex: 0 0 auto;
+}
+
 /* Staff module → Students: matrix table links */
 a.ui-link.staff-module-students-matrix__team-link {
   text-decoration: underline;
@@ -717,4 +727,31 @@ a.ui-link.staff-module-students-matrix__team-link:hover {
 .staff-module-students-matrix__project-head-link:focus-visible {
   color: var(--status-info-text, var(--ink-strong));
   text-decoration: none;
+}
+
+.staff-module-students-matrix__table-viewport {
+  max-height: min(70dvh, 42rem);
+  margin-top: 8px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.staff-module-students-matrix__empty {
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.staff-module-students-matrix__table.table {
+  overflow: visible;
+}
+
+.staff-module-students-matrix__table.table .table__head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--border);
 }

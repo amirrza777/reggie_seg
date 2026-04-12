@@ -78,6 +78,16 @@ describe("ModuleDashboardPageView", () => {
     expect(screen.getByText("Essay")).toBeInTheDocument();
   });
 
+  it("renders projects panel slot when provided", () => {
+    render(
+      <ModuleDashboardPageView
+        dashboard={makeDashboard()}
+        projectsPanel={<section aria-label="Projects test">Project links here</section>}
+      />,
+    );
+    expect(screen.getByLabelText("Projects test")).toBeInTheDocument();
+  });
+
   it("shows empty-state copy when dashboard sections have no data", () => {
     render(<ModuleDashboardPageView dashboard={makeDashboard()} />);
     expect(screen.getByText("No module brief has been added yet.")).toBeInTheDocument();

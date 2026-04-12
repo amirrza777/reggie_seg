@@ -35,21 +35,41 @@ describe("ProjectList", () => {
     expect(screen.getByText("No projects found. You haven't been assigned to any projects yet.")).toBeInTheDocument();
   });
 
-  it("renders project card with link and summary", () => {
+  it("renders project card with link, start date, and summary", () => {
     render(
       <ProjectList
-        projects={[project({ summary: "Build team tooling." })]}
+        projects={[
+          project({
+            summary: "Build team tooling.",
+            taskOpenDate: "2026-03-15T12:00:00.000Z",
+          }),
+        ]}
       />,
     );
 
     expect(screen.getByRole("link", { name: /Project Atlas/i })).toHaveAttribute("href", "/projects/11");
+    expect(screen.getByText("Starts 15 Mar 2026")).toBeInTheDocument();
     expect(screen.getByText("Module: Software Engineering")).toBeInTheDocument();
     expect(screen.getByText("Build team tooling.")).toBeInTheDocument();
     expect(screen.getByText("View Project")).toBeInTheDocument();
   });
 
-  it("shows archived badge and module fallback", () => {
+  it("lists projects in task-open order when dates are present", () => {
     render(
+      <ProjectList
+        projects={[
+          project({ id: "2", name: "Later", taskOpenDate: "2026-06-01T00:00:00.000Z" }),
+          project({ id: "1", name: "Early", taskOpenDate: "2026-01-01T00:00:00.000Z" }),
+        ]}
+      />,
+    );
+    const links = screen.getAllByRole("link");
+    expect(links[0]).toHaveTextContent("Early");
+    expect(links[1]).toHaveTextContent("Later");
+  });
+
+  it("shows archived badge and module fallback", () => {
+    const { container } = render(
       <ProjectList
         projects={[project({ id: "44", moduleName: "", archivedAt: "2026-01-01T00:00:00.000Z" })]}
       />,
@@ -57,6 +77,14 @@ describe("ProjectList", () => {
 
     expect(screen.getByText("Archived")).toBeInTheDocument();
     expect(screen.getByText("Module: Module not assigned")).toBeInTheDocument();
+    expect(container.querySelector(".project-card--archived")).toBeTruthy();
+  });
+
+  it("hides module line when hideModuleLine is set", () => {
+    render(
+      <ProjectList projects={[project({ moduleName: "Software Engineering" })]} hideModuleLine />,
+    );
+    expect(screen.queryByText(/Module:/)).not.toBeInTheDocument();
   });
 
   it("renders final mark with integer and decimal formatting", () => {

@@ -1,11 +1,23 @@
 import Link from "next/link";
+import { sortProjectsByTaskOpenDate } from "../lib/sortProjectsByTaskOpenDate";
+import { formatDate } from "@/shared/lib/formatDate";
 import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import type { Project } from "../types";
 import "@/features/projects/styles/project-list.css";
 
+const PROJECT_LIST_DATE_LOCALE = "en-GB";
+
+function taskOpenDateLabel(project: Project): string | null {
+  const raw = project.taskOpenDate;
+  if (raw == null || raw === "") return null;
+  const label = formatDate(raw, PROJECT_LIST_DATE_LOCALE);
+  return label ? `Starts ${label}` : null;
+}
+
 type ProjectListProps = {
   projects: Project[];
   projectMetaById?: Record<string, { completed: boolean; finishedUnmarked: boolean; mark: number | null }>;
+  hideModuleLine?: boolean;
 };
 
 function formatMark(mark: number): string {
@@ -13,7 +25,7 @@ function formatMark(mark: number): string {
   return `${rounded}%`;
 }
 
-export function ProjectList({ projects, projectMetaById = {} }: ProjectListProps) {
+export function ProjectList({ projects, projectMetaById = {}, hideModuleLine = false }: ProjectListProps) {
   if (projects.length === 0) {
     return (
       <div className="project-list-empty">
@@ -22,13 +34,17 @@ export function ProjectList({ projects, projectMetaById = {} }: ProjectListProps
     );
   }
 
+  const sortedProjects = sortProjectsByTaskOpenDate(projects);
+
   return (
     <div className="project-list">
       <div className="project-list__grid">
-        {projects.map((project) => {
+        {sortedProjects.map((project) => {
+          const startLabel = taskOpenDateLabel(project);
           const meta = projectMetaById[String(project.id)];
           const isCompleted = meta?.completed === true;
           const isFinishedUnmarked = meta?.finishedUnmarked === true;
+          const isArchived = Boolean(project.archivedAt);
           const mark = typeof meta?.mark === "number" && Number.isFinite(meta.mark) ? meta.mark : null;
           const summary = (project as Project & { summary?: string | null }).summary;
           const markClass = `project-card__mark${isFinishedUnmarked ? " project-card__mark--awaiting" : ""}`;
@@ -36,6 +52,7 @@ export function ProjectList({ projects, projectMetaById = {} }: ProjectListProps
             "project-card card",
             isCompleted ? "project-card--completed" : "",
             isFinishedUnmarked ? "project-card--awaiting-mark" : "",
+            isArchived ? "project-card--archived" : "",
           ]
             .filter(Boolean)
             .join(" ");
@@ -69,9 +86,12 @@ export function ProjectList({ projects, projectMetaById = {} }: ProjectListProps
                     </span>
                   )}
                 </div>
-                <p className="project-card__module">
-                  Module: {project.moduleName || "Module not assigned"}
-                </p>
+                {startLabel ? <p className="project-card__dates">{startLabel}</p> : null}
+                {!hideModuleLine ? (
+                  <p className="project-card__module">
+                    Module: {project.moduleName || "Module not assigned"}
+                  </p>
+                ) : null}
                 {isCompleted || isFinishedUnmarked ? (
                   <p className={markClass}>
                     {isFinishedUnmarked
