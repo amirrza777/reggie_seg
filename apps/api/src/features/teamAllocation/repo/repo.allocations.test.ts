@@ -59,6 +59,15 @@ describe("repo.allocations", () => {
     expect(mocks.prisma.teamAllocation.createMany).toHaveBeenCalledTimes(1);
   });
 
+  it("applyRandomAllocationPlan uses default generated team names when none are provided", async () => {
+    mocks.prisma.team.create.mockResolvedValueOnce({ id: 31, teamName: "Random Team 1" });
+    const result = await applyRandomAllocationPlan(2, "ent-1", [{ members: [{ id: 1 }] }]);
+    expect(result).toEqual([{ id: 31, teamName: "Random Team 1", memberCount: 1 }]);
+    expect(mocks.prisma.team.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ teamName: "Random Team 1" }) }),
+    );
+  });
+
   it("applyManualAllocationTeam rejects existing names and student conflicts", async () => {
     mocks.prisma.team.findFirst.mockResolvedValueOnce({ id: 1 });
     await expect(applyManualAllocationTeam(2, "ent-1", "Blue", [1])).rejects.toEqual({
@@ -79,6 +88,16 @@ describe("repo.allocations", () => {
     expect(result).toEqual({ id: 30, teamName: "Blue", memberCount: 2 });
     expect(mocks.prisma.teamAllocation.createMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: [{ teamId: 30, userId: 1 }, { teamId: 30, userId: 2 }], skipDuplicates: true }),
+    );
+  });
+
+  it("applyManualAllocationTeam defaults draftCreatedById to null", async () => {
+    mocks.prisma.team.findFirst.mockResolvedValue(null);
+    mocks.prisma.teamAllocation.findMany.mockResolvedValue([]);
+    mocks.prisma.team.create.mockResolvedValue({ id: 31, teamName: "Blue" });
+    await applyManualAllocationTeam(2, "ent-1", "Blue", [1]);
+    expect(mocks.prisma.team.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ draftCreatedById: null }) }),
     );
   });
 

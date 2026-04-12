@@ -139,6 +139,11 @@ describe("service.custom-allocation.shared", () => {
     expect(parsed.has(Number("x"))).toBe(false);
   });
 
+  it("returns an empty map for non-object non-array answer payloads", () => {
+    expect(parseCustomAllocationAnswers(null).size).toBe(0);
+    expect(parseCustomAllocationAnswers("nope").size).toBe(0);
+  });
+
   it("returns default and provided team names", () => {
     const teams = [{ suggestedName: " Team A " }, { suggestedName: " " }];
     expect(resolveCustomAllocationTeamNames(teams)).toEqual(["Team A", "Custom Team 2"]);

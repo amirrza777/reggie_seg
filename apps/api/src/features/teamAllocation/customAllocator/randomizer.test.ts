@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { planRandomTeams } from "./randomizer.js";
 
 describe("randomizer", () => {
@@ -55,5 +55,25 @@ describe("randomizer", () => {
     expect(() => planRandomTeams(students as any, 1, { rng: () => 0.1 })).toThrow(
       "team size targets are overfilled",
     );
+  });
+
+  it("skips swap operations when sparse-array values are undefined", () => {
+    const sparse = [1, undefined, 3] as Array<number | undefined>;
+    const teams = planRandomTeams(sparse, 2, { rng: () => 0.2 });
+    expect(teams).toHaveLength(2);
+    expect(teams.flatMap((team) => team.members).length).toBe(3);
+  });
+
+  it("covers constrained target loop branches when some teams are already full", () => {
+    const fromSpy = vi.spyOn(Array, "from");
+    fromSpy.mockImplementationOnce(() => [2, 1] as any);
+    const planned = planRandomTeams([1, 2, 3], 2, { minTeamSize: 1, maxTeamSize: 2, seed: 1 });
+    expect(planned.flatMap((team) => team.members)).toHaveLength(3);
+
+    fromSpy.mockImplementationOnce(() => [2, 2] as any);
+    expect(() => planRandomTeams([1, 2, 3], 2, { minTeamSize: 1, maxTeamSize: 2, seed: 1 })).toThrow(
+      "team size constraints cannot be satisfied for the given student count",
+    );
+    fromSpy.mockRestore();
   });
 });
