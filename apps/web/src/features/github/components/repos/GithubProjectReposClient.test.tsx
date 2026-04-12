@@ -1,19 +1,19 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GithubProjectReposClient } from "./GithubProjectReposClient";
-import * as githubClient from "../api/client";
+import * as githubClient from "../../api/client";
 
 vi.mock("./GithubProjectReposHero", () => ({
   GithubProjectReposHero: () => <div data-testid="github-hero">hero</div>,
 }));
 
-vi.mock("./GithubRepoLinkCard", () => ({
+vi.mock("../GithubRepoLinkCard", () => ({
   GithubRepoLinkCard: ({ link }: { link: { repository: { fullName: string } } }) => (
     <div data-testid="github-link-card">{link.repository.fullName}</div>
   ),
 }));
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   getGithubConnectionStatus: vi.fn(),
   getGithubConnectUrl: vi.fn(),
   disconnectGithubAccount: vi.fn(),

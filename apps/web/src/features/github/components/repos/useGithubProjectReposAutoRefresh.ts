@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { analyseProjectGithubRepo } from "../api/client";
-import type { GithubLatestSnapshot, ProjectGithubRepoLink } from "../types";
+import { analyseProjectGithubRepo } from "../../api/client";
+import type { GithubLatestSnapshot, ProjectGithubRepoLink } from "../../types";
 
 const SNAPSHOT_STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 const AUTO_REFRESH_CHECK_INTERVAL_MS = 60 * 60 * 1000;

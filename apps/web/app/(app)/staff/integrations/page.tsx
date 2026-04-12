@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GithubProjectReposClient } from "@/features/github/components/GithubProjectReposClient";
+import { GithubProjectReposClient } from "@/features/github/components/repos/GithubProjectReposClient";
 import { getStaffProjectTeams, getStaffProjects } from "@/features/projects/api/client";
 import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
 import { TrelloSummaryView } from "@/features/trello/views/TrelloSummaryView";

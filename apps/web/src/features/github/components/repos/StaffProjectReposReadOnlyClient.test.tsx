@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { StaffProjectReposReadOnlyClient } from "./StaffProjectReposReadOnlyClient";
-import type { ProjectGithubRepoLink } from "../types";
+import type { ProjectGithubRepoLink } from "../../types";
 
 const listProjectGithubRepoLinksMock = vi.fn();
 const getProjectGithubMappingCoverageMock = vi.fn();
@@ -10,7 +10,7 @@ const analyseProjectGithubRepoMock = vi.fn();
 const listLiveProjectGithubRepoBranchesMock = vi.fn();
 const listLiveProjectGithubRepoBranchCommitsMock = vi.fn();
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   listProjectGithubRepoLinks: (...args: unknown[]) => listProjectGithubRepoLinksMock(...args),
   getProjectGithubMappingCoverage: (...args: unknown[]) => getProjectGithubMappingCoverageMock(...args),
   getLatestProjectGithubSnapshot: (...args: unknown[]) => getLatestProjectGithubSnapshotMock(...args),
@@ -20,7 +20,7 @@ vi.mock("../api/client", () => ({
     listLiveProjectGithubRepoBranchCommitsMock(...args),
 }));
 
-vi.mock("./GithubRepoLinkCard", () => ({
+vi.mock("../GithubRepoLinkCard", () => ({
   GithubRepoLinkCard: ({
     link,
     readOnly,

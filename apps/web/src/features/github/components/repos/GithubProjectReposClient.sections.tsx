@@ -3,7 +3,7 @@
 import type { ComponentProps } from "react";
 import { Button } from "@/shared/ui/Button";
 import { SkeletonText } from "@/shared/ui/Skeleton";
-import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
+import { GithubRepoLinkCard } from "../GithubRepoLinkCard";
 import { GithubProjectReposConfigurationsTab } from "./GithubProjectReposConfigurationsTab";
 import { GithubProjectReposRepositoriesTab } from "./GithubProjectReposRepositoriesTab";
 import {
@@ -15,7 +15,7 @@ import type {
   GithubLatestSnapshot,
   GithubMappingCoverage,
   ProjectGithubRepoLink,
-} from "../types";
+} from "../../types";
 
 type GithubProjectReposClientStatusMessagesProps = {
   info: string | null;

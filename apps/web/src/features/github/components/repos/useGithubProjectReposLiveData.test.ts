@@ -4,15 +4,15 @@ import {
   listLiveProjectGithubRepoBranchCommits,
   listLiveProjectGithubRepoBranches,
   listLiveProjectGithubRepoMyCommits,
-} from "../api/client";
+} from "../../api/client";
 import { useGithubProjectReposLiveData } from "./useGithubProjectReposLiveData";
 import type {
   GithubConnectionStatus,
   GithubLatestSnapshot,
   ProjectGithubRepoLink,
-} from "../types";
+} from "../../types";
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   listLiveProjectGithubRepoBranchCommits: vi.fn(),
   listLiveProjectGithubRepoBranches: vi.fn(),
   listLiveProjectGithubRepoMyCommits: vi.fn(),

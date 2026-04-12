@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { GithubProjectReposRepositoriesTab } from "./GithubProjectReposRepositoriesTab";
 
-vi.mock("./GithubRepoLinkCard", () => ({
+vi.mock("../GithubRepoLinkCard", () => ({
   GithubRepoLinkCard: ({ link }: { link: { repository: { fullName: string } } }) => (
     <div data-testid="repo-link-card">{link.repository.fullName}</div>
   ),

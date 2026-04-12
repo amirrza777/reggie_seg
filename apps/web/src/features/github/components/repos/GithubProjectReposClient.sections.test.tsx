@@ -8,7 +8,7 @@ import {
   GithubProjectReposTeamCodeActivitySection,
 } from "./GithubProjectReposClient.sections";
 
-vi.mock("./GithubRepoLinkCard", () => ({
+vi.mock("../GithubRepoLinkCard", () => ({
   GithubRepoLinkCard: ({ link, chartMode }: { link: { id: number }; chartMode: string }) => (
     <div data-testid={`repo-link-${link.id}`}>{chartMode}</div>
   ),

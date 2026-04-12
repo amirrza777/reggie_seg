@@ -8,7 +8,7 @@ import type {
   GithubLatestSnapshot,
   GithubLiveProjectRepoMyCommits,
   ProjectGithubRepoLink,
-} from "../types";
+} from "../../types";
 
 type Props = {
   loading: boolean;

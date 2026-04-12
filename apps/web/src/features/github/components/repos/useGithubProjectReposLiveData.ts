@@ -5,7 +5,7 @@ import {
   listLiveProjectGithubRepoBranchCommits,
   listLiveProjectGithubRepoBranches,
   listLiveProjectGithubRepoMyCommits,
-} from "../api/client";
+} from "../../api/client";
 import type {
   GithubConnectionStatus,
   GithubLatestSnapshot,
@@ -13,7 +13,7 @@ import type {
   GithubLiveProjectRepoBranches,
   GithubLiveProjectRepoMyCommits,
   ProjectGithubRepoLink,
-} from "../types";
+} from "../../types";
 
 type Params = {
   activeTab: "repositories" | "my-commits" | "branches" | "configurations" | null;

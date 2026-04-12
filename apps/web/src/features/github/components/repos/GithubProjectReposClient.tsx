@@ -26,14 +26,14 @@ import {
   listGithubRepositories,
   listProjectGithubRepoLinks,
   removeProjectGithubRepoLink,
-} from "../api/client";
+} from "../../api/client";
 import type {
   GithubConnectionStatus,
   GithubLatestSnapshot,
   GithubMappingCoverage,
   GithubRepositoryOption,
   ProjectGithubRepoLink,
-} from "../types";
+} from "../../types";
 
 type GithubProjectReposClientProps = {
   projectId: string;

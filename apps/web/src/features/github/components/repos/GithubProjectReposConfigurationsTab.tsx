@@ -2,7 +2,7 @@
 
 import { Button } from "@/shared/ui/Button";
 import { SkeletonText } from "@/shared/ui/Skeleton";
-import type { GithubConnectionStatus } from "../types";
+import type { GithubConnectionStatus } from "../../types";
 
 type Props = {
   loading: boolean;

@@ -7,7 +7,7 @@ import type {
   GithubLiveProjectRepoBranchCommits,
   GithubLiveProjectRepoBranches,
   ProjectGithubRepoLink,
-} from "../types";
+} from "../../types";
 
 type Props = {
   loading: boolean;

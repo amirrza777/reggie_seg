@@ -4,7 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/shared/ui/Button";
 import { SearchField } from "@/shared/ui/SearchField";
 import { SkeletonText } from "@/shared/ui/Skeleton";
-import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
+import { GithubRepoLinkCard } from "../GithubRepoLinkCard";
 import type {
   GithubConnectionStatus,
   GithubLatestSnapshot,
@@ -13,7 +13,7 @@ import type {
   GithubMappingCoverage,
   GithubRepositoryOption,
   ProjectGithubRepoLink,
-} from "../types";
+} from "../../types";
 
 type Props = {
   loading: boolean;

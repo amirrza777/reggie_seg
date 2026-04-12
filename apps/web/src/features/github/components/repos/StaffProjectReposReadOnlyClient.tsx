@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { SkeletonText } from "@/shared/ui/Skeleton";
-import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
+import { GithubRepoLinkCard } from "../GithubRepoLinkCard";
 import {
   analyseProjectGithubRepo,
   getLatestProjectGithubSnapshot,
@@ -11,14 +11,14 @@ import {
   listLiveProjectGithubRepoBranchCommits,
   listLiveProjectGithubRepoBranches,
   listProjectGithubRepoLinks,
-} from "../api/client";
+} from "../../api/client";
 import type {
   GithubLatestSnapshot,
   GithubLiveProjectRepoBranchCommits,
   GithubLiveProjectRepoBranches,
   GithubMappingCoverage,
   ProjectGithubRepoLink,
-} from "../types";
+} from "../../types";
 
 type StaffProjectReposReadOnlyClientProps = {
   projectId: string;
