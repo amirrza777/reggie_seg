@@ -96,7 +96,7 @@ const ROLE_SCENARIOS: RoleScenario[] = [
     role: "staff",
     email: process.env.PLAYWRIGHT_STAFF_EMAIL ?? "staff.assessment@example.com",
     password: process.env.PLAYWRIGHT_STAFF_PASSWORD ?? sharedPassword,
-    routes: ["/staff/dashboard", "/staff/modules", "/staff/projects", "/staff/peer-assessments", "/staff/analytics", "/staff/marks", "/staff/repos"],
+    routes: ["/staff/dashboard", "/staff/modules", "/staff/projects", "/staff/analytics", "/staff/marks", "/staff/repos"],
   },
   {
     role: "enterpriseAdmin",
