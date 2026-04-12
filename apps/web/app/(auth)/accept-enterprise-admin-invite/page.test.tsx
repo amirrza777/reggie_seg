@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: vi.fn(),
 }));
 
-vi.mock("@/features/auth/components/AcceptEnterpriseAdminInviteForm", () => ({
+vi.mock("@/features/auth/components/invites/AcceptEnterpriseAdminInviteForm", () => ({
   AcceptEnterpriseAdminInviteForm: ({ token }: { token: string | null }) => (
     <div data-testid="accept-invite-form" data-token={token ?? ""} />
   ),

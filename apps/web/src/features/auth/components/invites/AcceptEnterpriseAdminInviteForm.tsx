@@ -1,6 +1,6 @@
 "use client";
 
-import { acceptEnterpriseAdminInvite, getEnterpriseAdminInviteState } from "../api/client";
+import { acceptEnterpriseAdminInvite, getEnterpriseAdminInviteState } from "../../api/client";
 import { AcceptAdminInviteForm } from "./AcceptAdminInviteForm";
 
 export function AcceptEnterpriseAdminInviteForm({ token }: { token: string | null }) {

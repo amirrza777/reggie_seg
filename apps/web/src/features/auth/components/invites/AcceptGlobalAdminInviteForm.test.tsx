@@ -3,14 +3,14 @@ import "@testing-library/jest-dom";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi, type MockedFunction } from "vitest";
 import { ApiError } from "@/shared/api/errors";
-import { acceptGlobalAdminInvite, getGlobalAdminInviteState } from "../api/client";
+import { acceptGlobalAdminInvite, getGlobalAdminInviteState } from "../../api/client";
 import { AcceptGlobalAdminInviteForm } from "./AcceptGlobalAdminInviteForm";
 
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
 }));
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   acceptGlobalAdminInvite: vi.fn(),
   getGlobalAdminInviteState: vi.fn(),
 }));

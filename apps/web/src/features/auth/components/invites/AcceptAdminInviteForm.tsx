@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ApiError } from "@/shared/api/errors";
 import { Button } from "@/shared/ui/Button";
-import { AuthField } from "./AuthField";
+import { AuthField } from "../AuthField";
 
 type InviteAcceptStatus = "idle" | "loading" | "error" | "success";
 type InviteResolveStatus = "idle" | "loading" | "ready" | "error";

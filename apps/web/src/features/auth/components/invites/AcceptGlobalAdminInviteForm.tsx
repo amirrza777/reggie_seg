@@ -1,6 +1,6 @@
 "use client";
 
-import { acceptGlobalAdminInvite, getGlobalAdminInviteState } from "../api/client";
+import { acceptGlobalAdminInvite, getGlobalAdminInviteState } from "../../api/client";
 import { AcceptAdminInviteForm } from "./AcceptAdminInviteForm";
 
 export function AcceptGlobalAdminInviteForm({ token }: { token: string | null }) {
