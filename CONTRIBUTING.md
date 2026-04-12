@@ -32,3 +32,4 @@ Notes:
 - Keep directories scannable. When practical, split folders that grow beyond roughly 20-25 files into clear sub-concerns.
 - If a path must change, prefer compatibility wrappers/re-exports first to reduce import and route breakage.
 - Keep tests co-located with the code they validate.
+- Use npm as the repository package manager unless the team explicitly decides to support another manager.

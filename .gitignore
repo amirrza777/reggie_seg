@@ -20,3 +20,5 @@ apps/web/.next-dev-webpack/
 *.tsbuildinfo
 .zed/
 .claude/
+reports/files_over_400_lines.tsv
+reports/files_over_400_lines_code_only.tsv
