@@ -1,6 +1,6 @@
 /* eslint-disable max-lines-per-function, max-statements, complexity, max-depth */
 import { recordAuditLog } from "../audit/service.js";
-import { EnterpriseCodeGeneratorService } from "../services/enterprise/enterpriseCodeGeneratorService.js";
+import { EnterpriseCodeGeneratorService } from "./enterpriseCodeGeneratorService.js";
 import {
   buildAdminEnterpriseSearchWhere,
   matchesAdminEnterpriseFuzzyCandidate,

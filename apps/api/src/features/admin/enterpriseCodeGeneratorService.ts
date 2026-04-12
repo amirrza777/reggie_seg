@@ -1,4 +1,4 @@
-import { prisma } from "../../../shared/db.js";
+import { prisma } from "../../shared/db.js";
 
 const MAX_ENTERPRISE_CODE_LENGTH = 16;
 const MIN_BASE_CODE_LENGTH = 3;

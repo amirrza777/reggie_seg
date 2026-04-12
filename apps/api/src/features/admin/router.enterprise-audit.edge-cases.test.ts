@@ -35,7 +35,7 @@ vi.mock("./userSearch.js", () => ({
   parseAdminUserSearchFilters: vi.fn(),
   matchesAdminUserSearchCandidate: vi.fn(),
 }));
-vi.mock("../services/enterprise/enterpriseCodeGeneratorService.js", () => ({
+vi.mock("./enterpriseCodeGeneratorService.js", () => ({
   EnterpriseCodeGeneratorService: vi.fn().mockImplementation(() => ({ generateFromName: generateFromNameMock })),
 }));
 
