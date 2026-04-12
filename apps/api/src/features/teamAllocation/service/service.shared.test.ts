@@ -8,11 +8,16 @@ import {
 describe("service.shared", () => {
   it("normalizes valid constraints and rejects invalid ranges", () => {
     expect(normalizeTeamSizeConstraints({ minTeamSize: 2, maxTeamSize: 4 })).toEqual({ minTeamSize: 2, maxTeamSize: 4 });
+    expect(normalizeTeamSizeConstraints({})).toEqual({});
     expect(() => normalizeTeamSizeConstraints({ minTeamSize: 5, maxTeamSize: 4 })).toThrow();
   });
 
   it("rejects invalid max team size constraint", () => {
     expect(() => normalizeTeamSizeConstraints({ maxTeamSize: 0 })).toThrow();
+  });
+
+  it("rejects invalid min team size constraint", () => {
+    expect(() => normalizeTeamSizeConstraints({ minTeamSize: 0 })).toThrow();
   });
 
   it("builds a constrained random plan and tracks unassigned students", () => {

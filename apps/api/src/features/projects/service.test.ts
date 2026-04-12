@@ -110,6 +110,7 @@ describe("projects service", () => {
       archivedAt: null,
       moduleId: 2,
       questionnaireTemplateId: 3,
+      teamAllocationQuestionnaireTemplateId: 4,
       projectNavFlags: null,
       module: { archivedAt: null },
     });
@@ -124,6 +125,7 @@ describe("projects service", () => {
       archivedAt: null,
       moduleId: 2,
       questionnaireTemplateId: 3,
+      teamAllocationQuestionnaireTemplateId: 4,
       moduleArchivedAt: null,
       projectNavFlags: expect.objectContaining({ version: 1 }),
     });

@@ -172,6 +172,22 @@ describe("service.custom-allocation.preview", () => {
     });
   });
 
+  it("accepts ignore criteria strategy and forwards team-size constraints to allocator", async () => {
+    mocks.serviceShared.normalizeTeamSizeConstraints.mockReturnValueOnce({ minTeamSize: 1, maxTeamSize: 3 });
+    await previewCustomAllocationForProject(
+      7,
+      9,
+      buildInput({
+        minTeamSize: 1,
+        maxTeamSize: 3,
+        criteria: [{ questionId: 10, strategy: "ignore", weight: 3 }],
+      }),
+    );
+    expect(mocks.planCustomAllocationTeams).toHaveBeenCalledWith(
+      expect.objectContaining({ minTeamSize: 1, maxTeamSize: 3, criteria: [] }),
+    );
+  });
+
   it("propagates team-size validation and project/template access errors", async () => {
     mocks.serviceShared.normalizeTeamSizeConstraints.mockImplementationOnce(() => {
       throw { code: "INVALID_MIN_TEAM_SIZE" };
@@ -240,5 +256,11 @@ describe("service.custom-allocation.preview", () => {
     expect(result.teamCriteriaSummary[0]?.criteria[0]?.summary).toEqual({ kind: "none" });
     expect(result.teamCriteriaSummary[1]?.criteria[0]?.summary).toEqual({ kind: "none" });
     expect(result.teamCriteriaSummary[2]?.criteria[0]?.summary).toEqual({ kind: "none" });
+  });
+
+  it("falls back to an empty response map when parser returns undefined", async () => {
+    mocks.shared.parseCustomAllocationAnswers.mockReturnValueOnce(undefined as any);
+    const result = await previewCustomAllocationForProject(7, 9, buildInput());
+    expect(result.previewId).toBe("custom-preview-uuid-1");
   });
 });

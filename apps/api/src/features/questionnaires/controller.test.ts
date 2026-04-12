@@ -100,6 +100,39 @@ describe("createTemplateHandler", () => {
     expect(service.createTemplate).toHaveBeenCalledWith("JWT", [], 9, true);
   });
 
+  it("falls back to refresh token when access payload is malformed", async () => {
+    (jwt.verify as any).mockReturnValue([]);
+    (authService.verifyRefreshToken as any).mockReturnValue({ sub: 12 });
+    (service.createTemplate as any).mockResolvedValue({ id: 120 });
+
+    const req: any = {
+      body: { templateName: "Refresh Fallback", questions: [] },
+      headers: { authorization: "Bearer malformed" },
+      cookies: { refresh_token: "refresh123" },
+    };
+    const res = mockResponse();
+
+    await createTemplateHandler(req, res);
+
+    expect(service.createTemplate).toHaveBeenCalledWith("Refresh Fallback", [], 12, true);
+  });
+
+  it("treats access payload with invalid email as unauthenticated", async () => {
+    (jwt.verify as any).mockReturnValue({ sub: 7, email: "" });
+    (authService.verifyRefreshToken as any).mockReturnValue(null);
+
+    const req: any = {
+      body: { templateName: "Bad Email Payload", questions: [] },
+      headers: { authorization: "Bearer bad-email" },
+      cookies: {},
+    };
+    const res = mockResponse();
+
+    await createTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+  });
+
   it("falls back to refresh token if access token fails", async () => {
     (jwt.verify as any).mockImplementation(() => {
       throw new Error("bad token");
@@ -169,6 +202,21 @@ describe("createTemplateHandler", () => {
     await createTemplateHandler(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+  it("returns 400 fallback message when createTemplate throws statusCode without message", async () => {
+    (service.createTemplate as any).mockRejectedValue({ statusCode: 400 });
+
+    const req: any = {
+      body: { templateName: "Invalid", questions: [] },
+      user: { sub: 10 },
+    };
+    const res = mockResponse();
+
+    await createTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "Invalid request body" });
   });
 });
 

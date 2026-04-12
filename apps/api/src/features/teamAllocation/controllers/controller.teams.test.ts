@@ -163,10 +163,19 @@ describe("controller.teams", () => {
     await addUserToTeamHandler({ params: { teamId: "12" }, body: { userId: "bad" } } as any, invalid);
     expect(invalid.status).toHaveBeenCalledWith(400);
 
+    const invalidTeam = createResponse();
+    await addUserToTeamHandler({ params: { teamId: "bad" }, body: { userId: 5 } } as any, invalidTeam);
+    expect(invalidTeam.status).toHaveBeenCalledWith(400);
+
     const conflict = createResponse();
     mocks.service.addUserToTeam.mockRejectedValueOnce({ code: "MEMBER_ALREADY_EXISTS" });
     await addUserToTeamHandler({ params: { teamId: "12" }, body: { userId: 5 } } as any, conflict);
     expect(conflict.status).toHaveBeenCalledWith(409);
+
+    const notFound = createResponse();
+    mocks.service.addUserToTeam.mockRejectedValueOnce({ code: "TEAM_NOT_FOUND" });
+    await addUserToTeamHandler({ params: { teamId: "12" }, body: { userId: 5 } } as any, notFound);
+    expect(notFound.status).toHaveBeenCalledWith(404);
   });
 
   it("addUserToTeam returns created allocation and maps unexpected errors", async () => {

@@ -20,6 +20,18 @@ describe("customAllocator", () => {
     ).toThrow("students must include at least one student");
   });
 
+  it("treats non-array respondent collections as empty", () => {
+    expect(() =>
+      planCustomAllocationTeams({
+        respondents: null as any,
+        nonRespondents: "invalid" as any,
+        criteria: [],
+        teamCount: 1,
+        nonRespondentStrategy: "exclude",
+      }),
+    ).toThrow("students must include at least one student");
+  });
+
   it("rejects impossible team counts and invalid criterion weights", () => {
     expect(() =>
       planCustomAllocationTeams({ respondents: respondents(), nonRespondents: [], criteria: [], teamCount: 9, nonRespondentStrategy: "exclude" }),
@@ -77,6 +89,21 @@ describe("customAllocator", () => {
     });
     expect(result.teams[0]?.members).toHaveLength(2);
     expect(result.teams[1]?.members).toHaveLength(2);
+  });
+
+  it("distributes non-respondents with a single team using zero start offset", () => {
+    const result = planCustomAllocationTeams({
+      respondents: respondents().slice(0, 1),
+      nonRespondents: [{ id: 5, firstName: "E" }],
+      criteria: [{ questionId: 1, strategy: "group", weight: 1 }],
+      teamCount: 1,
+      nonRespondentStrategy: "distribute_randomly",
+      seed: 3,
+      minTeamSize: 2,
+      maxTeamSize: 2,
+    });
+    expect(result.teams).toHaveLength(1);
+    expect(result.teams[0]?.members).toHaveLength(2);
   });
 
   it("throws when team-size constraints cannot fit assigned population", () => {

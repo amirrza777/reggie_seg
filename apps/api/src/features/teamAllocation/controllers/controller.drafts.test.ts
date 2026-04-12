@@ -101,6 +101,13 @@ describe("controller.drafts", () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
+  it("returns 400 for invalid project id during update", async () => {
+    const req = { user: { sub: 3 }, params: { projectId: "x", teamId: "9" }, body: { teamName: "New" } };
+    const res = createResponse();
+    await updateAllocationDraftHandler(req as any, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
   it("returns 401 for update when auth is missing", async () => {
     const req = { params: { projectId: "4", teamId: "9" }, body: { teamName: "New" } };
     const res = createResponse();

@@ -13,6 +13,7 @@ import {
 import {
   buildDefaultCreateProjectDeadlineState,
   buildPresetCreateProjectDeadlineState,
+  shiftCreateProjectDeadlineForCustomAllocation,
   toStudentName,
   type CreateProjectDeadlineState,
 } from "./StaffProjectCreatePanel.create-deadlines";
@@ -58,6 +59,7 @@ export function useStaffProjectCreatePanel({ modules, initialModuleId = null }: 
   const [studentSearchInput, setStudentSearchInput] = useState("");
   const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
   const latestModuleStudentsRequestRef = useRef(0);
+  const previousHasSelectedAllocationTemplateRef = useRef(false);
 
   const creatableModulesFromProps = useMemo(
     () => modules.filter((module) => CREATABLE_ROLES.has(module.accountRole)),
@@ -170,6 +172,19 @@ export function useStaffProjectCreatePanel({ modules, initialModuleId = null }: 
   const hasAllocationTemplates = allocationTemplates.length > 0 || allocationTemplateId.trim().length > 0;
   const hasSelectedAllocationTemplate = allocationTemplateId.trim().length > 0;
 
+  useEffect(() => {
+    const hadSelected = previousHasSelectedAllocationTemplateRef.current;
+    previousHasSelectedAllocationTemplateRef.current = hasSelectedAllocationTemplate;
+
+    if (!hadSelected && hasSelectedAllocationTemplate) {
+      setDeadline((prev) => shiftCreateProjectDeadlineForCustomAllocation(prev, 7));
+      setDeadlinePresetError(null);
+      setDeadlinePresetStatus(
+        "Shifted the timeline by 1 week for custom allocation. Questionnaire now opens before project start.",
+      );
+    }
+  }, [hasSelectedAllocationTemplate]);
+
   const selectedModule = useMemo(
     () => creatableModulesFromProps.find((module) => String(module.id) === moduleId) ?? null,
     [creatableModulesFromProps, moduleId],
@@ -232,15 +247,29 @@ export function useStaffProjectCreatePanel({ modules, initialModuleId = null }: 
   }
 
   function applySchedulePreset(totalWeeks: number) {
-    setDeadline(buildPresetCreateProjectDeadlineState(totalWeeks));
+    const preset = buildPresetCreateProjectDeadlineState(totalWeeks);
+    setDeadline(
+      hasSelectedAllocationTemplate ? shiftCreateProjectDeadlineForCustomAllocation(preset, 7) : preset,
+    );
     setDeadlinePresetError(null);
-    setDeadlinePresetStatus(`Applied ${totalWeeks}-week project schedule.`);
+    setDeadlinePresetStatus(
+      hasSelectedAllocationTemplate
+        ? `Applied ${totalWeeks}-week schedule and shifted for custom allocation.`
+        : `Applied ${totalWeeks}-week project schedule.`,
+    );
   }
 
   function resetSchedulePreset() {
-    setDeadline(buildDefaultCreateProjectDeadlineState());
+    const preset = buildDefaultCreateProjectDeadlineState();
+    setDeadline(
+      hasSelectedAllocationTemplate ? shiftCreateProjectDeadlineForCustomAllocation(preset, 7) : preset,
+    );
     setDeadlinePresetError(null);
-    setDeadlinePresetStatus("Reset to default project schedule.");
+    setDeadlinePresetStatus(
+      hasSelectedAllocationTemplate
+        ? "Reset to default schedule and shifted for custom allocation."
+        : "Reset to default project schedule.",
+    );
   }
 
   function selectAllModuleStudents() { setSelectedStudentIds(enrolledModuleStudents.map((s) => s.id)); }

@@ -244,6 +244,28 @@ describe("QuestionnaireTemplate repository", () => {
     });
   });
 
+  it("updates template purpose when purpose is provided", async () => {
+    const mockTx = {
+      questionnaireTemplate: { update: vi.fn() },
+      question: {
+        findMany: vi.fn(),
+        update: vi.fn(),
+        createMany: vi.fn(),
+        deleteMany: vi.fn(),
+      },
+    };
+
+    (prisma.$transaction as any).mockImplementation(async (cb: any) => cb(mockTx));
+    mockTx.question.findMany.mockResolvedValue([]);
+
+    await updateQuestionnaireTemplate(10, "Purpose Template", [], undefined, "PEER_ASSESSMENT" as any);
+
+    expect(mockTx.questionnaireTemplate.update).toHaveBeenCalledWith({
+      where: { id: 10 },
+      data: { templateName: "Purpose Template", purpose: "PEER_ASSESSMENT" },
+    });
+  });
+
   it("falls back to order 0 for updates when incomingOrderById lookup is undefined", async () => {
     const mockTx = {
       questionnaireTemplate: { update: vi.fn() },
