@@ -50,10 +50,12 @@ export async function fetchProjectById(projectId: number) {
   if (!project) return null;
 
   const moduleArchivedAt = project.module?.archivedAt ?? null;
+  const moduleName = project.module?.name ?? "";
 
   return {
     id: project.id,
     name: project.name,
+    moduleName,
     informationText: project.informationText,
     archivedAt: project.archivedAt,
     moduleId: project.moduleId,

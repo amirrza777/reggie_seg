@@ -8,8 +8,11 @@ import type {
 import { Card } from "@/shared/ui/Card";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { formatDateTime } from "@/shared/lib/dateFormatter";
-import Link from "next/link";
-import { resolveProjectMarkValue, resolveProjectWorkflowState } from "@/features/projects/lib/projectWorkflowState";
+import {
+  resolveProjectMarkValue,
+  resolveProjectWorkflowState,
+  type ProjectWorkflowState,
+} from "@/features/projects/lib/projectWorkflowState";
 
 function formatDateLabel(value: string | null | undefined) {
   return value ? formatDateTime(value) : "Not set";
@@ -48,18 +51,52 @@ function buildDeadlineItems(deadline: ProjectDeadline): DeadlineItem[] {
 }
 
 function ProjectOverviewHero({
-  isCompleted,
+  project,
+  state,
+  team,
+  mode,
 }: {
-  isCompleted: boolean;
+  project: Project;
+  state: ProjectWorkflowState;
+  team: ProjectOverviewDashboardProps["team"];
+  mode: NonNullable<ProjectOverviewDashboardProps["teamFormationMode"]>;
 }) {
+  const projectName = (project.name ?? "").trim() || "Project";
+  const overviewTitle = `${projectName} Overview`;
+  const moduleName =
+    (project.moduleName ?? "").trim() || (Number.isFinite(Number(project.moduleId)) ? `Module ${project.moduleId}` : "Module");
+  const teamName = (team?.teamName ?? "").trim();
+  const teamStatus =
+    teamName.length > 0
+      ? teamName
+      : mode === "custom"
+        ? "Pending questionnaire allocation"
+        : mode === "staff"
+          ? "Pending staff allocation"
+          : "Not assigned";
+  const summary =
+    state === "completed_unmarked"
+      ? "Project complete. Final mark is awaiting publication."
+      : state === "completed_marked"
+        ? "Project complete. Final mark and feedback are available below."
+        : state === "pending"
+          ? "Project is pending. You can view details and prepare for upcoming work."
+          : "Overview and key project information.";
+
   return (
     <section className="project-overview-hero">
       <div className="stack project-overview-hero__stack">
         <div className="stack project-overview-hero__meta">
-          <h1 className="project-overview-hero__title">Project Overview</h1>
-          {!isCompleted ? (
-            <p className="muted project-overview-hero__summary">Overview and key project information.</p>
-          ) : null}
+          <h1 className="project-overview-hero__title">{overviewTitle}</h1>
+          <p className="project-overview-hero__module-name">
+            <span className="project-overview-hero__meta-label">Team:</span>
+            <span className="project-overview-hero__meta-value">{teamStatus}</span>
+          </p>
+          <p className="project-overview-hero__module-name">
+            <span className="project-overview-hero__meta-label">Module:</span>
+            <span className="project-overview-hero__meta-value">{moduleName}</span>
+          </p>
+          <p className="project-overview-hero__summary">{summary}</p>
         </div>
       </div>
     </section>
@@ -205,65 +242,6 @@ function AwaitingMarkCard() {
   );
 }
 
-function TeamFormationCard({
-  project,
-  team,
-  mode,
-}: {
-  project: Project;
-  team: ProjectOverviewDashboardProps["team"];
-  mode: ProjectOverviewDashboardProps["teamFormationMode"];
-}) {
-  const teamHref = `/projects/${project.id}/team`;
-
-  if (team) {
-    return (
-      <Card title="Your team">
-        <p className="project-overview-info__paragraph">
-          You are in <strong>{team.teamName}</strong>. Manage your teammates, invites, and team details from the team page.
-        </p>
-        <Link href={teamHref} className="ui-link">
-          Go to team page
-        </Link>
-      </Card>
-    );
-  }
-
-  if (mode === "custom") {
-    return (
-      <Card title="Team allocation">
-        <p className="project-overview-info__paragraph">
-          This project uses a questionnaire-based allocation. Complete the questionnaire to be assigned to a team.
-        </p>
-        <Link href={teamHref} className="ui-link">
-          Complete questionnaire
-        </Link>
-      </Card>
-    );
-  }
-
-  if (mode === "staff") {
-    return (
-      <Card title="Team allocation">
-        <p className="project-overview-info__paragraph">
-          Please wait for staff to add you to a team for this project.
-        </p>
-      </Card>
-    );
-  }
-
-  return (
-    <Card title="Create or join a team">
-      <p className="project-overview-info__paragraph">
-        Create a new team or accept an invitation to join an existing team for this project.
-      </p>
-      <Link href={teamHref} className="ui-link">
-        Go to team page
-      </Link>
-    </Card>
-  );
-}
-
 export function ProjectOverviewDashboard({
   project,
   deadline,
@@ -282,12 +260,9 @@ export function ProjectOverviewDashboard({
 
   return (
     <div className="stack project-overview-dashboard">
-      <ProjectOverviewHero
-        isCompleted={completed}
-      />
+      <ProjectOverviewHero project={project} state={projectState} team={team} mode={teamMode} />
 
       <div className="stack project-overview-layout project-overview-layout--overview">
-        <TeamFormationCard project={project} team={team} mode={teamMode} />
         <InformationBoardCard informationText={project.informationText} largeText />
         {!completed ? <DeadlinesScheduleCard items={deadlineItems} emphasize /> : null}
       </div>
