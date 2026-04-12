@@ -4,7 +4,7 @@ import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { EnterpriseAccountsModal } from "./EnterpriseAccountsModal";
 import { EnterpriseCreateModal } from "./EnterpriseCreateModal";
 import { EnterpriseManagementListCard } from "./EnterpriseManagementListCard";
-import { buildEnterpriseRows, buildEnterpriseUserRows } from "./enterpriseManagementRows";
+import { buildEnterpriseRows, buildEnterpriseUserRows } from "./rows/enterpriseManagementRows";
 import { useEnterpriseManagementState } from "./useEnterpriseManagementState";
 
 type EnterpriseManagementTableProps = {

@@ -1,5 +1,5 @@
 import { Button } from "@/shared/ui/Button";
-import type { AdminUser, EnterpriseRecord, UserRole } from "../types";
+import type { AdminUser, EnterpriseRecord, UserRole } from "../../types";
 
 const SUPER_ADMIN_EMAIL = "admin@kcl.ac.uk";
 
