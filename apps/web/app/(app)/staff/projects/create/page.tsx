@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
 import { partitionStaffModulesByArchive } from "@/features/modules/lib/staffModuleListFilters";
-import { StaffProjectCreatePanel } from "@/features/staff/projects/components/StaffProjectCreatePanel";
+import { StaffProjectCreatePanel } from "@/features/staff/projects/components/create/StaffProjectCreatePanel";
 import { ApiError } from "@/shared/api/errors";
 import { getCurrentUser } from "@/shared/auth/session";
 import { StaffBreadcrumbs } from "@/shared/layout/StaffBreadcrumbs";

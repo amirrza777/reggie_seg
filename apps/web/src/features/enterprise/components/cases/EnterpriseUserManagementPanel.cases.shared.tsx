@@ -7,9 +7,9 @@ import {
   removeEnterpriseUser,
   searchEnterpriseUsers,
   updateEnterpriseUser,
-} from "../api/client";
+} from "../../api/client";
 
-vi.mock("../api/client", () => ({
+vi.mock("../../api/client", () => ({
   createEnterpriseUser: vi.fn(),
   removeEnterpriseUser: vi.fn(),
   searchEnterpriseUsers: vi.fn(),

@@ -9,7 +9,7 @@ import {
   searchEnterpriseUsersMock,
   seedEnterpriseUserManagementPanelCaseDefaults,
 } from "./EnterpriseUserManagementPanel.cases.shared";
-import { EnterpriseUserManagementPanel } from "./EnterpriseUserManagementPanel";
+import { EnterpriseUserManagementPanel } from "../EnterpriseUserManagementPanel";
 
 describe("EnterpriseUserManagementPanel", () => {
   beforeEach(() => {

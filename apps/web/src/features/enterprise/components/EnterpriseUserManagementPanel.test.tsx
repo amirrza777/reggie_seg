@@ -1,1 +1,1 @@
-import "./EnterpriseUserManagementPanel.cases";
+import "./cases/EnterpriseUserManagementPanel.cases";
