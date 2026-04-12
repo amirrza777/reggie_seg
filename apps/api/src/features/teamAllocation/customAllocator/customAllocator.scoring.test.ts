@@ -59,6 +59,19 @@ describe("customAllocator.scoring", () => {
     expect(scoreCriterion(categoricalEmpty, [[0]])).toBe(1);
   });
 
+  it("returns 1 for diversify score when no team contributes valid values", () => {
+    const numeric = buildCriterionRuntime(
+      [{ id: 1, responses: { 10: 1 } }, { id: 2, responses: { 10: 2 } }],
+      { questionId: 10, strategy: "diversify", weight: 1 },
+    );
+    const categorical = buildCriterionRuntime(
+      [{ id: 1, responses: { 20: "A" } }, { id: 2, responses: { 20: "B" } }],
+      { questionId: 20, strategy: "diversify", weight: 1 },
+    );
+    expect(scoreCriterion(numeric, [[], []])).toBe(1);
+    expect(scoreCriterion(categorical, [[], []])).toBe(1);
+  });
+
   it("scores group criteria across numeric and categorical modes", () => {
     const numeric = buildCriterionRuntime(
       [{ id: 1, responses: { 30: 1 } }, { id: 2, responses: { 30: 2 } }, { id: 3, responses: { 30: 9 } }],
@@ -134,6 +147,22 @@ describe("customAllocator.scoring", () => {
       { value: "a", count: 1 },
       { value: "b", count: 1 },
     ]);
+  });
+
+  it("handles missing categorical global counts by falling back to zero", () => {
+    const criterion = {
+      questionId: 99,
+      strategy: "diversify",
+      weight: 1,
+      kind: "categorical",
+      values: ["A", "A"],
+      validCount: 2,
+      numericGlobalMean: 0,
+      numericGlobalVariance: 0,
+      numericGlobalStd: 0,
+      categoricalGlobalCounts: new Map([["A", undefined]]),
+    } as any;
+    expect(scoreCriterion(criterion, [[0, 1]])).toBeGreaterThan(0);
   });
 
   it("evaluates overall weighted score and handles empty/zero-weight criteria", () => {

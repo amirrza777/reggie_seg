@@ -47,6 +47,13 @@ describe("controller.random", () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
+  it("returns 400 for invalid preview project id", async () => {
+    const req = { user: { sub: 8 }, params: { projectId: "x" }, query: { teamCount: "2" } };
+    const res = createResponse();
+    await previewRandomAllocationHandler(req as any, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
   it("calls preview service without optional constraints", async () => {
     const req = { user: { sub: 8 }, params: { projectId: "2" }, query: { teamCount: "2" } };
     const res = createResponse();
@@ -99,6 +106,19 @@ describe("controller.random", () => {
     const res = createResponse();
     await applyRandomAllocationHandler(req as any, res);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("returns 401/400 for missing auth and invalid project id in apply", async () => {
+    const unauthRes = createResponse();
+    await applyRandomAllocationHandler({ params: { projectId: "2" }, body: { teamCount: 2 } } as any, unauthRes);
+    expect(unauthRes.status).toHaveBeenCalledWith(401);
+
+    const invalidProjectRes = createResponse();
+    await applyRandomAllocationHandler(
+      { user: { sub: 8 }, params: { projectId: "x" }, body: { teamCount: 2 } } as any,
+      invalidProjectRes,
+    );
+    expect(invalidProjectRes.status).toHaveBeenCalledWith(400);
   });
 
   it("returns 201 for successful random allocation apply", async () => {

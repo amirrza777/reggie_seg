@@ -1,0 +1,17 @@
+@media (max-width: 860px) {
+  .discussion-forum {
+    gap: 16px;
+  }
+
+  .discussion-composer__body {
+    padding: 12px;
+  }
+
+  .discussion-post {
+    padding: 12px;
+  }
+
+  .discussion-post__replies {
+    padding-left: 12px;
+  }
+}

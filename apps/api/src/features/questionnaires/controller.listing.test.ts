@@ -65,6 +65,22 @@ describe("getMyTemplatesHandler", () => {
     });
   });
 
+  it("passes only query filter when purpose is not provided", async () => {
+    (service.getMyTemplates as any).mockResolvedValue([{ id: 10 }]);
+    const req: any = { user: { sub: 55 }, query: { q: "  teamwork " } };
+    const res = mockResponse();
+    await getMyTemplatesHandler(req, res);
+    expect(service.getMyTemplates).toHaveBeenCalledWith(55, { query: "teamwork" });
+  });
+
+  it("passes only purpose filter when query is not provided", async () => {
+    (service.getMyTemplates as any).mockResolvedValue([{ id: 10 }]);
+    const req: any = { user: { sub: 55 }, query: { purpose: "GENERAL_PURPOSE" } };
+    const res = mockResponse();
+    await getMyTemplatesHandler(req, res);
+    expect(service.getMyTemplates).toHaveBeenCalledWith(55, { purpose: "GENERAL_PURPOSE" });
+  });
+
   it("returns 400 for invalid purpose on my templates listing", async () => {
     const req: any = { user: { sub: 55 }, query: { purpose: "INVALID" } };
     const res = mockResponse();

@@ -161,6 +161,15 @@ describe("QuestionnaireTemplate repository read paths", () => {
     ]);
   });
 
+  it("applies fuzzy fallback when templates omit question labels", async () => {
+    (prisma.questionnaireTemplate.findMany as any)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 22, templateName: "Team Preferences" }]);
+
+    const result = await getMyQuestionnaireTemplates(14, { query: "team pre" });
+    expect(result).toEqual([{ id: 22, templateName: "Team Preferences" }]);
+  });
+
   it("fetches public templates owned by other users", async () => {
     await getPublicQuestionnaireTemplatesByOtherUsers(14);
 

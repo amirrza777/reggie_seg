@@ -70,6 +70,51 @@ describe("customAllocator edge branches", () => {
     ).toThrow("team size constraints cannot be satisfied for non-respondent distribution");
   });
 
+  it("breaks annealing early when no distinct non-empty team pair is available", () => {
+    mocks.validation.resolveTeamSizeTargets.mockReturnValue([1, 1]);
+    mocks.validation.distributeCountAcrossTeamCapacities.mockReturnValue([1, 1]);
+    mocks.validation.assignIndexesToTeamTargets.mockReturnValue([[0], [1]]);
+    mocks.helpers.shuffle.mockImplementation((items: any[]) => items);
+    mocks.scoring.buildCriterionRuntime.mockReturnValue({
+      questionId: 1,
+      strategy: "group",
+      weight: 1,
+      kind: "numeric",
+      values: [1, 2],
+      validCount: 2,
+      numericGlobalMean: 1.5,
+      numericGlobalVariance: 0.25,
+      numericGlobalStd: 0.5,
+      categoricalGlobalCounts: new Map(),
+    });
+    const result = planCustomAllocationTeams({
+      respondents: [{ id: 1, responses: { 1: 1 } }, { id: 2, responses: { 1: 2 } }],
+      nonRespondents: [],
+      criteria: [{ questionId: 1, strategy: "group", weight: 1 }],
+      teamCount: 2,
+      nonRespondentStrategy: "exclude",
+      iterations: 3,
+    });
+    expect(result.teams).toHaveLength(2);
+    expect(mocks.scoring.pickDistinctTeamPair).toHaveBeenCalled();
+  });
+
+  it("throws when respondent assignment already overfills constrained capacities", () => {
+    mocks.validation.resolveTeamSizeTargets.mockReturnValue([0, 1]);
+    mocks.validation.distributeCountAcrossTeamCapacities.mockReturnValue([1, 1]);
+    mocks.validation.assignIndexesToTeamTargets.mockReturnValue([[0], [1]]);
+    mocks.helpers.shuffle.mockImplementation((items: any[]) => items);
+    expect(() =>
+      planCustomAllocationTeams({
+        respondents: [{ id: 1, responses: {} }, { id: 2, responses: {} }],
+        nonRespondents: [{ id: 3 }],
+        criteria: [],
+        teamCount: 2,
+        nonRespondentStrategy: "distribute_randomly",
+      }),
+    ).toThrow("team size targets are overfilled");
+  });
+
   it("throws when all team targets are full during non-respondent assignment", () => {
     const iterableButShortLength = {
       length: 1,

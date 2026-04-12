@@ -45,6 +45,7 @@ describe("service.team", () => {
 
   it("rejects empty team names", async () => {
     await expect(createTeam(4, { projectId: 2, teamName: "   " } as any)).rejects.toMatchObject({ code: "INVALID_TEAM_NAME" });
+    await expect(createTeam(4, { projectId: 2, teamName: 123 } as any)).rejects.toMatchObject({ code: "INVALID_TEAM_NAME" });
     await expect(createTeamForProject(4, 2, " ")).rejects.toMatchObject({ code: "INVALID_TEAM_NAME" });
   });
 
@@ -74,6 +75,12 @@ describe("service.team", () => {
   it("maps duplicate-name database errors to TEAM_NAME_ALREADY_EXISTS", async () => {
     mocks.TeamService.createTeam.mockRejectedValue({ code: "P2002" });
     await expect(createTeamForProject(4, 2, "Team")).rejects.toEqual({ code: "TEAM_NAME_ALREADY_EXISTS" });
+  });
+
+  it("rethrows unknown errors from TeamService.createTeam", async () => {
+    const error = new Error("boom");
+    mocks.TeamService.createTeam.mockRejectedValue(error);
+    await expect(createTeamForProject(4, 2, "Team")).rejects.toBe(error);
   });
 
   it("creates student teams with normalized team names", async () => {
