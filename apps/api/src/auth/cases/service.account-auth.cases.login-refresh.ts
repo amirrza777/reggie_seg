@@ -9,7 +9,7 @@ import {
   prismaMock,
   setupAuthServiceTestDefaults,
   setupBootstrapCreateLoginContext,
-} from "./service.test-helpers.js";
+} from "../service.test-helpers.js";
 
 beforeEach(() => {
   setupAuthServiceTestDefaults();
