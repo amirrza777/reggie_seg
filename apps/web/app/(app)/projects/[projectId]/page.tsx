@@ -8,31 +8,16 @@ import { getCurrentUser } from "@/shared/auth/session";
 import { ProjectOverviewDashboard } from "@/features/projects/components/ProjectOverviewDashboard";
 import Link from "next/link";
 import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
+import { resolveProjectMarkValue, resolveProjectWorkflowState } from "@/features/projects/lib/projectWorkflowState";
+import { resolveStudentTeamFormationMode } from "@/features/projects/lib/teamFormationMode";
 import type {
   ProjectDeadline,
   ProjectMarkingSummary,
-  ProjectOverviewDashboardProps,
 } from "@/features/projects/types";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
 };
-
-function resolveTeamFormationMode(
-  project: Awaited<ReturnType<typeof getProject>>,
-): ProjectOverviewDashboardProps["teamFormationMode"] {
-  if (project?.archivedAt) return "staff";
-  if (project?.teamAllocationQuestionnaireTemplateId) return "custom";
-  const raw = project?.projectNavFlags as {
-    active?: { team?: boolean };
-    completed?: { team?: boolean };
-    peerModes?: { peer_assessment?: string };
-  } | null;
-  const peerAssessmentMode = raw?.peerModes?.peer_assessment;
-  if (peerAssessmentMode === "MANUAL") return "custom";
-  if (raw?.active?.team === false || raw?.completed?.team === false) return "staff";
-  return "self";
-}
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
@@ -78,26 +63,19 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       }),
   ]);
 
-  const dueCandidates = [deadline.taskDueDate, deadline.assessmentDueDate, deadline.feedbackDueDate]
-    .filter((value): value is string => Boolean(value))
-    .map((value) => new Date(value))
-    .filter((value) => !Number.isNaN(value.getTime()));
-  const latestDue =
-    dueCandidates.length > 0
-      ? dueCandidates.reduce((latest, current) => (current.getTime() > latest.getTime() ? current : latest))
-      : null;
-  const now = new Date();
-  const likelyCompleted = Boolean(project.archivedAt) || Boolean(latestDue && latestDue.getTime() < now.getTime());
-
-  let marking: ProjectMarkingSummary | null = null;
-  if (likelyCompleted) {
-    marking = await getProjectMarking(user.id, numericProjectId).catch((error) => {
-      redirectOnUnauthorized(error);
-      return null as ProjectMarkingSummary | null;
-    });
-  }
-
-  const teamFormationMode = resolveTeamFormationMode(project);
+  const marking = await getProjectMarking(user.id, numericProjectId).catch((error) => {
+    redirectOnUnauthorized(error);
+    return null as ProjectMarkingSummary | null;
+  });
+  const workflowState = resolveProjectWorkflowState({
+    project,
+    deadline,
+    markValue: resolveProjectMarkValue(marking),
+  });
+  const teamFormationMode =
+    workflowState === "completed_unmarked" || workflowState === "completed_marked"
+      ? "staff"
+      : resolveStudentTeamFormationMode(project);
 
   return (
     <ProjectOverviewDashboard

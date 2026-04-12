@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import type { Project } from "../types";
+import type { ProjectWorkflowState } from "@/features/projects/lib/projectWorkflowState";
 import "@/features/projects/styles/project-list.css";
 
 type ProjectListProps = {
   projects: Project[];
-  projectMetaById?: Record<string, { completed: boolean; finishedUnmarked: boolean; mark: number | null }>;
+  projectMetaById?: Record<string, { state: ProjectWorkflowState; mark: number | null }>;
 };
 
 function formatMark(mark: number): string {
@@ -27,14 +28,15 @@ export function ProjectList({ projects, projectMetaById = {} }: ProjectListProps
       <div className="project-list__grid">
         {projects.map((project) => {
           const meta = projectMetaById[String(project.id)];
-          const isCompleted = meta?.completed === true;
-          const isFinishedUnmarked = meta?.finishedUnmarked === true;
+          const state = meta?.state ?? "active";
+          const isCompletedMarked = state === "completed_marked";
+          const isFinishedUnmarked = state === "completed_unmarked";
           const mark = typeof meta?.mark === "number" && Number.isFinite(meta.mark) ? meta.mark : null;
           const summary = (project as Project & { summary?: string | null }).summary;
           const markClass = `project-card__mark${isFinishedUnmarked ? " project-card__mark--awaiting" : ""}`;
           const cardClass = [
             "project-card card",
-            isCompleted ? "project-card--completed" : "",
+            isCompletedMarked ? "project-card--completed" : "",
             isFinishedUnmarked ? "project-card--awaiting-mark" : "",
           ]
             .filter(Boolean)
@@ -72,7 +74,7 @@ export function ProjectList({ projects, projectMetaById = {} }: ProjectListProps
                 <p className="project-card__module">
                   Module: {project.moduleName || "Module not assigned"}
                 </p>
-                {isCompleted || isFinishedUnmarked ? (
+                {isCompletedMarked || isFinishedUnmarked ? (
                   <p className={markClass}>
                     {isFinishedUnmarked
                       ? ""

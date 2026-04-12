@@ -24,12 +24,46 @@
 .project-overview-hero__summary {
   margin: 0;
   max-width: 76ch;
+  font-size: var(--fs-fixed-1rem);
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--muted) 88%, var(--ink));
 }
 
 .project-overview-hero__title {
   margin: 0;
   font-size: var(--fs-fixed-clamp-1-9rem-3vw-2-5rem);
   line-height: 1.1;
+}
+
+.project-overview-hero__module-name {
+  margin: 0;
+  font-size: var(--fs-fixed-15px);
+  line-height: 1.35;
+  color: var(--muted);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.project-overview-hero__meta-label {
+  font-size: var(--fs-fixed-11px);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.project-overview-hero__meta-value {
+  color: var(--ink);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.project-overview-hero__module-name .project-overview-hero__meta-value {
+  font-weight: 600;
 }
 
 .project-overview-hero__next {

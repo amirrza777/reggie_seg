@@ -1,15 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectOverviewDashboard } from "./ProjectOverviewDashboard";
-
-vi.mock("next/link", () => ({
-  default: ({ href, className, children }: { href: string; className?: string; children: ReactNode }) => (
-    <a href={href} className={className}>
-      {children}
-    </a>
-  ),
-}));
 
 vi.mock("@/shared/ui/RichTextViewer", () => ({
   RichTextViewer: ({ content }: { content: string }) => <div data-testid="rich-text-content">{content}</div>,
@@ -19,6 +10,7 @@ function baseProject(overrides: Record<string, unknown> = {}) {
   return {
     id: "11",
     name: "Project Atlas",
+    moduleName: "Software Engineering",
     questionnaireTemplateId: 1,
     informationText: "Paragraph one.\n\nParagraph two.",
     ...overrides,
@@ -67,16 +59,26 @@ describe("ProjectOverviewDashboard", () => {
   it("renders active project overview with schedule and split information paragraphs", () => {
     renderDashboard();
 
-    expect(screen.getByText("Project Overview")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Project Atlas Overview" })).toBeInTheDocument();
+    expect(screen.getByText("Team:")).toBeInTheDocument();
+    expect(screen.getByText("Not assigned")).toBeInTheDocument();
+    expect(screen.getByText("Module:")).toBeInTheDocument();
+    expect(screen.getByText("Software Engineering")).toBeInTheDocument();
     expect(screen.getByText("Overview and key project information.")).toBeInTheDocument();
     expect(screen.getByText("Deadlines and Schedule")).toBeInTheDocument();
     expect(screen.getByText("Paragraph one.")).toBeInTheDocument();
     expect(screen.getByText("Paragraph two.")).toBeInTheDocument();
-    expect(screen.getByText("Create or join a team")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Go to team page" })).toHaveAttribute("href", "/projects/11/team");
   });
 
-  it("renders team card when the user has a team", () => {
+  it("shows module fallback when project module name is missing", () => {
+    renderDashboard({
+      project: baseProject({ moduleName: "", moduleId: 99 }),
+    });
+
+    expect(screen.getByText("Module 99")).toBeInTheDocument();
+  });
+
+  it("shows team name in the hero when the user has a team", () => {
     renderDashboard({
       team: {
         id: 99,
@@ -84,21 +86,17 @@ describe("ProjectOverviewDashboard", () => {
       },
     });
 
-    expect(screen.getByText(/You are in/i)).toBeInTheDocument();
     expect(screen.getByText("Team Rocket")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Go to team page" })).toBeInTheDocument();
   });
 
-  it("renders custom allocation prompt without team", () => {
+  it("shows custom allocation team status in the hero when team is missing", () => {
     renderDashboard({ teamFormationMode: "custom" });
-    expect(screen.getByText(/questionnaire-based allocation/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Complete questionnaire" })).toHaveAttribute("href", "/projects/11/team");
+    expect(screen.getByText("Pending questionnaire allocation")).toBeInTheDocument();
   });
 
-  it("renders staff allocation wait prompt without team", () => {
+  it("shows staff allocation team status in the hero when team is missing", () => {
     renderDashboard({ teamFormationMode: "staff" });
-    expect(screen.getByText(/Please wait for staff to add you to a team/i)).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Complete questionnaire" })).not.toBeInTheDocument();
+    expect(screen.getByText("Pending staff allocation")).toBeInTheDocument();
   });
 
   it("renders all schedule status labels for mixed deadline values", () => {
@@ -156,9 +154,10 @@ describe("ProjectOverviewDashboard", () => {
     expect(screen.getByText("Your mark:")).toBeInTheDocument();
     expect(screen.getByText("Not yet published")).toBeInTheDocument();
     expect(screen.getByText("Updated by Staff 8 on Unknown time")).toBeInTheDocument();
+    expect(screen.getByText("Project complete. Final mark and feedback are available below.")).toBeInTheDocument();
   });
 
-  it("treats published marking as completed even without archived project", () => {
+  it("treats published numeric marks as completed even without archived project", () => {
     renderDashboard({
       deadline: baseDeadline({
         taskDueDate: "2026-01-20T00:00:00.000Z",
@@ -169,7 +168,7 @@ describe("ProjectOverviewDashboard", () => {
         teamId: 6,
         teamMarking: null,
         studentMarking: {
-          mark: null,
+          mark: 74,
           formativeFeedback: "Published narrative feedback",
           updatedAt: "2026-01-10T10:30:00.000Z",
           marker: { id: 2, firstName: "Grace", lastName: "Hopper" },
@@ -179,6 +178,23 @@ describe("ProjectOverviewDashboard", () => {
 
     expect(screen.queryByText("Deadlines and Schedule")).not.toBeInTheDocument();
     expect(screen.getByText("Published narrative feedback")).toBeInTheDocument();
+  });
+
+  it("shows awaiting mark card when project is complete without published marks", () => {
+    renderDashboard({
+      deadline: baseDeadline({
+        taskDueDate: "2026-01-05T00:00:00.000Z",
+        assessmentDueDate: "2026-01-06T00:00:00.000Z",
+        feedbackDueDate: "2026-01-07T00:00:00.000Z",
+      }),
+      marking: null,
+    });
+
+    expect(screen.queryByText("Deadlines and Schedule")).not.toBeInTheDocument();
+    expect(screen.getByText("Final marking status")).toBeInTheDocument();
+    expect(screen.getByText("This project is complete and currently awaiting final mark publication.")).toBeInTheDocument();
+    expect(screen.getByText("Project complete. Final mark is awaiting publication.")).toBeInTheDocument();
+    expect(screen.queryByText("Tutor marking and formative feedback")).not.toBeInTheDocument();
   });
 
   it("omits individual-updated meta line when student marking is missing", () => {

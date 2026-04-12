@@ -78,6 +78,11 @@ describe("ProjectPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     redirectMock.mockClear();
+    getProjectMarkingMock.mockResolvedValue({
+      teamId: 1,
+      teamMarking: null,
+      studentMarking: null,
+    } as Awaited<ReturnType<typeof getProjectMarking>>);
   });
 
   it("renders login prompt when user is unauthenticated", async () => {
@@ -120,7 +125,7 @@ describe("ProjectPage", () => {
     const dashboard = screen.getByTestId("project-overview-dashboard");
     expect(getProjectMock).toHaveBeenCalledWith("44");
     expect(getProjectDeadlineMock).toHaveBeenCalledWith(7, 44);
-    expect(getProjectMarkingMock).not.toHaveBeenCalled();
+    expect(getProjectMarkingMock).toHaveBeenCalledWith(7, 44);
     expect(dashboard).toHaveAttribute("data-project-title", "Project Titan");
     expect(dashboard).toHaveAttribute("data-team-id", "99");
     expect(dashboard).toHaveAttribute("data-marking", "");

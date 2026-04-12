@@ -99,11 +99,11 @@ describe("ProjectsListPage", () => {
 
     const meta = JSON.parse(list.getAttribute("data-meta") ?? "{}") as Record<
       string,
-      { completed: boolean; finishedUnmarked: boolean; mark: number | null }
+      { state: "pending" | "active" | "completed_unmarked" | "completed_marked"; mark: number | null }
     >;
-    expect(meta["1"]).toEqual({ completed: true, finishedUnmarked: false, mark: 81 });
-    expect(meta["2"]).toEqual({ completed: false, finishedUnmarked: true, mark: null });
-    expect(meta["abc"]).toEqual({ completed: false, finishedUnmarked: false, mark: null });
+    expect(meta["1"]).toEqual({ state: "completed_marked", mark: 81 });
+    expect(meta["2"]).toEqual({ state: "completed_unmarked", mark: null });
+    expect(meta["abc"]).toEqual({ state: "active", mark: null });
   });
 
   it("handles per-project marking/deadline failures and archived project completion", async () => {
@@ -127,9 +127,36 @@ describe("ProjectsListPage", () => {
     const list = screen.getByTestId("project-list");
     const meta = JSON.parse(list.getAttribute("data-meta") ?? "{}") as Record<
       string,
-      { completed: boolean; finishedUnmarked: boolean; mark: number | null }
+      { state: "pending" | "active" | "completed_unmarked" | "completed_marked"; mark: number | null }
     >;
-    expect(meta["10"]).toEqual({ completed: false, finishedUnmarked: true, mark: null });
-    expect(meta["11"]).toEqual({ completed: false, finishedUnmarked: false, mark: null });
+    expect(meta["10"]).toEqual({ state: "completed_unmarked", mark: null });
+    expect(meta["11"]).toEqual({ state: "active", mark: null });
+  });
+
+  it("marks project as pending when task open date is in the future", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 7 } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getUserProjectsMock.mockResolvedValue([
+      { id: "12", name: "Starts later", archivedAt: null },
+    ] as Awaited<ReturnType<typeof getUserProjects>>);
+    getProjectMarkingMock.mockResolvedValue({
+      studentMarking: { mark: null },
+      teamMarking: { mark: null },
+    } as Awaited<ReturnType<typeof getProjectMarking>>);
+    getProjectDeadlineMock.mockResolvedValue({
+      taskOpenDate: "2026-04-20T00:00:00.000Z",
+      taskDueDate: "2026-05-01T00:00:00.000Z",
+      assessmentDueDate: null,
+      feedbackDueDate: null,
+    } as Awaited<ReturnType<typeof getProjectDeadline>>);
+
+    const page = await ProjectsListPage();
+    render(page);
+
+    const list = screen.getByTestId("project-list");
+    const meta = JSON.parse(list.getAttribute("data-meta") ?? "{}") as Record<
+      string,
+      { state: "pending" | "active" | "completed_unmarked" | "completed_marked"; mark: number | null }
+    >;
+    expect(meta["12"]).toEqual({ state: "pending", mark: null });
   });
 });

@@ -1,4 +1,10 @@
-import { getProject, getTeamByUserAndProject } from "@/features/projects/api/client";
+import {
+  getProject,
+  getProjectDeadline,
+  getProjectMarking,
+  getTeamByUserAndProject,
+} from "@/features/projects/api/client";
+import { resolveProjectMarkValue, resolveProjectWorkflowState } from "@/features/projects/lib/projectWorkflowState";
 
 export type StudentProjectWorkspaceCapability = {
   /** User belongs to an active team for this project. */
@@ -30,10 +36,20 @@ export async function resolveStudentProjectWorkspaceCapability(
   ]);
   const hasTeam = Boolean(team);
   const workspaceArchived = Boolean(project?.moduleArchivedAt || project?.archivedAt);
+  const [deadline, marking] = await Promise.all([
+    getProjectDeadline(userId, projectId).catch(() => null),
+    getProjectMarking(userId, projectId).catch(() => null),
+  ]);
+  const state = resolveProjectWorkflowState({
+    project,
+    deadline,
+    markValue: resolveProjectMarkValue(marking),
+  });
+  const workspaceCompleted = state === "completed_unmarked" || state === "completed_marked";
 
   return {
     hasTeam,
     workspaceArchived,
-    canEdit: hasTeam && !workspaceArchived,
+    canEdit: hasTeam && !workspaceArchived && !workspaceCompleted,
   };
 }
