@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type FormEvent, type MutableRefObject, type SetStateAction } from "react";
+import { ConfirmationModal } from "@/shared/ui/modal/ConfirmationModal";
 import { getEffectiveTotalPages, getPaginationEnd, getPaginationStart, parsePageInput } from "@/shared/lib/pagination";
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { Card } from "@/shared/ui/Card";
 import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationControls";
 import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
-import { searchUsers, updateUser, updateUserRole } from "../api/client";
+import { deleteUser, searchUsers, updateUser, updateUserRole } from "../api/client";
 import type { AdminUser, AdminUserRecord, UserRole } from "../types";
 import { buildUserManagementRows } from "./rows/userManagementRows";
 
@@ -407,7 +408,7 @@ function UserManagementTableContent(props: {
   }
   return (
     <>
-      <Table headers={["Email", "Name", "Role", "Account status"]} rows={props.rows} className="user-management__table" headClassName="user-management__head" rowClassName="user-management__row" columnTemplate="var(--user-management-columns)" isLoading={props.shouldShowLoadingSkeleton} loadingLabel="Loading user accounts..." loadingRowCount={6} />
+      <Table headers={["Email", "Name", "Role", "Account status", ""]} rows={props.rows} className="user-management__table" headClassName="user-management__head" rowClassName="user-management__row" columnTemplate="minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 0.5fr)" isLoading={props.shouldShowLoadingSkeleton} loadingLabel="Loading user accounts..." loadingRowCount={6} />
       <UserManagementPagination currentPage={props.currentPage} totalPages={props.totalPages} effectiveTotalPages={props.effectiveTotalPages} pageInput={props.pageInput} setCurrentPage={props.setCurrentPage} setPageInput={props.setPageInput} applyPageInput={props.applyPageInput} handlePageJump={props.handlePageJump} />
     </>
   );
@@ -440,6 +441,7 @@ function UserManagementTableBody(props: {
 
 export function UserManagementTable() {
   const state = useUserManagementState();
+  const [pendingRemoveUserId, setPendingRemoveUserId] = useState<number | null>(null);
   const normalizedSearch = normalizeSearchQuery(state.searchQuery);
   const effectiveTotalPages = getEffectiveTotalPages(state.totalPages);
   const pageStart = getPaginationStart(state.totalUsers, state.currentPage, USERS_PER_PAGE);
@@ -453,12 +455,50 @@ export function UserManagementTable() {
   }, [loadUsers, state.currentPage, state.searchQuery, state.sortValue]);
   const pageJumpHandlers = usePageJumpHandlers(state);
   const actions = useUserActions({ users: state.users, searchQuery: state.searchQuery, currentPage: state.currentPage, sortValue: state.sortValue, setUsers: state.setUsers, setStatus: state.setStatus, setMessage: state.setMessage, loadUsers });
-  const rows = buildUserManagementRows({ users: state.users, busy: state.status === "loading", onRoleChange: (userId, role) => { void actions.handleRoleChange(userId, role); }, onStatusToggle: (userId, nextStatus) => { void actions.handleStatusToggle(userId, nextStatus); } });
+
+  const confirmRemoveUser = useCallback(async () => {
+    if (pendingRemoveUserId === null) return;
+    const userId = pendingRemoveUserId;
+    setPendingRemoveUserId(null);
+    state.setStatus("loading");
+    state.setMessage(null);
+    try {
+      await deleteUser(userId);
+      state.setStatus("success");
+      state.setMessage("Account deleted.");
+      void loadUsers(state.searchQuery, state.currentPage, state.sortValue);
+    } catch (err) {
+      state.setStatus("error");
+      state.setMessage(err instanceof Error ? err.message : "Could not delete account.");
+    }
+  }, [pendingRemoveUserId, state, loadUsers]);
+
+  const pendingRemoveUser = pendingRemoveUserId !== null
+    ? state.users.find((u) => u.id === pendingRemoveUserId) ?? null
+    : null;
+
+  const rows = buildUserManagementRows({ users: state.users, busy: state.status === "loading", onRoleChange: (userId, role) => { void actions.handleRoleChange(userId, role); }, onStatusToggle: (userId, nextStatus) => { void actions.handleStatusToggle(userId, nextStatus); }, onRequestRemoveUser: setPendingRemoveUserId });
   const shouldShowLoadingSkeleton = state.tableStatus === "loading" && rows.length === 0;
   return (
-    <Card title="User accounts" className="user-management-card">
-      <UserManagementToolbar searchQuery={state.searchQuery} sortValue={state.sortValue} tableStatus={state.tableStatus} totalUsers={state.totalUsers} pageStart={pageStart} pageEnd={pageEnd} onSearchChange={state.setSearchQuery} onSortChange={state.setSortValue} />
-      <UserManagementTableBody message={state.message} status={state.status} tableStatus={state.tableStatus} rows={rows} shouldShowLoadingSkeleton={shouldShowLoadingSkeleton} totalPages={state.totalPages} currentPage={state.currentPage} effectiveTotalPages={effectiveTotalPages} pageInput={state.pageInput} setCurrentPage={state.setCurrentPage} setPageInput={state.setPageInput} applyPageInput={pageJumpHandlers.applyPageInput} handlePageJump={pageJumpHandlers.handlePageJump} normalizedSearch={normalizedSearch} searchQuery={state.searchQuery} />
-    </Card>
+    <>
+      <Card title="User accounts" className="user-management-card">
+        <UserManagementToolbar searchQuery={state.searchQuery} sortValue={state.sortValue} tableStatus={state.tableStatus} totalUsers={state.totalUsers} pageStart={pageStart} pageEnd={pageEnd} onSearchChange={state.setSearchQuery} onSortChange={state.setSortValue} />
+        <UserManagementTableBody message={state.message} status={state.status} tableStatus={state.tableStatus} rows={rows} shouldShowLoadingSkeleton={shouldShowLoadingSkeleton} totalPages={state.totalPages} currentPage={state.currentPage} effectiveTotalPages={effectiveTotalPages} pageInput={state.pageInput} setCurrentPage={state.setCurrentPage} setPageInput={state.setPageInput} applyPageInput={pageJumpHandlers.applyPageInput} handlePageJump={pageJumpHandlers.handlePageJump} normalizedSearch={normalizedSearch} searchQuery={state.searchQuery} />
+      </Card>
+      <ConfirmationModal
+        open={pendingRemoveUser !== null}
+        title="Delete user account"
+        message={
+          pendingRemoveUser
+            ? `Delete "${pendingRemoveUser.email}"? Their account will be permanently suspended and all access revoked.`
+            : "Delete this user account?"
+        }
+        confirmLabel="Delete account"
+        cancelLabel="Cancel"
+        confirmVariant="danger"
+        onCancel={() => setPendingRemoveUserId(null)}
+        onConfirm={confirmRemoveUser}
+      />
+    </>
   );
 }

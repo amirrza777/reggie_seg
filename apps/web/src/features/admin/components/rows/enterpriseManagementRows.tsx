@@ -1,4 +1,5 @@
 import { Button } from "@/shared/ui/Button";
+import { RowActionMenu } from "./RowActionMenu";
 import type { AdminUser, EnterpriseRecord, UserRole } from "../../types";
 
 const SUPER_ADMIN_EMAIL = "admin@kcl.ac.uk";
@@ -16,6 +17,7 @@ type BuildEnterpriseUserRowsInput = {
   actionState: Record<number, "idle" | "loading" | "success" | "error">;
   onRoleChange: (userId: number, role: UserRole) => void;
   onStatusToggle: (userId: number, nextStatus: boolean) => void;
+  onRequestRemoveUser: (userId: number) => void;
 };
 
 function renderEnterpriseNameCell(enterprise: EnterpriseRecord) {
@@ -140,6 +142,16 @@ function buildEnterpriseUserRow(user: AdminUser, input: BuildEnterpriseUserRowsI
       {renderRoleControl({ userId: user.id, role: user.role, busy, onRoleChange: input.onRoleChange })}
     </div>,
     renderStatusControl(user, busy, input.onStatusToggle),
+    <div key={`${user.id}-actions`} className="enterprise-management__row-actions">
+      <RowActionMenu
+        userId={user.id}
+        userEmail={user.email}
+        busy={busy}
+        active={user.active}
+        onRemove={input.onRequestRemoveUser}
+        onReinstate={(id) => input.onStatusToggle(id, true)}
+      />
+    </div>,
   ];
 }
 

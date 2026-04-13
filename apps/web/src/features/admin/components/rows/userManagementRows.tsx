@@ -1,4 +1,5 @@
 import { Button } from "@/shared/ui/Button";
+import { RowActionMenu } from "./RowActionMenu";
 import type { AdminUser, UserRole } from "../../types";
 
 const SUPER_ADMIN_EMAIL = "admin@kcl.ac.uk";
@@ -9,6 +10,7 @@ type BuildUserManagementRowsInput = {
   busy: boolean;
   onRoleChange: (userId: number, role: UserRole) => void;
   onStatusToggle: (userId: number, nextStatus: boolean) => void;
+  onRequestRemoveUser: (userId: number) => void;
 };
 
 function resolveEnterpriseLabel(user: AdminUser): string {
@@ -73,6 +75,7 @@ function renderUserStatusControl(props: {
 }
 
 function buildUserManagementRow(user: AdminUser, input: BuildUserManagementRowsInput) {
+  const isSuperAdmin = user.email.toLowerCase() === SUPER_ADMIN_EMAIL;
   return [
     <div key={`${user.id}-email`} className="ui-stack-xs">
       <strong>{user.email}</strong>
@@ -86,6 +89,19 @@ function buildUserManagementRow(user: AdminUser, input: BuildUserManagementRowsI
       {renderUserRoleControl({ userId: user.id, role: user.role, busy: input.busy, onRoleChange: input.onRoleChange })}
     </div>,
     renderUserStatusControl({ user, onStatusToggle: input.onStatusToggle }),
+    <div key={`${user.id}-actions`} className="enterprise-management__row-actions">
+      {isSuperAdmin ? null : (
+        <RowActionMenu
+          userId={user.id}
+          userEmail={user.email}
+          busy={input.busy}
+          active={user.active}
+          removeLabel="Delete account"
+          onRemove={input.onRequestRemoveUser}
+          onReinstate={(id) => input.onStatusToggle(id, true)}
+        />
+      )}
+    </div>,
   ];
 }
 

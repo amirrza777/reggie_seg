@@ -190,7 +190,7 @@
 
 .user-management__page-jump-input {
   width: 64px;
-  min-height: 40px;
+  min-height: var(--control-height-md, 34px);
   text-align: center;
   padding: 6px 8px;
 }

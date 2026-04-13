@@ -35,7 +35,7 @@ describe("EnterpriseUserManagementPanel", () => {
 
     await waitFor(() => expect(searchEnterpriseUsersMock).toHaveBeenCalled());
     expect(screen.getByText("Invite-managed role")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Actions for/ })).not.toBeInTheDocument();
   });
 
   it("allows platform admin users to remove enterprise-admin rows", async () => {
@@ -56,7 +56,7 @@ describe("EnterpriseUserManagementPanel", () => {
 
     render(<EnterpriseUserManagementPanel currentUserId={99} currentUserRole="ADMIN" />);
 
-    expect(await screen.findByRole("button", { name: "Remove" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Actions for peer-admin@example.com" })).toBeInTheDocument();
   });
 
   it("shows explicit conflict guidance when account creation email belongs to another enterprise", async () => {
@@ -96,8 +96,9 @@ describe("EnterpriseUserManagementPanel", () => {
 
     render(<EnterpriseUserManagementPanel currentUserId={99} currentUserRole="ADMIN" />);
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Actions for peer-admin@example.com" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Actions for peer-admin@example.com" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Remove from enterprise" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove user" }));
 
     await waitFor(() =>
@@ -133,7 +134,8 @@ describe("EnterpriseUserManagementPanel", () => {
     fireEvent.change(screen.getByLabelText("New account email"), { target: { value: "new.student@example.com" } });
     fireEvent.change(screen.getByLabelText("New account first name"), { target: { value: "New" } });
     fireEvent.change(screen.getByLabelText("New account last name"), { target: { value: "Student" } });
-    fireEvent.change(screen.getByLabelText("New account role"), { target: { value: "STAFF" } });
+    fireEvent.click(screen.getByLabelText("New account role"));
+    fireEvent.click(screen.getByRole("option", { name: "Staff" }));
     fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
     await waitFor(() =>
@@ -147,6 +149,24 @@ describe("EnterpriseUserManagementPanel", () => {
 
     expect(await screen.findByText("Account created or reinstated.")).toBeInTheDocument();
     expect((screen.getByLabelText("New account email") as HTMLInputElement).value).toBe("");
+  });
+
+  it("supports selecting enterprise admin for new account creation", async () => {
+    searchEnterpriseUsersMock.mockResolvedValue(createSearchResponse([]));
+
+    render(<EnterpriseUserManagementPanel currentUserId={99} currentUserRole="ENTERPRISE_ADMIN" />);
+
+    fireEvent.change(screen.getByLabelText("New account email"), { target: { value: "new.enterprise.admin@example.com" } });
+    fireEvent.click(screen.getByLabelText("New account role"));
+    fireEvent.click(screen.getByRole("option", { name: "Enterprise admin" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+
+    await waitFor(() =>
+      expect(createEnterpriseUserMock).toHaveBeenCalledWith({
+        email: "new.enterprise.admin@example.com",
+        role: "ENTERPRISE_ADMIN",
+      }),
+    );
   });
 
   it("shows validation message when create email is blank", async () => {

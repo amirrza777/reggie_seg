@@ -101,7 +101,8 @@ describe("EnterpriseUserManagementPanel", () => {
 
     render(<EnterpriseUserManagementPanel currentUserId={99} currentUserRole="ENTERPRISE_ADMIN" />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Reinstate" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Actions for inactive@example.com" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Reinstate" }));
 
     await waitFor(() => expect(updateEnterpriseUserMock).toHaveBeenCalledWith(62, { active: true }));
   });
@@ -247,28 +248,32 @@ describe("EnterpriseUserManagementPanel", () => {
     render(<EnterpriseUserManagementPanel currentUserId={99} currentUserRole="ENTERPRISE_ADMIN" />);
     await waitFor(() => expect(searchEnterpriseUsersMock).toHaveBeenCalled());
 
-    fireEvent.change(screen.getByLabelText("Sort enterprise users"), { target: { value: "nameDesc" } });
+    fireEvent.click(screen.getByLabelText("Sort enterprise users"));
+    fireEvent.click(screen.getByRole("option", { name: "Name (Z-A)" }));
     await waitFor(() =>
       expect(searchEnterpriseUsersMock).toHaveBeenCalledWith(
         expect.objectContaining({ sortBy: "name", sortDirection: "desc" }),
       ),
     );
 
-    fireEvent.change(screen.getByLabelText("Sort enterprise users"), { target: { value: "joinDateAsc" } });
+    fireEvent.click(screen.getByLabelText("Sort enterprise users"));
+    fireEvent.click(screen.getByRole("option", { name: "Join date (oldest first)" }));
     await waitFor(() =>
       expect(searchEnterpriseUsersMock).toHaveBeenCalledWith(
         expect.objectContaining({ sortBy: "joinDate", sortDirection: "asc" }),
       ),
     );
 
-    fireEvent.change(screen.getByLabelText("Sort enterprise users"), { target: { value: "joinDateDesc" } });
+    fireEvent.click(screen.getByLabelText("Sort enterprise users"));
+    fireEvent.click(screen.getByRole("option", { name: "Join date (newest first)" }));
     await waitFor(() =>
       expect(searchEnterpriseUsersMock).toHaveBeenCalledWith(
         expect.objectContaining({ sortBy: "joinDate", sortDirection: "desc" }),
       ),
     );
 
-    fireEvent.change(screen.getByLabelText("Sort enterprise users"), { target: { value: "nameAsc" } });
+    fireEvent.click(screen.getByLabelText("Sort enterprise users"));
+    fireEvent.click(screen.getByRole("option", { name: "Name (A-Z)" }));
     await waitFor(() =>
       expect(searchEnterpriseUsersMock).toHaveBeenCalledWith(
         expect.objectContaining({ sortBy: "name", sortDirection: "asc" }),

@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { ConfirmationModal } from "@/shared/ui/modal/ConfirmationModal";
 import { EnterpriseAccountsModal } from "./EnterpriseAccountsModal";
 import { EnterpriseCreateModal } from "./EnterpriseCreateModal";
@@ -21,9 +22,22 @@ type EnterpriseManagementTableBodyProps = {
 
 export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagementTableProps) {
   const state = useEnterpriseManagementState(isSuperAdmin);
+  const [pendingRemoveUserId, setPendingRemoveUserId] = useState<number | null>(null);
+
+  const confirmRemoveUser = useCallback(() => {
+    if (pendingRemoveUserId === null) return;
+    const userId = pendingRemoveUserId;
+    setPendingRemoveUserId(null);
+    void state.handleEnterpriseUserStatusToggle(userId, false);
+  }, [pendingRemoveUserId, state]);
+
   if (!isSuperAdmin) {
     return null;
   }
+
+  const pendingRemoveUser = pendingRemoveUserId !== null
+    ? state.enterpriseUsers.find((u) => u.id === pendingRemoveUserId) ?? null
+    : null;
 
   const rows = buildEnterpriseRows({
     enterprises: state.enterprises,
@@ -42,9 +56,28 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
     onStatusToggle: (userId, nextStatus) => {
       void state.handleEnterpriseUserStatusToggle(userId, nextStatus);
     },
+    onRequestRemoveUser: setPendingRemoveUserId,
   });
 
-  return <EnterpriseManagementTableBody state={state} rows={rows} enterpriseUserRows={enterpriseUserRows} />;
+  return (
+    <>
+      <EnterpriseManagementTableBody state={state} rows={rows} enterpriseUserRows={enterpriseUserRows} />
+      <ConfirmationModal
+        open={pendingRemoveUser !== null}
+        title="Remove user from enterprise"
+        message={
+          pendingRemoveUser
+            ? `Remove "${pendingRemoveUser.email}" from this enterprise? Their access will be suspended.`
+            : "Remove this user from enterprise access?"
+        }
+        confirmLabel="Remove user"
+        cancelLabel="Cancel"
+        confirmVariant="danger"
+        onCancel={() => setPendingRemoveUserId(null)}
+        onConfirm={confirmRemoveUser}
+      />
+    </>
+  );
 }
 
 function EnterpriseManagementTableBody({ state, rows, enterpriseUserRows }: EnterpriseManagementTableBodyProps) {

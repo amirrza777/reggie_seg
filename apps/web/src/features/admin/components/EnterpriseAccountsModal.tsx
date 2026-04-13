@@ -119,10 +119,13 @@ function EnterpriseAdminInviteSection(props: Pick<
   EnterpriseAccountsModalProps,
   "inviteEmail" | "onInviteEmailChange" | "inviteStatus" | "inviteMessage" | "onInviteSubmit"
 >) {
+  const enterpriseAdminGuidance =
+    "Best practice: use a separate email that is not already attached to this or any other enterprise account, and consult the intended user first.";
   const isBusy = props.inviteStatus === "loading";
   return (
     <div className="enterprise-management__invite-section ui-stack-xs">
       <p className="muted">Invite an email address to become an enterprise admin.</p>
+      <p className="ui-note ui-note--muted">{enterpriseAdminGuidance}</p>
       <form className="enterprise-management__invite-form" onSubmit={props.onInviteSubmit} autoComplete="off">
         <input
           type="email"
@@ -159,12 +162,12 @@ function EnterpriseAccountsTableSection(props: EnterpriseAccountsModalProps & { 
     <>
       <div className="enterprise-management__modal-table">
         <Table
-          headers={["Email", "Name", "Role", "Account status"]}
+          headers={["Email", "Name", "Role", "Account status", ""]}
           rows={props.userRows}
           className="user-management__table"
           headClassName="user-management__head"
           rowClassName="user-management__row"
-          columnTemplate="var(--user-management-columns)"
+          columnTemplate="minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 0.5fr)"
           isLoading={props.showSkeletonTable}
           loadingLabel="Loading accounts..."
           loadingRowCount={6}
