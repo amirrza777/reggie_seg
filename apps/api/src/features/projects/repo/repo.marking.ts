@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
 type RawStaffMarking = {
   mark: number | null;

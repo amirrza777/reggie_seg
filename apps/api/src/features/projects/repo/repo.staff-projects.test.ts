@@ -18,9 +18,9 @@ const mockState = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../shared/db.js", () => ({ prisma: mockState.prisma }));
-vi.mock("../../shared/fuzzySearch.js", () => mockState.fuzzySearch);
-vi.mock("../../shared/fuzzyFallback.js", () => mockState.fuzzyFallback);
+vi.mock("../../../shared/db.js", () => ({ prisma: mockState.prisma }));
+vi.mock("../../../shared/fuzzySearch.js", () => mockState.fuzzySearch);
+vi.mock("../../../shared/fuzzyFallback.js", () => mockState.fuzzyFallback);
 vi.mock("./repo.highAuthorship.js", () => mockState.highAuthorship);
 vi.mock("./repo.staff-scope.js", () => mockState.staffScope);
 

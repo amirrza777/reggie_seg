@@ -13,10 +13,10 @@ import {
   getTeamWarningsForTeamInProject,
   getStaffProjectWarningsConfig,
   updateStaffProjectWarningsConfig,
-} from "./repo.js";
-import { prisma } from "../../shared/db.js";
+} from "../repo.js";
+import { prisma } from "../../../shared/db.js";
 
-vi.mock("../../shared/db.js", () => ({
+vi.mock("../../../shared/db.js", () => ({
   prisma: {
     $transaction: vi.fn(),
     project: {

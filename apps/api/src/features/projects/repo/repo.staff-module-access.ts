@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
 export async function getStaffViewerModuleAccessLabel(userId: number, userRole: string, moduleId: number) {
   if (userRole === "ADMIN" || userRole === "ENTERPRISE_ADMIN") {

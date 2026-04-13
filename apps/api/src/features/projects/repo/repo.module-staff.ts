@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 import { buildModuleMembershipFilterForUser } from "./repo.modules.js";
 
 function toDisplayName(firstName: string, lastName: string): string {

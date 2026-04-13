@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 import { getScopedStaffUser, isAdminScopedRole } from "./repo.staff-scope.js";
 import type { ProjectDeadlineInput } from "./repo.types.js";
 

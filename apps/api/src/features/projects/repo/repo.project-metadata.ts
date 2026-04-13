@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
 export async function getProjectById(projectId: number) {
   return prisma.project.findUnique({

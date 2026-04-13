@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
 const TEAM_ALLOCATION_RESPONSE_TEAM_PREFIX = "__custom_allocation_responses_project_";
 

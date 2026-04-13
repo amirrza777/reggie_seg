@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import * as moduleUnderTest from "./repo.js";
+import * as moduleUnderTest from "../repo.js";
 
 describe("projects repo barrel", () => {
   it("loads as a module with exports", () => {

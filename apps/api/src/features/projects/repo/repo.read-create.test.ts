@@ -11,10 +11,10 @@ import {
   getTeammatesInProject,
   getUserProjectDeadline,
   getUserProjects,
-} from "./repo.js";
-import { prisma } from "../../shared/db.js";
+} from "../repo.js";
+import { prisma } from "../../../shared/db.js";
 
-vi.mock("../../shared/db.js", () => ({
+vi.mock("../../../shared/db.js", () => ({
   prisma: {
     project: {
       findMany: vi.fn(),

@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
-import { prisma } from "../../shared/db.js";
-import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
-import { applyFuzzyFallback } from "../../shared/fuzzyFallback.js";
+import { prisma } from "../../../shared/db.js";
+import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../../shared/fuzzySearch.js";
+import { applyFuzzyFallback } from "../../../shared/fuzzyFallback.js";
 import { getStaffProjectsForMarkingImpl, getStaffProjectsImpl } from "./repo.highAuthorship.js";
 import { getScopedStaffUser } from "./repo.staff-scope.js";
 
