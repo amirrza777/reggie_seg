@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { toolkitCards, type ToolkitCardItem } from "../../content/marketing";
+import { toolkitCards, type ToolkitCardItem } from "@/marketing/content/marketing";
 import { MarketingPicture } from "./MarketingPicture";
 
 const ToolkitCard = ({ card, imageIndex }: { card: ToolkitCardItem; imageIndex: number }) => (

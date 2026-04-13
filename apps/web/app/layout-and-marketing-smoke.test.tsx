@@ -24,19 +24,19 @@ vi.mock("@/shared/animation/ScrollReveal", () => ({
 
 import AuthLayout from "./(auth)/layout";
 import HomePage from "./page";
-import { MarketingLayout } from "./layouts/marketing";
-import { AboutSection } from "./sections/marketing/AboutSection";
-import { CtaSection } from "./sections/marketing/CtaSection";
-import { FaqSection } from "./sections/marketing/FaqSection";
-import { HealthSection } from "./sections/marketing/HealthSection";
-import { HeroSection } from "./sections/marketing/HeroSection";
-import { IntegrationsSection } from "./sections/marketing/IntegrationsSection";
-import { ProductSection } from "./sections/marketing/ProductSection";
-import { ShowcaseSection } from "./sections/marketing/ShowcaseSection";
-import { TestimonialsSection } from "./sections/marketing/TestimonialsSection";
-import { ToolkitSection } from "./sections/marketing/ToolkitSection";
-import { TrustSection } from "./sections/marketing/TrustSection";
-import * as marketingSectionExports from "./sections/marketing";
+import { MarketingLayout } from "@/marketing/layouts/marketing";
+import { AboutSection } from "@/marketing/sections/AboutSection";
+import { CtaSection } from "@/marketing/sections/CtaSection";
+import { FaqSection } from "@/marketing/sections/FaqSection";
+import { HealthSection } from "@/marketing/sections/HealthSection";
+import { HeroSection } from "@/marketing/sections/HeroSection";
+import { IntegrationsSection } from "@/marketing/sections/IntegrationsSection";
+import { ProductSection } from "@/marketing/sections/ProductSection";
+import { ShowcaseSection } from "@/marketing/sections/ShowcaseSection";
+import { TestimonialsSection } from "@/marketing/sections/TestimonialsSection";
+import { ToolkitSection } from "@/marketing/sections/ToolkitSection";
+import { TrustSection } from "@/marketing/sections/TrustSection";
+import * as marketingSectionExports from "@/marketing/sections";
 
 describe("auth layout", () => {
   it("renders shell with home logo link and children", () => {

@@ -1,4 +1,4 @@
-import { testimonials, type TestimonialItem } from "../../content/marketing";
+import { testimonials, type TestimonialItem } from "@/marketing/content/marketing";
 
 const TestimonialCard = ({ item }: { item: TestimonialItem }) => (
   <article className="testimonial-card">

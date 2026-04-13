@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { marqueeSets, type LogoItem } from "../../content/marketing";
+import { marqueeSets, type LogoItem } from "@/marketing/content/marketing";
 
 const LogoMarqueeSet = ({ logos, setIndex }: { logos: LogoItem[]; setIndex: number }) => (
   <div className="logo-marquee__set" aria-hidden={setIndex > 0}>

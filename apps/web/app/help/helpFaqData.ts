@@ -1,4 +1,4 @@
-import { faqItems } from "../content/marketing";
+import { faqItems } from "@/marketing/content/marketing";
 
 type HelpFaqItem = {
   question: string;

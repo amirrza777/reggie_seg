@@ -1,5 +1,5 @@
-import { FaqAccordion } from "../../components/FaqAccordion";
-import { faqItems } from "../../content/marketing";
+import { FaqAccordion } from "@/shared/ui/faq/FaqAccordion";
+import { faqItems } from "@/marketing/content/marketing";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
