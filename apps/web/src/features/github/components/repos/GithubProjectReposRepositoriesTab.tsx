@@ -3,7 +3,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/shared/ui/Button";
 import { SearchField } from "@/shared/ui/SearchField";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import { GithubRepoLinkCard } from "../GithubRepoLinkCard";
 import type {
   GithubConnectionStatus,

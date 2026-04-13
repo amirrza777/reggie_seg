@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import { GithubRepoLinkCard } from "../GithubRepoLinkCard";
 import {
   analyseProjectGithubRepo,

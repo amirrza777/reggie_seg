@@ -4,7 +4,7 @@ import { ProjectTeamHealthTitleWithInfo } from "./ProjectTeamHealthTitleWithInfo
 
 const modalPropsSpy = vi.fn();
 
-vi.mock("@/shared/ui/TitleWithInfoModal", () => ({
+vi.mock("@/shared/ui/modal/TitleWithInfoModal", () => ({
   TitleWithInfoModal: (props: Record<string, unknown>) => {
     modalPropsSpy(props);
     return <div data-testid="team-health-title-modal" />;

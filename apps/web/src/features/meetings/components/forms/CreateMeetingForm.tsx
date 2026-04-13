@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { RichTextEditor } from "@/shared/ui/rich-text/RichTextEditor";
 import { useUser } from "@/features/auth/useUser";
 import { listTeamMembers } from "../../api/client";
 import { useParticipantSelection } from "../../hooks/useParticipantSelection";

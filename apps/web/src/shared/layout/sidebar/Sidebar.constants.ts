@@ -1,4 +1,4 @@
-import type { SpaceKey } from "./Sidebar.types";
+import type { SpaceKey } from "../Sidebar.types";
 
 export const SPACE_LABELS: Record<SpaceKey, string> = {
   workspace: "Workspace",

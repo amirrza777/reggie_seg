@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ContributorRow } from "./dashboard/GithubRepoChartsDashboard.helpers";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
-import { useChartCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
+import { useChartCursorTooltip } from "@/shared/ui/progress/usePieCursorTooltip";
 import {
   buildContributorMiniSeries,
   CHART_COLOR_COMMITS,

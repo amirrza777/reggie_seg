@@ -10,7 +10,7 @@ vi.mock("../../api/client", () => ({
   listTeamMembers: vi.fn(),
 }));
 
-vi.mock("@/shared/ui/RichTextEditor", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextEditor", () => ({
   RichTextEditor: ({ onChange, placeholder }: { onChange: (v: string) => void; placeholder?: string }) => (
     <textarea aria-label="Agenda" placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
   ),

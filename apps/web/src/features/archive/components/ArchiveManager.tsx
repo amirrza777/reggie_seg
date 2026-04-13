@@ -1,6 +1,6 @@
 "use client";
 
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import { useArchiveManager } from "../hooks/useArchiveManager";
 import { filterModulesByScope, filterProjectsByScope } from "../lib/archiveScopes";
 import { archiveTableEmptyMessage } from "../lib/archiveEmptyMessages";

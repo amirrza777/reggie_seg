@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId } from "react";
-import { Button } from "./Button";
+import { Button } from "../Button";
 import { ModalPortal } from "./ModalPortal";
 
 type ConfirmationModalProps = {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { updateMeeting, deleteMeeting } from "../../api/client";
-import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { RichTextEditor } from "@/shared/ui/rich-text/RichTextEditor";
 import { useParticipantSelection } from "../../hooks/useParticipantSelection";
 import "../../styles/meeting-list.css";
 import type { Meeting } from "../../types";

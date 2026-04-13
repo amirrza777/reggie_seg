@@ -1,7 +1,7 @@
 "use client";
 
 import { SearchField } from "@/shared/ui/SearchField";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import type { CustomAllocationCoverage } from "@/features/projects/api/teamAllocation";
 import { countEligibleQuestions } from "./customisedAllocation.utils";
 import type {

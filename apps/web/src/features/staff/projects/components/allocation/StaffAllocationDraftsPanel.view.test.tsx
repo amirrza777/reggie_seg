@@ -9,7 +9,7 @@ vi.mock("./useStaffAllocationDraftsPanel", () => ({
     `${m.firstName} ${m.lastName}`.trim() || m.email,
   formatActorRole: (role: string) => role,
 }));
-vi.mock("@/shared/ui/ConfirmationModal", () => ({
+vi.mock("@/shared/ui/modal/ConfirmationModal", () => ({
   ConfirmationModal: ({ open, title }: { open: boolean; title: string }) =>
     open ? <div role="dialog">{title}</div> : null,
 }));

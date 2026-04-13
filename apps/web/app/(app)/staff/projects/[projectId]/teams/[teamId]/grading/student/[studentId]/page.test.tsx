@@ -38,7 +38,7 @@ vi.mock("@/shared/ui/Card", () => ({
   ),
 }));
 
-vi.mock("@/shared/ui/PerformanceSummaryCard", () => ({
+vi.mock("@/shared/ui/progress/PerformanceSummaryCard", () => ({
   PerformanceSummaryCard: ({ title }: { title: string }) => (
     <div data-testid="performance-summary" data-title={title} />
   ),

@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
-import { useChartCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
+import { useChartCursorTooltip } from "@/shared/ui/progress/usePieCursorTooltip";
 
 type ProjectBar = {
   name: string;

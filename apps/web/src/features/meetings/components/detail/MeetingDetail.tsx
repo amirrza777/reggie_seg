@@ -8,7 +8,7 @@ import { useUser } from "@/features/auth/useUser";
 import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { CommentSection } from "../CommentSection";
 import { AddToCalendarDropdown } from "../AddToCalendarDropdown";
-import { RichTextViewer } from "@/shared/ui/RichTextViewer";
+import { RichTextViewer } from "@/shared/ui/rich-text/RichTextViewer";
 import { getMeetingPermissions } from "../../lib/meetingPermissions";
 import { MeetingBreadcrumbs } from "../MeetingBreadcrumbs";
 import "../../styles/meeting-detail.css";

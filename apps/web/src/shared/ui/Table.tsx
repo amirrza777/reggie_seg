@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
-import { Skeleton } from "./Skeleton";
+import { Skeleton } from "./skeletons/Skeleton";
 
 export type SortConfig = {
   column: number;

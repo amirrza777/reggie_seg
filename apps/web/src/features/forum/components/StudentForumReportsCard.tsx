@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { ForumConversationTree } from "@/shared/ui/ForumConversationTree";
-import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
-import { RichTextViewer } from "@/shared/ui/RichTextViewer";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { ConfirmationModal } from "@/shared/ui/modal/ConfirmationModal";
+import { RichTextViewer } from "@/shared/ui/rich-text/RichTextViewer";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import {
   approveStudentForumReport,
   getStudentForumReports,

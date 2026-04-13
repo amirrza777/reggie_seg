@@ -5,7 +5,7 @@ import type { RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { logDevError } from "@/shared/lib/devLogger";
 import { Button } from "@/shared/ui/Button";
-import { QuestionnaireListSkeleton } from "@/shared/ui/LoadingSkeletonBlocks";
+import { QuestionnaireListSkeleton } from "@/shared/ui/skeletons/LoadingSkeletonBlocks";
 import {
   getMyQuestionnaires,
   getPublicQuestionnairesFromOthers,

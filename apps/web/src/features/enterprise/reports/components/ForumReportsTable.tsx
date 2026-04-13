@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
+import { ConfirmationModal } from "@/shared/ui/modal/ConfirmationModal";
 import { ForumConversationTree } from "@/shared/ui/ForumConversationTree";
-import { RichTextViewer } from "@/shared/ui/RichTextViewer";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { RichTextViewer } from "@/shared/ui/rich-text/RichTextViewer";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import { Table } from "@/shared/ui/Table";
 import type { ForumReportConversation, ForumReportEntry } from "../types";
 import {

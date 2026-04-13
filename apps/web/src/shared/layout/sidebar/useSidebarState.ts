@@ -1,6 +1,6 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { MOBILE_DRAWER_PERSIST_KEY, MOBILE_DRAWER_SPACE_KEY, SPACE_ORDER } from "./Sidebar.constants";
-import type { SidebarLink, SpaceKey } from "./Sidebar.types";
+import type { SidebarLink, SpaceKey } from "../Sidebar.types";
 import { isHrefActive, type SearchParamsReader } from "./Sidebar.utils";
 import { computeSidebarDerivedState } from "./sidebarDerivedState";
 

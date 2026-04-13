@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { Questionnaire } from "@/features/questionnaires/types";
 import type { Module } from "@/features/modules/types";
 import { SearchField } from "@/shared/ui/SearchField";
-import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
+import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
 import type { DeadlinePreview, DeadlineState } from "./StaffProjectCreatePanel.deadlines";
 
 type BasicsSectionProps = {

@@ -3,7 +3,7 @@
 import { Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { GithubChartTitleWithInfo, type GithubChartInfoContent } from "./GithubChartInfo";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
-import { usePieCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
+import { usePieCursorTooltip } from "@/shared/ui/progress/usePieCursorTooltip";
 
 type DonutDatum = {
   name: string;

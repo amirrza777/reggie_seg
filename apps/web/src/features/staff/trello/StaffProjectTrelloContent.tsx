@@ -11,7 +11,7 @@ import { resolveStaffTeamBasePath } from "@/features/staff/projects/components/n
 import { getMyBoards } from "@/features/trello/api/client";
 import type { ProjectDeadline } from "@/features/projects/types";
 import type { BoardView } from "@/features/trello/api/client";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 
 export type StaffTrelloContentViewProps = {
   projectId: string;

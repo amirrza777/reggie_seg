@@ -10,8 +10,8 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { ClearEditorPlugin } from "@lexical/react/LexicalClearEditorPlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $getRoot, CLEAR_EDITOR_COMMAND, type EditorState, type LexicalEditor } from "lexical";
-import { MentionNode } from "@/shared/ui/MentionNode";
-import { MentionPlugin } from "@/shared/ui/MentionPlugin";
+import { MentionNode } from "@/shared/ui/rich-text/MentionNode";
+import { MentionPlugin } from "@/shared/ui/rich-text/MentionPlugin";
 
 type Member = {
   id: number;

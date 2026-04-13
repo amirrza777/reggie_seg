@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SidebarLink } from "./Sidebar.types";
+import type { SidebarLink } from "../Sidebar.types";
 import { computeSidebarDerivedState } from "./sidebarDerivedState";
 
 const baseLinks: SidebarLink[] = [

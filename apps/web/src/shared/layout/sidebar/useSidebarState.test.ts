@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MOBILE_DRAWER_PERSIST_KEY, MOBILE_DRAWER_SPACE_KEY } from "./Sidebar.constants";
-import type { SidebarLink } from "./Sidebar.types";
+import type { SidebarLink } from "../Sidebar.types";
 import { useSidebarState } from "./useSidebarState";
 
 const links: SidebarLink[] = [

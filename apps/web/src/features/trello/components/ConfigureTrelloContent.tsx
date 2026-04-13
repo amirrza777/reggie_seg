@@ -13,7 +13,7 @@ import {
 import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { SECTION_STATUS_LABELS } from "@/features/trello/lib/listStatus";
 import { useTrelloBoard } from "@/features/trello/context/TrelloBoardContext";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import "@/features/trello/styles/configure.css";
 
 type Props = {

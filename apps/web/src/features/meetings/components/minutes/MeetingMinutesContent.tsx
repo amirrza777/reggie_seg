@@ -7,7 +7,7 @@ import { daysToMs } from "../../lib/meetingTime";
 import { useMeetingWithSettings } from "../../hooks/useMeetingWithSettings";
 import { MeetingBreadcrumbs } from "../MeetingBreadcrumbs";
 import { MeetingMinutes } from "./MeetingMinutes";
-import { RichTextViewer } from "@/shared/ui/RichTextViewer";
+import { RichTextViewer } from "@/shared/ui/rich-text/RichTextViewer";
 import { Card } from "@/shared/ui/Card";
 import "../../styles/meeting-detail.css";
 

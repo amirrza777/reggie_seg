@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
+import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
 import type { DeadlinePreview } from "./StaffProjectCreatePanel.deadlines";
 import { formatDateTime } from "./StaffProjectCreatePanel.deadlines";
 import type { CreateProjectDeadlineState } from "./useStaffProjectCreatePanel";

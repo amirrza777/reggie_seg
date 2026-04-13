@@ -12,7 +12,7 @@ vi.mock("../../api/client", () => ({
   saveMinutes: vi.fn(),
 }));
 
-vi.mock("@/shared/ui/RichTextEditor", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextEditor", () => ({
   RichTextEditor: ({ onChange, placeholder }: any) => (
     <textarea data-testid="editor" placeholder={placeholder} onChange={(e: any) => onChange(e.target.value)} />
   ),

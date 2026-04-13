@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { SidebarChevron } from "./SidebarChevron";
-import type { MobileSpaceLink, SidebarLink, SpaceKey } from "./Sidebar.types";
+import type { MobileSpaceLink, SidebarLink, SpaceKey } from "../Sidebar.types";
 import { getBestMatchingHref, getSpaceFromHref, type SearchParamsReader } from "./Sidebar.utils";
 
 type SidebarMobileNavProps = {

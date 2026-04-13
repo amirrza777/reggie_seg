@@ -10,11 +10,11 @@ vi.mock("@/features/projects/api/client", () => ({
   reviewStaffTeamHealthMessage: vi.fn(),
 }));
 
-vi.mock("@/shared/ui/RichTextViewer", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextViewer", () => ({
   RichTextViewer: ({ content }: { content: string }) => <div data-testid="rich-text-viewer">{content}</div>,
 }));
 
-vi.mock("@/shared/ui/RichTextEditor", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextEditor", () => ({
   RichTextEditor: ({
     initialContent,
     onChange,

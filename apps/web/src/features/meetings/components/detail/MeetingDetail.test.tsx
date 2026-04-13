@@ -28,7 +28,7 @@ vi.mock("../AddToCalendarDropdown", () => ({
   AddToCalendarDropdown: () => <div data-testid="add-to-calendar" />,
 }));
 
-vi.mock("@/shared/ui/RichTextViewer", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextViewer", () => ({
   RichTextViewer: () => <div data-testid="rich-text-viewer" />,
 }));
 

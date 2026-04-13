@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Placeholder } from "@/shared/ui/Placeholder";
-import { ProgressCardGrid } from "@/shared/ui/ProgressCardGrid";
+import { ProgressCardGrid } from "@/shared/ui/progress/ProgressCardGrid";
 import { getStaffProjectPeerAssessmentOverview } from "@/features/projects/api/client";
 
 type PageProps = {

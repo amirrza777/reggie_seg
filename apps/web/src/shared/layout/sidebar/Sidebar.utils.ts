@@ -1,4 +1,4 @@
-import type { SpaceKey } from "./Sidebar.types";
+import type { SpaceKey } from "../Sidebar.types";
 
 type HrefTarget = {
   href: string;

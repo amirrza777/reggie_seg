@@ -1,7 +1,7 @@
 "use client";
 
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
-import { useChartCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
+import { useChartCursorTooltip } from "@/shared/ui/progress/usePieCursorTooltip";
 import {
   Bar,
   BarChart,

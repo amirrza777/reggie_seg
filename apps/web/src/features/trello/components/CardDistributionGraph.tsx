@@ -15,7 +15,7 @@ import {
 import type { TrelloBoardAction, TrelloCard } from "../types";
 import { formatDate } from "@/shared/lib/formatDate";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
-import { useChartCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
+import { useChartCursorTooltip } from "@/shared/ui/progress/usePieCursorTooltip";
 import { ProjectBoundaryReferenceLine } from "./ProjectBoundaryReferenceLine";
 import { formatTrelloTimeTick, TrelloTimeXAxis } from "./TrelloTimeXAxis";
 

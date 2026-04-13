@@ -12,7 +12,7 @@ vi.mock("../../api/client", () => ({
   deleteMeeting: vi.fn(),
 }));
 
-vi.mock("@/shared/ui/RichTextEditor", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextEditor", () => ({
   RichTextEditor: ({ onChange }: { onChange: (v: string) => void }) => (
     <textarea data-testid="agenda-editor" onChange={(e) => onChange(e.target.value)} />
   ),

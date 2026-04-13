@@ -1,5 +1,5 @@
 import { SPACE_LABELS, SPACE_ORDER } from "./Sidebar.constants";
-import type { MobileSpaceOption, SidebarLink, SpaceKey } from "./Sidebar.types";
+import type { MobileSpaceOption, SidebarLink, SpaceKey } from "../Sidebar.types";
 import { getBestMatchingHref, isHrefActive, type SearchParamsReader } from "./Sidebar.utils";
 
 type DerivedSidebarStateInput = {

@@ -19,7 +19,7 @@ vi.mock("./MeetingMinutes", () => ({
   ),
 }));
 
-vi.mock("@/shared/ui/RichTextViewer", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextViewer", () => ({
   RichTextViewer: ({ content }: any) => (
     <div data-testid="rich-text-viewer">{content}</div>
   ),

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ProgressBar } from "@/shared/ui/ProgressBar";
+import { ProgressBar } from "@/shared/ui/progress/ProgressBar";
 
 export type StaffPeerMemberDualProgressItem = {
   id: number;

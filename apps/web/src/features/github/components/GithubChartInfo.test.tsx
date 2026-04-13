@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { GithubChartTitleWithInfo } from "./GithubChartInfo";
 
-vi.mock("@/shared/ui/ModalPortal", () => ({
+vi.mock("@/shared/ui/modal/ModalPortal", () => ({
   ModalPortal: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 

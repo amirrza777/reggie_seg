@@ -1,1 +1,1 @@
-export { StaffModuleWorkspaceContentSkeleton as default } from "@/shared/ui/FeatureRouteSkeletons";
+export { StaffModuleWorkspaceContentSkeleton as default } from "@/shared/ui/skeletons/FeatureRouteSkeletons";

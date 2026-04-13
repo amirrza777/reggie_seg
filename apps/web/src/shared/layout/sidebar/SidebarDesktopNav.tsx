@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import type { SidebarLink } from "./Sidebar.types";
+import type { SidebarLink } from "../Sidebar.types";
 import { SidebarChevron } from "./SidebarChevron";
 import { getBestMatchingHref, type SearchParamsReader } from "./Sidebar.utils";
 

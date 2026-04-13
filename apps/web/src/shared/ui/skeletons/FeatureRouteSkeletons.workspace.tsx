@@ -1,5 +1,5 @@
-import { Card } from "./Card";
-import { Table } from "./Table";
+import { Card } from "../Card";
+import { Table } from "../Table";
 import { Skeleton, SkeletonText } from "./Skeleton";
 
 function ModuleDetailTabsSkeleton() {

@@ -28,7 +28,7 @@ vi.mock("@/shared/ui/FormField", () => ({
   FormField: (props: Record<string, unknown>) => <input {...props} />,
 }));
 
-vi.mock("@/shared/ui/RichTextEditor", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextEditor", () => ({
   RichTextEditor: ({
     initialContent,
     onChange,

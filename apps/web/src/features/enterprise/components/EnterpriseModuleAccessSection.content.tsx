@@ -1,6 +1,6 @@
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { SearchField } from "@/shared/ui/SearchField";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import {
   AccessPagination,
   AccessSummaryLabel,

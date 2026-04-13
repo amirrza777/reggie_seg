@@ -2,14 +2,14 @@
 
 import type { ComponentProps } from "react";
 import { Button } from "@/shared/ui/Button";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import { GithubRepoLinkCard } from "../GithubRepoLinkCard";
 import { GithubProjectReposConfigurationsTab } from "./GithubProjectReposConfigurationsTab";
 import { GithubProjectReposRepositoriesTab } from "./GithubProjectReposRepositoriesTab";
 import {
   GITHUB_PROJECT_REPOS_TABS as tabs,
   type GithubProjectReposTabKey as TabKey,
-} from "./GithubProjectReposClient.tabs";
+} from "./client/GithubProjectReposClient.tabs";
 import type {
   GithubConnectionStatus,
   GithubLatestSnapshot,

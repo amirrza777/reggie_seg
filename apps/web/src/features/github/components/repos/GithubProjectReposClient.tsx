@@ -12,9 +12,9 @@ import {
   GithubProjectReposMyCodeActivitySection,
   GithubProjectReposTeamCodeActivitySection,
 } from "./GithubProjectReposClient.sections";
-import { useGithubProjectReposAutoRefresh } from "./useGithubProjectReposAutoRefresh";
-import { useGithubProjectReposLiveData } from "./useGithubProjectReposLiveData";
-import type { GithubProjectReposTabKey as TabKey } from "./GithubProjectReposClient.tabs";
+import { useGithubProjectReposAutoRefresh } from "./hooks/useGithubProjectReposAutoRefresh";
+import { useGithubProjectReposLiveData } from "./hooks/useGithubProjectReposLiveData";
+import type { GithubProjectReposTabKey as TabKey } from "./client/GithubProjectReposClient.tabs";
 import {
   analyseProjectGithubRepo,
   disconnectGithubAccount,

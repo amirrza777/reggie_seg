@@ -1,7 +1,7 @@
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import type { FormEvent, ReactNode } from "react";
 import { Button } from "@/shared/ui/Button";
-import { ModalPortal } from "@/shared/ui/ModalPortal";
+import { ModalPortal } from "@/shared/ui/modal/ModalPortal";
 import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationControls";
 import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";

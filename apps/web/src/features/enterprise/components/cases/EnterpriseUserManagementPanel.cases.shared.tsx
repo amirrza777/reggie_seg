@@ -16,7 +16,7 @@ vi.mock("../../api/client", () => ({
   updateEnterpriseUser: vi.fn(),
 }));
 
-vi.mock("@/shared/ui/ModalPortal", () => ({
+vi.mock("@/shared/ui/modal/ModalPortal", () => ({
   ModalPortal: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 

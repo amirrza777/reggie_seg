@@ -1,6 +1,6 @@
 "use client";
 
-import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
+import { ConfirmationModal } from "@/shared/ui/modal/ConfirmationModal";
 import "@/features/staff/projects/styles/staff-projects.css";
 import { useStaffAllocationDraftsPanel, toAllocationDraftFullName, formatActorRole } from "./useStaffAllocationDraftsPanel";
 
