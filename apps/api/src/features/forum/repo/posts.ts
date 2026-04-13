@@ -211,9 +211,10 @@ export async function getDiscussionPostById(userId: number, projectId: number, p
   return byId.get(postId) ?? null;
 }
 
+/** Read-only: any project member can read anonymity flag (e.g. discussion UI) */
 export async function getForumSettings(userId: number, projectId: number) {
-  const canManage = await canManageForumSettings(userId, projectId);
-  if (!canManage) return null;
+  const hasAccess = await isUserInProject(userId, projectId);
+  if (!hasAccess) return null;
 
   return prisma.project.findUnique({
     where: { id: projectId },
