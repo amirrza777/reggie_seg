@@ -24,7 +24,7 @@ docker compose up -d
 docker ps
 ```
 
-You should see a MySQL container running (name usually `uni_mysql`).
+You should see a MySQL container running for the `mysql` service.
 
 ### Reset DB completely (deletes local DB data)
 
@@ -212,7 +212,7 @@ Fix (local dev) — grant permissions to the dev MySQL user:
 1) Enter MySQL as root:
 
 ```bash
-docker exec -it uni_mysql mysql -uroot -prootpassword
+docker compose exec mysql mysql -uroot -prootpassword
 ```
 
 2) Run:

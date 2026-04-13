@@ -5,6 +5,8 @@ import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
 const fallbackDatabaseUrl = "mysql://root:root@localhost:3306/reggie_dev";
+const configuredDatabaseUrl = process.env.DATABASE_URL?.trim();
+const databaseUrl = configuredDatabaseUrl ? configuredDatabaseUrl : fallbackDatabaseUrl;
 
 export default defineConfig({
   schema: "prisma/schema",
@@ -13,6 +15,6 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    url: process.env.DATABASE_URL ?? fallbackDatabaseUrl,
+    url: databaseUrl,
   },
 });

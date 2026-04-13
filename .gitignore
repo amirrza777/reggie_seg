@@ -20,3 +20,4 @@ apps/web/.next-dev-webpack/
 *.tsbuildinfo
 .zed/
 .claude/
+.nix/
