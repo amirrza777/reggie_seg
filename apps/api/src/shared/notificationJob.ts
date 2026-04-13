@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { prisma } from "./db.js";
 import { sendEmail } from "./email.js";
+import { evaluateProjectWarningsForAllProjects } from "../features/warnings/service.js";
 
 type DeadlineWindow = { label: string; offsetDays: number };
 
@@ -283,12 +284,17 @@ export async function sendNoGithubAccountAlerts() {
   return;
 }
 
+export async function sendProjectWarningAlerts() {
+  await evaluateProjectWarningsForAllProjects();
+}
+
 export type NotificationJobRunners = {
   sendDeadlineReminders: () => Promise<void>;
   sendInactivityAlerts: () => Promise<void>;
   sendMissingPeerAssessmentAlerts: () => Promise<void>;
   sendNoRepoAlerts: () => Promise<void>;
   sendNoGithubAccountAlerts: () => Promise<void>;
+  sendProjectWarningAlerts: () => Promise<void>;
 };
 
 function logJobError(message: string, err: unknown) {
@@ -302,6 +308,7 @@ export async function runNotificationCycle(
     sendMissingPeerAssessmentAlerts,
     sendNoRepoAlerts,
     sendNoGithubAccountAlerts,
+    sendProjectWarningAlerts,
   }
 ) {
   try {
@@ -328,6 +335,11 @@ export async function runNotificationCycle(
     await runners.sendNoGithubAccountAlerts();
   } catch (err) {
     logJobError("No-GitHub-account alert job error:", err);
+  }
+  try {
+    await runners.sendProjectWarningAlerts();
+  } catch (err) {
+    logJobError("Project warning alert job error:", err);
   }
 }
 

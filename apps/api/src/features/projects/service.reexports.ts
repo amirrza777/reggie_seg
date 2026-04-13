@@ -7,6 +7,7 @@ export {
   updateProjectWarningsConfigForStaff,
   evaluateProjectWarningsForStaff,
   evaluateProjectWarningsForProject,
+  evaluateProjectWarningsForAllProjects,
   parseProjectWarningsConfig,
   getDefaultProjectWarningsConfig,
 } from "../warnings/service.js";

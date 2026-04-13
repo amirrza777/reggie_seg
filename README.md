@@ -1,30 +1,100 @@
-## 1) Clone the repo
+## Recommended Setup (Nix)
+This project is designed to be run using **Nix**. The Nix workflow provides a fully reproducible development environment and automatically sets up dependencies, the database, and required services.
+
+> The Nix commands below are the **recommended and supported way** to run and assess the project.
+
+### Quick Start
 
 ```bash
-git clone <REPO_URL>
-cd <REPO_FOLDER>
+nix run .#init
+nix run .#run
+nix run .#tests
+```
+A full developers manual is included with this submission, covering system architecture, setup, testing, and troubleshooting.
+
+📄 [Developers Manual](./developers-manual.pdf)
+
+Please refer to the **Developers Manual (PDF)** for detailed instructions and additional context.
+
+# Team Feedback 2.0
+
+Team Feedback 2.0 is a web-based platform for managing and monitoring team-based coursework. It supports project creation, questionnaires, meetings, deadlines and extensions, team allocation workflows, peer assessment, and optional GitHub and Trello integrations.
+
+## Authors
+
+- Ali Mohammed
+- Crinan Potter
+- Maksym Byelko
+- Amir Guliyev
+- Ayan Mamun
+- Ali Demir
+- Andres Zacchi
+- Tunjay Seyidali
+- Matthew Kelsey
+
+## Repository Structure
+
+- `apps/api` - Express API, Prisma schema, seed scripts, backend tests
+- `apps/web` - Next.js frontend
+- `packages/shared` - shared package code
+
+## Deployment
+
+- Frontend URL: `https://reggie-seg.vercel.app`
+- API URL: `https://reggieseg-production.up.railway.app`
+
+## Marker Login Credentials
+
+The repository provides seeded assessment/demo accounts.The default seeded accounts are:
+
+### Student
+
+- Email: `student.assessment@example.com`
+- Password: `password123`
+
+### Staff
+
+- Email: `staff.assessment@example.com`
+- Password: `password123`
+
+### Enterprise Admin
+
+- Email: `entp_admin.assessment@example.com`
+- Password: `password123`
+
+### Admin
+
+- Email: `global_admin.assessment@example.com`
+- Password: `password123`
+
+### Additional GitHub Demo Accounts
+
+- Staff: `github.staff@example.com` / `password123`
+- Student: `github.student@example.com` / `password123`
+
+If the deployed database was seeded with different values, update this section to match the deployed environment.
+
+## Running The Project
+
+The repository includes a `flake.nix` file for the Nix-based environment expected by the project brief. If running the project manually without Nix, the local development flow is below.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/amirrza777/reggie_seg.git
+cd reggie_seg
 ```
 
-Replace `<REPO_URL>` with the GitHub/GitLab repo URL and `<REPO_FOLDER>` with the folder name created by clone.
+### 2. Start MySQL
 
----
-
-## Authorship And Blame Credit
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md#authorship-and-blame-credit) for setup and team guidance.
-
----
-
-## 2) Start MySQL (Database)
-
-Run from the repo root (same folder as `docker-compose.yml`):
+From the repo root:
 
 ```bash
 docker compose up -d
 docker ps
 ```
 
-You should see a MySQL container running (name usually `uni_mysql`).
+You should see a MySQL container running for the `mysql` service.
 
 ### Reset DB completely (deletes local DB data)
 
@@ -33,189 +103,135 @@ docker compose down -v
 docker compose up -d
 ```
 
----
-
-## 3) Backend (API) setup
-
-Go to backend:
+### 3. Backend setup
 
 ```bash
 cd apps/api
-```
-
-Install dependencies:
-
-```bash
 npm install
-```
-
-Create local env file:
-
-```bash
 cp .env.example .env
-```
-
-Rate limiting (important for production):
-
-- In production, set `RATE_LIMIT_REDIS_URL` so join/auth/admin rate limits are shared across instances.
-- The API now disables in-memory fallback in production by default.  
-  Only set `RATE_LIMIT_ALLOW_IN_MEMORY=true` as an emergency override.
-
-Run migrations (creates tables):
-
-```bash
 npx prisma migrate dev
-```
-
-Start backend:
-
-```bash
 npm run dev
 ```
 
-Test backend in browser:
+Health check:
 
-- http://localhost:3000/health
+- `http://localhost:3000/health`
 
----
+### 4. Frontend setup
 
-## 4) Frontend (Web) setup (Next.js)
-
-More web-specific commands and env notes: see `apps/web/README.md`.
-
-Open a NEW terminal tab/window.
-
-Go to frontend:
+In a separate terminal:
 
 ```bash
 cd apps/web
-```
-
-Install dependencies:
-
-```bash
 npm install
-```
-
-Create local env file:
-
-```bash
 cp .env.example .env
-```
-
-Start frontend:
-
-```bash
 npm run dev
 ```
 
-Open the URL printed in terminal (usually):
+Default local frontend URL:
 
-- http://localhost:3001
+- `http://localhost:3001`
 
-(Port 3001 is used so it does not conflict with the API on 3000.)
+Additional frontend notes are in [apps/web/README.md](./apps/web/README.md).
 
----
+## Environment Notes
 
-## 5) Testing & Coverage
+### API
 
-Run tests per package:
+- Copy `apps/api/.env.example` to `apps/api/.env`
+- Set `DATABASE_URL` to the correct MySQL instance
+- In production, `RATE_LIMIT_REDIS_URL` should be configured so rate limiting is shared across instances
+- `RATE_LIMIT_ALLOW_IN_MEMORY=true` should only be used as an emergency fallback
 
-- API (Express):  
-  ```bash
-  cd apps/api
-  npm test            # run once  
-  npm run test:watch  # watch mode  
-  npm run test:coverage
-  npm run test:modulejoin
-  ```
+### Web
 
-- Web (Next.js):  
-  ```bash
-  cd apps/web
-  npm test
-  npm run test:watch
-  npm run test:coverage
-  ```
-
-- Shared package:  
-  ```bash
-  cd packages/shared
-  npm test
-  npm run test:watch
-  npm run test:coverage
-  ```
-
-Coverage thresholds are set to 100% lines/functions/branches/statements in each package to keep quality high. If you add new code, add or update tests accordingly.
-
-Load test module self-enrollment (API):
-
-```bash
-cd apps/api
-API_BASE_URL=http://localhost:3000 \
-JOIN_CODE=ABCD2345 \
-AUTH_TOKENS="token_for_user_1,token_for_user_2,token_for_user_3" \
-REQUESTS=300 \
-CONCURRENCY=50 \
-npm run loadtest:modulejoin
-```
-
-Notes:
-- Provide many student/admin tokens in `AUTH_TOKENS` to simulate cohort traffic.
-- `ROTATE_X_FORWARDED_FOR=true` can be used in local proxy setups to vary client IP.
-
-Run everything at once from repo root:
-
-```bash
-./scripts/test-all.sh         # run all packages
-./scripts/test-all.sh --runInBand   # pass flags through to Vitest
-```
-
-Before running tests the first time, install deps in each package (once):
-
-```bash
-npm install --prefix apps/api
-npm install --prefix apps/web
-npm install --prefix packages/shared
-```
-
----
-
-## 6) Common Issues
-
-### A) Frontend shows: `Failed to fetch`
-
-1) Check backend works:
-- Open http://localhost:3000/health  
-- It must return JSON
-
-2) Check frontend API base URL:  
-Open `apps/web/.env` and confirm:
+Typical local frontend environment value:
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
 ```
 
-3) Restart frontend after editing `.env`:
-- stop with `Ctrl + C`
-- run `npm run dev`
+### Secret-dependent integrations
 
----
+Some integrations require private deployment secrets or third-party credentials that are not committed to the repository, such as GitHub OAuth/App configuration, Google OAuth configuration, Trello credentials, and production email delivery settings.
 
-### B) Prisma error: shadow database permission (P3014 / P1010)
+For that reason:
 
-Example message:  
-`Prisma Migrate could not create the shadow database... User was denied access...`
+- the core application, tests, and seeded workflows are expected to run locally and through the repository setup without private production secrets
+- secret-dependent integrations are intended to be evaluated primarily on the deployed system where those credentials are configured
+- local setup should still install, run, test, and seed without requiring the team's private deployment secrets
 
-Fix (local dev) — grant permissions to the dev MySQL user:
+## Database Seeding
 
-1) Enter MySQL as root:
+From `apps/api`:
 
 ```bash
-docker exec -it uni_mysql mysql -uroot -prootpassword
+npm run db:seed
 ```
 
-2) Run:
+Optional unseed:
+
+```bash
+npm run db:unseed
+```
+
+If markers are expected to use the deployed site directly, the deployed database should also be seeded with the documented accounts/data, or equivalent working accounts should be provided.
+
+## Testing
+
+### API
+
+```bash
+cd apps/api
+npm test
+npm run test:watch
+npm run test:coverage
+npm run test:modulejoin
+npm run test:seed
+```
+
+### Web
+
+```bash
+cd apps/web
+npm test
+npm run test:watch
+npm run test:coverage
+```
+
+### Shared Package
+
+```bash
+cd packages/shared
+npm test
+npm run test:watch
+npm run test:coverage
+```
+
+### Run all tests from repo root
+
+```bash
+./scripts/test-all.sh
+./scripts/test-all.sh --runInBand
+```
+
+## Common Issues
+
+### Frontend shows `Failed to fetch`
+
+1. Check the API health route at `http://localhost:3000/health`
+2. Confirm `NEXT_PUBLIC_API_BASE_URL` in `apps/web/.env`
+3. Restart the frontend after changing `.env`
+
+### Prisma shadow database permission error (`P3014` / `P1010`)
+
+Enter MySQL as root:
+
+```bash
+docker compose exec mysql mysql -uroot -prootpassword
+```
+
+Then run:
 
 ```sql
 GRANT ALL PRIVILEGES ON *.* TO 'appuser'@'%';
@@ -223,72 +239,36 @@ FLUSH PRIVILEGES;
 exit
 ```
 
-3) Rerun migrations:
+Rerun migrations:
 
 ```bash
 cd apps/api
 npx prisma migrate dev
 ```
 
----
-
-### C) Docker container not running
-
-From repo root:
+### Docker container not running
 
 ```bash
 docker compose up -d
 docker ps
 ```
 
-If Docker commands fail, open Docker Desktop and wait until it’s running.
+### MySQL port conflict
 
----
+If port `3306` is already in use, update `docker-compose.yml` and `apps/api/.env` to use a different local port.
 
-### D) Port 3306 already in use
+## Reused Code, External Sources, and AI Use
 
-If MySQL cannot start because port 3306 is busy, change `docker-compose.yml` to:
+### Libraries and Frameworks
 
-```yml
-ports:
-  - "3307:3306"
-```
+The project relies on third-party libraries declared in the package manifests and lockfiles, including Next.js, React, Express, Prisma, Vitest, Testing Library, and Supertest.
 
-Then update `apps/api/.env`:
+### Directly Reused External Source Code
 
-```env
-DATABASE_URL="mysql://appuser:apppass@localhost:3307/appdb"
-```
+At the time of writing, no substantial external source files are being declared here beyond the standard third-party libraries and frameworks listed above. If any direct source reuse needs to be acknowledged before submission, add it here together with its original location.
 
-Restart DB:
+### AI Use
 
-```bash
-docker compose down
-docker compose up -d
-```
+AI tools were used as development support during the project, including help with debugging, syntax checking, test-case ideas, documentation/report wording and structure, and some deployment/setup troubleshooting.
 
----
-
-## 7) Daily Commands (quick)
-
-From repo root:
-
-Start DB:
-
-```bash
-docker compose up -d
-```
-
-Run API:
-
-```bash
-cd apps/api
-npm run dev
-```
-
-Run Web:
-
-```bash
-cd apps/web
-npm run dev
-```
+All AI-assisted output was reviewed, edited, and validated by team members before being committed or included in the final submission.

@@ -9,6 +9,7 @@ import { getStudentDetails, getTeamDetails } from "@/features/staff/peerAssessme
 import { StaffMarkingCard } from "@/features/staff/peerAssessments/components/StaffMarkingCard";
 import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import { ApiError } from "@/shared/api/errors";
+import { RichTextViewer } from "@/shared/ui/rich-text/RichTextViewer";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
@@ -193,9 +194,11 @@ export default async function StaffTeamGradingStudentPage({ params }: PageProps)
               <strong>Team mark:</strong>{" "}
               {teamMarkingDisplay.mark == null ? "Not set" : teamMarkingDisplay.mark}
             </p>
-            <p className="muted">
-              {teamMarkingDisplay.formativeFeedback ?? "No team formative feedback yet."}
-            </p>
+            {teamMarkingDisplay.formativeFeedback ? (
+              <RichTextViewer content={teamMarkingDisplay.formativeFeedback} />
+            ) : (
+              <p className="muted">No team formative feedback yet.</p>
+            )}
             <p className="ui-note ui-note--muted">
               Updated by {memberName(teamMarkingDisplay.marker)} on{" "}
               {formatMarkingUpdatedAt(teamMarkingDisplay.updatedAt)}
