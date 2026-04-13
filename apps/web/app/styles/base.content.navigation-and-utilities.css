@@ -6,6 +6,19 @@
     align-items: center;
 }
 
+nav.pill-nav,
+.pill-nav[role="tablist"] {
+    padding: 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--glass-ui-border);
+    background: var(--glass-ui-bg-soft);
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    box-shadow: 0 2px 8px color-mix(in srgb, black 10%, transparent);
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+    backdrop-filter: blur(var(--glass-ui-blur));
+}
+
 nav.pill-nav:not(.pill-nav--inline),
 .pill-nav[role="tablist"] {
     position: sticky;
@@ -98,7 +111,7 @@ textarea {
 select {
     border: 1px solid var(--border);
     border-radius: 10px;
-    min-height: 40px;
+    min-height: var(--control-height-md, 34px);
     padding: 0 12px;
     font-size: var(--fs-body);
     font-family: inherit;

@@ -52,7 +52,13 @@ async function selectQuestionnaire(questionnaireId = 101) {
   await waitFor(() => {
     expect(getCustomAllocationQuestionnairesMock).toHaveBeenCalledWith(9);
   });
-  fireEvent.change(screen.getByLabelText("Select questionnaire"), { target: { value: String(questionnaireId) } });
+  await waitFor(() => {
+    expect(screen.getByRole("option", { name: /Team Setup/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Select questionnaire")).toBeEnabled();
+  });
+  fireEvent.change(screen.getByLabelText("Select questionnaire"), {
+    target: { value: String(questionnaireId) },
+  });
   await waitFor(() => {
     expect(getCustomAllocationCoverageMock).toHaveBeenCalledWith(9, questionnaireId);
   });

@@ -34,12 +34,15 @@
   position: sticky;
   top: var(--pill-nav-sticky-top, 8px);
   z-index: 18;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-ui-border);
   border-radius: var(--radius-md);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%), var(--surface));
-  padding: 10px;
-  box-shadow: none;
+  background: var(--glass-ui-bg-soft);
+  padding: 12px;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  box-shadow: 0 2px 8px color-mix(in srgb, black 10%, transparent);
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .github-project-repos-tabs__row {

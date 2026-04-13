@@ -2,7 +2,12 @@ import Link from "next/link";
 import type { ReactElement } from "react";
 import { listModules } from "@/features/modules/api/client";
 import type { Module } from "@/features/modules/types";
-import { getStaffProjectsForMarking, getStaffProjects, type StaffMarkingProject } from "@/features/projects/api/client";
+import {
+  getStaffProjectsForMarking,
+  getStaffProjects,
+  getStaffTeamWarnings,
+  type StaffMarkingProject,
+} from "@/features/projects/api/client";
 import { getModulesSummary } from "@/features/staff/peerAssessments/api/client";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
@@ -30,13 +35,27 @@ export default async function StaffDashboardPage() {
 
   const moduleRows = buildModuleRows(moduleData.modules);
 
-  const totalTeams = moduleData.modules.reduce((sum, m) => sum + (m.teamCount ?? 0), 0);
-  const totalProjects = moduleData.modules.reduce((sum, m) => sum + (m.projectCount ?? 0), 0);
-  const totalStudents = markingProjects.flatMap((p) => p.teams).reduce((sum, t) => sum + t.studentCount, 0);
-
   const allTeams = markingProjects.flatMap((p) =>
     p.teams.map((t) => ({ ...t, projectName: p.name, projectId: p.id }))
   );
+
+  const activeStaffProjects = staffProjects.filter((project) => project.archivedAt === null);
+  const hasActiveProjectStats = activeStaffProjects.length > 0;
+  const totalProjects = hasActiveProjectStats ? activeStaffProjects.length : markingProjects.length;
+  const totalTeams = hasActiveProjectStats
+    ? activeStaffProjects.reduce((sum, project) => sum + project.teamCount, 0)
+    : allTeams.length;
+  const totalStudentsFromMarking = allTeams.reduce((sum, t) => sum + t.studentCount, 0);
+  const totalStudents = totalStudentsFromMarking > 0
+    ? totalStudentsFromMarking
+    : activeStaffProjects.reduce((sum, project) => sum + project.membersTotal, 0);
+
+  const warningCountsByTeam = await loadActiveWarningCountsByTeam(user.id, allTeams);
+  const teamsWithWarnings = allTeams
+    .map((team) => ({ ...team, activeWarningCount: warningCountsByTeam.get(team.id) ?? 0 }))
+    .filter((team) => team.activeWarningCount > 0)
+    .sort((a, b) => b.activeWarningCount - a.activeWarningCount);
+
   const redTeams = allTeams.filter((t) => t.inactivityFlag === "RED");
   const yellowTeams = allTeams.filter((t) => t.inactivityFlag === "YELLOW");
   const healthyTeamCount = allTeams.filter((t) => t.inactivityFlag === "NONE").length;
@@ -47,13 +66,17 @@ export default async function StaffDashboardPage() {
   }));
 
   const githubCoverage =
-    staffProjects.length > 0
-      ? Math.round((staffProjects.filter((p) => p.hasGithubRepo).length / staffProjects.length) * 100)
+    activeStaffProjects.length > 0
+      ? Math.round((activeStaffProjects.filter((p) => p.hasGithubRepo).length / activeStaffProjects.length) * 100)
       : null;
-  const totalMembersConnected = staffProjects.reduce((sum, p) => sum + p.membersConnected, 0);
-  const totalMembersTotal = staffProjects.reduce((sum, p) => sum + p.membersTotal, 0);
+  const totalMembersConnected = activeStaffProjects.reduce((sum, p) => sum + p.membersConnected, 0);
+  const totalMembersTotal = activeStaffProjects.reduce((sum, p) => sum + p.membersTotal, 0);
   const githubConnectionRate =
     totalMembersTotal > 0 ? Math.round((totalMembersConnected / totalMembersTotal) * 100) : null;
+  const totalTrelloBoardsLinked = activeStaffProjects.reduce((sum, p) => sum + p.trelloBoardsLinkedCount, 0);
+  const trelloCoverage = hasActiveProjectStats && totalTeams > 0
+    ? Math.round((totalTrelloBoardsLinked / totalTeams) * 100)
+    : null;
 
   return (
     <div className="staff-projects staff-projects--panel-inset">
@@ -100,9 +123,16 @@ export default async function StaffDashboardPage() {
         )}
         {githubConnectionRate !== null && (
           <div className="ui-metric-card">
-            <span className="eyebrow">Member connection</span>
+            <span className="eyebrow">GitHub member mapping</span>
             <strong className="ui-metric-value">{githubConnectionRate}%</strong>
-            <span className="muted" style={{ fontSize: "0.8rem" }}>{totalMembersConnected}/{totalMembersTotal} mapped</span>
+            <span className="muted" style={{ fontSize: "0.8rem" }}>{totalMembersConnected}/{totalMembersTotal} linked accounts</span>
+          </div>
+        )}
+        {trelloCoverage !== null && (
+          <div className="ui-metric-card">
+            <span className="eyebrow">Trello board coverage</span>
+            <strong className="ui-metric-value">{trelloCoverage}%</strong>
+            <span className="muted" style={{ fontSize: "0.8rem" }}>{totalTrelloBoardsLinked}/{totalTeams} teams linked</span>
           </div>
         )}
       </div>
@@ -194,9 +224,30 @@ export default async function StaffDashboardPage() {
             </Card>
           )}
 
+          {teamsWithWarnings.length > 0 && (
+            <Card title="Active team warnings">
+              <p className="ui-note ui-note--muted">
+                {teamsWithWarnings.length} {pluralize("team", teamsWithWarnings.length)} currently have active warning rules triggered.
+              </p>
+              <ul className="staff-overview__team-list">
+                {teamsWithWarnings.map((team) => (
+                  <li key={team.id} className="staff-overview__team-row">
+                    <span>
+                      <Link href={`/staff/projects/${team.projectId}`} className="ui-link-reset">
+                        {team.teamName}
+                      </Link>
+                      <span className="muted" style={{ marginLeft: 6 }}>— {team.projectName}</span>
+                    </span>
+                    <span className="staff-overview__team-flag staff-overview__team-flag--yellow">{team.activeWarningCount} active</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
           {redTeams.length > 0 && (
             <Card
-              title="Teams needing attention"
+              title="Inactive teams"
               action={
                 <Link href="/staff/marks" className="btn btn--ghost btn--sm">
                   Go to marking
@@ -244,7 +295,7 @@ export default async function StaffDashboardPage() {
           )}
 
           {redTeams.length === 0 && yellowTeams.length === 0 && allTeams.length > 0 && (
-            <Card title="Team health">
+            <Card title="Inactivity status">
               <p className="ui-note ui-note--muted">All {allTeams.length} teams are active — no inactivity flags raised.</p>
             </Card>
           )}
@@ -286,6 +337,29 @@ async function loadPeerAssessmentSummary(userId: number) {
   } catch {
     return [];
   }
+}
+
+async function loadActiveWarningCountsByTeam(
+  userId: number,
+  teams: Array<{ id: number; projectId: number }>,
+): Promise<Map<number, number>> {
+  if (teams.length === 0) {
+    return new Map();
+  }
+
+  const warningCounts = await Promise.all(
+    teams.map(async (team) => {
+      try {
+        const warnings = await getStaffTeamWarnings(userId, team.projectId, team.id);
+        const activeWarningCount = warnings.filter((warning) => warning.active).length;
+        return [team.id, activeWarningCount] as const;
+      } catch {
+        return [team.id, 0] as const;
+      }
+    }),
+  );
+
+  return new Map(warningCounts);
 }
 
 function buildModuleRows(modules: Module[]): StaffModuleRow[] {

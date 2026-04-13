@@ -4,4 +4,6 @@
 @import "./app-shell/ui-primitives.css";
 @import "./app-shell/questionnaire.css";
 @import "./app-shell/feature-panels/feature-panels.css";
+@import "../../src/features/modules/styles/module-list.css";
+@import "../../src/features/projects/styles/project-list.css";
 @import "./app-shell/popup-glass.css";

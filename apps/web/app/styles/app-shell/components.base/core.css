@@ -224,6 +224,23 @@
   min-height: 0;
 }
 
+.module-dashboard__projects-panel {
+  display: grid;
+  gap: var(--space-panel-heading-gap);
+}
+
+.module-dashboard__projects-body {
+  padding-top: 12px;
+}
+
+.module-dashboard__projects-body .project-list {
+  padding: 0;
+}
+
+.module-dashboard__projects-body .project-list__grid {
+  margin-top: 0;
+}
+
 .module-dashboard__panel--notes {
   min-height: 0;
 }

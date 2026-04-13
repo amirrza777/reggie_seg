@@ -1,12 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
 import { ModuleDashboardPageView } from "@/features/modules/components/dashboard/ModuleDashboard";
+import { buildModuleProjectDeadlineTimelineRows } from "@/features/modules/lib/moduleProjectDeadlineTimeline";
 import { buildModuleDashboardData } from "@/features/modules/moduleDashboardData";
 import type { Module } from "@/features/modules/types";
 import { getProjectDeadline, getProjectMarking, getUserProjects } from "@/features/projects/api/client";
 import { ProjectList } from "@/features/projects/components/ProjectList";
 import { sortProjectsByTaskOpenDate } from "@/features/projects/lib/sortProjectsByTaskOpenDate";
-import type { Project } from "@/features/projects/types";
+import type { Project, ProjectDeadline } from "@/features/projects/types";
 import { Card } from "@/shared/ui/Card";
 import { getCurrentUser } from "@/shared/auth/session";
 
@@ -15,24 +16,32 @@ type ModulePageProps = {
 };
 
 type ProjectPanelRow = {
+  projectName: string;
   markRow: [string, string, string];
   meta: { completed: boolean; finishedUnmarked: boolean; mark: number | null };
   idKey: string;
+  deadline: ProjectDeadline | null;
 };
 
 async function buildModuleProjectPanelData(
   userId: number,
   moduleProjects: Project[],
-): Promise<{ marksRows: Array<[string, string, string]>; projectMetaById: Record<string, ProjectPanelRow["meta"]> }> {
+): Promise<{
+  marksRows: Array<[string, string, string]>;
+  projectMetaById: Record<string, ProjectPanelRow["meta"]>;
+  projectDeadlines: Array<{ projectName: string; deadline: ProjectDeadline | null }>;
+}> {
   const nowMs = Date.now();
   const rows: ProjectPanelRow[] = await Promise.all(
     moduleProjects.map(async (project): Promise<ProjectPanelRow> => {
       const projectId = Number(project.id);
       if (!Number.isFinite(projectId)) {
         return {
+          projectName: project.name,
           markRow: [project.name, "Not available", project.archivedAt ? "Completed" : "In progress"],
           meta: { completed: false, finishedUnmarked: false, mark: null },
           idKey: String(project.id),
+          deadline: null,
         };
       }
 
@@ -46,14 +55,16 @@ async function buildModuleProjectPanelData(
         markingFetchOk = false;
       }
 
+      let deadline: ProjectDeadline | null = null;
       let latestDueMs: number | null = null;
       try {
-        const deadline = await getProjectDeadline(userId, projectId);
+        deadline = await getProjectDeadline(userId, projectId);
         const dueDates = [deadline.taskDueDate, deadline.assessmentDueDate, deadline.feedbackDueDate]
           .map((value) => (value ? Date.parse(value) : Number.NaN))
           .filter(Number.isFinite);
         latestDueMs = dueDates.length > 0 ? Math.max(...dueDates) : null;
       } catch {
+        deadline = null;
         latestDueMs = null;
       }
 
@@ -71,9 +82,11 @@ async function buildModuleProjectPanelData(
           ];
 
       return {
+        projectName: project.name,
         markRow,
         meta: { completed, finishedUnmarked, mark: markVal },
         idKey: String(project.id),
+        deadline,
       };
     }),
   );
@@ -86,6 +99,7 @@ async function buildModuleProjectPanelData(
   return {
     marksRows: rows.map((r) => r.markRow),
     projectMetaById,
+    projectDeadlines: rows.map((row) => ({ projectName: row.projectName, deadline: row.deadline })),
   };
 }
 
@@ -109,6 +123,7 @@ export default async function ModulePage({ params }: ModulePageProps) {
   let marksRows: Array<[string, string, string]> = [];
   let moduleProjects: Project[] = [];
   let projectMetaById: Record<string, { completed: boolean; finishedUnmarked: boolean; mark: number | null }> = {};
+  let projectDeadlines: Array<{ projectName: string; deadline: ProjectDeadline | null }> = [];
 
   if (Number.isFinite(numericModuleId)) {
     try {
@@ -120,29 +135,45 @@ export default async function ModulePage({ params }: ModulePageProps) {
       const built = await buildModuleProjectPanelData(user.id, moduleProjects);
       marksRows = built.marksRows;
       projectMetaById = built.projectMetaById;
+      projectDeadlines = built.projectDeadlines;
     } catch {
       marksRows = [];
       moduleProjects = [];
       projectMetaById = {};
+      projectDeadlines = [];
     }
   }
 
-  const dashboard = buildModuleDashboardData(module, marksRows);
+  const dashboard = {
+    ...buildModuleDashboardData(module, marksRows),
+    timelineRows: buildModuleProjectDeadlineTimelineRows(projectDeadlines),
+  };
+
+  const moduleTitle = module.title?.trim() || "Module";
 
   const projectsPanel = (
-    <Card title="Projects in this module" className="module-dashboard__panel">
-      <p>
-        Select a project you are enrolled in to open its workspace, teams, and tools.
-      </p>
-      {moduleProjects.length === 0 ? (
-        <p className="muted" style={{ margin: 0 }}>
-          You do not have any projects assigned in this module yet. Contact your module staff if you think this is a mistake.
+    <>
+      <header className="projects-panel__header">
+        <h1 className="projects-panel__title">{moduleTitle}</h1>
+        <p className="projects-panel__subtitle">
+          Select a project you are enrolled in to open its workspace, teams, and tools.
         </p>
-      ) : (
-        <ProjectList projects={moduleProjects} projectMetaById={projectMetaById} hideModuleLine />
-      )}
-    </Card>
+      </header>
+      <Card className="module-dashboard__panel module-dashboard__panel--projects" bodyClassName="module-dashboard__projects-body">
+        {moduleProjects.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>
+            You do not have any projects assigned in this module yet. Contact your module staff if you think this is a mistake.
+          </p>
+        ) : (
+          <ProjectList projects={moduleProjects} projectMetaById={projectMetaById} hideModuleLine />
+        )}
+      </Card>
+    </>
   );
 
-  return <ModuleDashboardPageView dashboard={dashboard} projectsPanel={projectsPanel} />;
+  return (
+    <div className="ui-page">
+      <ModuleDashboardPageView dashboard={dashboard} projectsPanel={projectsPanel} />
+    </div>
+  );
 }

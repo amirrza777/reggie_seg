@@ -290,7 +290,7 @@ describe("StaffManualAllocationPanel", () => {
         alreadyInTeamStudents: 1,
       },
     });
-    applyManualAllocationMock.mockRejectedValue(new Error("Team name already exists in this enterprise"));
+    applyManualAllocationMock.mockRejectedValue(new Error("Team name already exists in this project"));
 
     render(<StaffManualAllocationPanel projectId={4} />);
     fireEvent.click(screen.getByRole("button", { name: "Open manual allocation" }));
@@ -306,7 +306,7 @@ describe("StaffManualAllocationPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create draft team" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Team name already exists in this enterprise")).toBeInTheDocument();
+      expect(screen.getByText("Team name already exists in this project")).toBeInTheDocument();
     });
     expect(refreshMock).not.toHaveBeenCalled();
   });

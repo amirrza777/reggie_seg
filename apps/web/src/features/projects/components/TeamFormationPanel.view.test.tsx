@@ -69,15 +69,17 @@ describe("TeamFormationPanel", () => {
   });
 
   describe("no team – self mode", () => {
-    it("shows create form", () => {
+    it("shows create form", async () => {
       render(<TeamFormationPanel team={null} projectId={2} initialInvites={[]} />);
+      await waitFor(() => expect(getReceivedInvitesMock).toHaveBeenCalled());
       expect(screen.getByText("You're not in a team yet")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Create team" })).toBeInTheDocument();
     });
 
-    it("disables create when workspace is archived", () => {
+    it("disables create when workspace is archived", async () => {
       archivedValue = true;
       render(<TeamFormationPanel team={null} projectId={2} initialInvites={[]} />);
+      await waitFor(() => expect(getReceivedInvitesMock).toHaveBeenCalled());
       expect(screen.getByRole("button", { name: "Create team" })).toBeDisabled();
       expect(screen.getByText(/This project is archived/i)).toBeInTheDocument();
     });
@@ -209,7 +211,7 @@ describe("TeamFormationPanel", () => {
       await waitFor(() => expect(cancelTeamInviteMock).toHaveBeenCalledWith("inv-2"));
     });
 
-    it("shows view-only pending invites when canEdit is false", () => {
+    it("shows view-only pending invites when canEdit is false", async () => {
       canEditValue = false;
       const outgoing = {
         id: "inv-2",
@@ -218,6 +220,7 @@ describe("TeamFormationPanel", () => {
         createdAt: "2026-03-01T00:00:00.000Z",
       };
       render(<TeamFormationPanel team={baseTeam as any} projectId={2} initialInvites={[outgoing as any]} />);
+      await waitFor(() => expect(getTeamInviteEligibleStudentsMock).toHaveBeenCalledWith(10));
       expect(screen.getByText("carol@example.com")).toBeInTheDocument();
       expect(screen.queryByText("Invite a teammate")).not.toBeInTheDocument();
     });
