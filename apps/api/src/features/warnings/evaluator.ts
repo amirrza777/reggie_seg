@@ -59,6 +59,32 @@ function isEntireProjectLookback(rule: ProjectWarningRuleConfig): boolean {
   return normalizeNumber(rule.params?.lookbackDays, 0) === ENTIRE_PROJECT_LOOKBACK_SENTINEL;
 }
 
+function getGraceDays(rule: ProjectWarningRuleConfig, fallbackLookbackDays: number): number {
+  const explicitGraceDays = normalizeNumber(rule.params?.graceDays, Number.NaN);
+  if (Number.isFinite(explicitGraceDays)) {
+    return Math.max(0, Math.floor(explicitGraceDays));
+  }
+
+  if (isEntireProjectLookback(rule)) {
+    return 0;
+  }
+
+  return fallbackLookbackDays;
+}
+
+function isRuleEligibleByProjectAge(
+  rule: ProjectWarningRuleConfig,
+  fallbackLookbackDays: number,
+  projectStartDate: Date | null,
+  now: Date,
+): boolean {
+  if (!projectStartDate) return true;
+  const graceDays = getGraceDays(rule, fallbackLookbackDays);
+  if (graceDays <= 0) return true;
+  const eligibleAt = projectStartDate.getTime() + graceDays * 24 * 60 * 60 * 1000;
+  return now.getTime() >= eligibleAt;
+}
+
 function formatLookbackLabel(rule: ProjectWarningRuleConfig, lookbackDays: number): string {
   if (isEntireProjectLookback(rule)) return "since project start";
   return `over the last ${lookbackDays} days`;
@@ -203,6 +229,7 @@ export function evaluateWarningsForTeams(
   config: ProjectWarningsConfig,
   teams: TeamWarningSignalSnapshot[],
   now: Date = new Date(),
+  projectStartDate: Date | null = null,
 ): WarningEvaluationResult {
   const warnings: EvaluatedTeamWarning[] = [];
   const skippedRuleKeys = new Set<string>();
@@ -211,6 +238,7 @@ export function evaluateWarningsForTeams(
     if (!rule.enabled) continue;
 
     if (rule.key === "LOW_ATTENDANCE") {
+      if (!isRuleEligibleByProjectAge(rule, 30, projectStartDate, now)) continue;
       for (const team of teams) {
         const warning = evaluateLowAttendanceRule(rule, team, now);
         if (warning) warnings.push(warning);
@@ -219,6 +247,7 @@ export function evaluateWarningsForTeams(
     }
 
     if (rule.key === "MEETING_FREQUENCY") {
+      if (!isRuleEligibleByProjectAge(rule, 28, projectStartDate, now)) continue;
       for (const team of teams) {
         const warning = evaluateMeetingFrequencyRule(rule, team, now);
         if (warning) warnings.push(warning);
@@ -227,6 +256,7 @@ export function evaluateWarningsForTeams(
     }
 
     if (rule.key === "LOW_CONTRIBUTION_ACTIVITY" || rule.key === "LOW_COMMIT_ACTIVITY") {
+      if (!isRuleEligibleByProjectAge(rule, 14, projectStartDate, now)) continue;
       for (const team of teams) {
         const warning = evaluateLowContributionActivityRule(rule, team, now);
         if (warning) warnings.push(warning);
