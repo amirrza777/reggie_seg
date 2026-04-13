@@ -1,3 +1,21 @@
+## Recommended Setup (Nix)
+This project is designed to be run using **Nix**. The Nix workflow provides a fully reproducible development environment and automatically sets up dependencies, the database, and required services.
+
+> The Nix commands below are the **recommended and supported way** to run and assess the project.
+
+### Quick Start
+
+```bash
+nix run .#init
+nix run .#run
+nix run .#tests
+```
+A full developers manual is included with this submission, covering system architecture, setup, testing, and troubleshooting.
+
+📄 [Developers Manual](./developers-manual.pdf)
+
+Please refer to the **Developers Manual (PDF)** for detailed instructions and additional context.
+
 ## 1) Clone the repo
 
 ```bash
