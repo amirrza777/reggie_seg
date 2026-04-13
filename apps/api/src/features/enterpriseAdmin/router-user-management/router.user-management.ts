@@ -7,8 +7,8 @@ import {
   searchEnterpriseUsers,
   updateEnterpriseUser,
 } from "../service.js";
-import { parseEnterpriseUserCreateBody, parseEnterpriseUserUpdateBody } from "../router.parsers.js";
-import { resolveEnterpriseContext, sendServiceError } from "../router.helpers.js";
+import { parseEnterpriseUserCreateBody, parseEnterpriseUserUpdateBody } from "../router/router.parsers.js";
+import { resolveEnterpriseContext, sendServiceError } from "../router/router.helpers.js";
 import type { EnterpriseRequest } from "../types.js";
 
 export function registerUserManagementRoutes(router: Router) {
