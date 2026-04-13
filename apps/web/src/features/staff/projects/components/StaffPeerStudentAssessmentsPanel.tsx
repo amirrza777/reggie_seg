@@ -32,6 +32,44 @@ type StaffPeerStudentAssessmentsPanelProps = {
   initialPeerFocus?: { tab: TabKey; counterpartId: number } | null;
 };
 
+function resolveQuestionLabel(questionId: string, questionLabels: Record<string, string>): string {
+  const fromMap = questionLabels[questionId];
+  if (typeof fromMap === "string" && fromMap.trim().length > 0) return fromMap;
+  return questionId;
+}
+
+function extractLexicalPlainText(content: string): string | null {
+  try {
+    const parsed = JSON.parse(content) as { root?: unknown };
+    if (!parsed || typeof parsed !== "object" || !("root" in parsed)) return null;
+
+    const walk = (node: unknown): string => {
+      if (!node || typeof node !== "object") return "";
+      const current = node as { type?: unknown; text?: unknown; children?: unknown };
+      const type = typeof current.type === "string" ? current.type : "";
+
+      if (type === "text") return typeof current.text === "string" ? current.text : "";
+      if (type === "linebreak") return "\n";
+
+      const children = Array.isArray(current.children) ? current.children.map((child) => walk(child)).join("") : "";
+      if (type === "paragraph" || type === "quote" || type === "heading" || type === "listitem") {
+        return `${children}\n`;
+      }
+      return children;
+    };
+
+    const text = walk(parsed.root).replace(/\n{3,}/g, "\n\n").trim();
+    return text.length > 0 ? text : "";
+  } catch {
+    return null;
+  }
+}
+
+function formatFeedbackReviewText(value: string | null): string | null {
+  if (!value || value.trim().length === 0) return null;
+  return extractLexicalPlainText(value) ?? value.trim();
+}
+
 export function StaffPeerStudentAssessmentsPanel({
   questionLabels,
   expectedPeerReviews,
@@ -105,6 +143,10 @@ export function StaffPeerStudentAssessmentsPanel({
               <div className="stack" style={{ gap: 16 }}>
                 {group.assessments.map((assessment) => {
                   const answers = Object.entries(assessment.answers ?? {});
+                  const answerLabels = Object.fromEntries(
+                    answers.map(([questionId]) => [questionId, resolveQuestionLabel(questionId, questionLabels)])
+                  );
+                  const reviewText = formatFeedbackReviewText(assessment.feedbackReview?.reviewText ?? null);
                   return (
                     <div
                       key={assessment.id}
@@ -120,7 +162,7 @@ export function StaffPeerStudentAssessmentsPanel({
                         <ul className="stack" style={{ gap: 10, margin: 0, paddingLeft: 18 }}>
                           {answers.map(([questionId, answer]) => (
                             <li key={`${assessment.id}-${questionId}`}>
-                              <strong>{questionLabels[questionId] ?? questionId}:</strong>{" "}
+                              <strong>{resolveQuestionLabel(questionId, questionLabels)}:</strong>{" "}
                               {answer == null || String(answer).length === 0 ? "No response" : String(answer)}
                             </li>
                           ))}
@@ -130,11 +172,8 @@ export function StaffPeerStudentAssessmentsPanel({
                       {tab === "received" && assessment.feedbackReview ? (
                         <div className="stack" style={{ gap: 8, marginTop: 12 }}>
                           <h4 style={{ margin: 0, fontSize: "var(--fs-fixed-1rem)" }}>Student feedback response</h4>
-                          <p className="muted" style={{ margin: 0 }}>
-                            {assessment.feedbackReview.reviewText &&
-                            assessment.feedbackReview.reviewText.trim().length > 0
-                              ? assessment.feedbackReview.reviewText
-                              : "No written response submitted yet."}
+                          <p className="muted" style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                            {reviewText ?? "No written response submitted yet."}
                           </p>
                           {assessment.feedbackReview.agreementsJson &&
                           Object.keys(assessment.feedbackReview.agreementsJson).length > 0 ? (
@@ -143,7 +182,8 @@ export function StaffPeerStudentAssessmentsPanel({
                               <ul className="stack" style={{ gap: 6, margin: 0, paddingLeft: 18 }}>
                                 {Object.entries(assessment.feedbackReview.agreementsJson).map(([answerId, value]) => (
                                   <li key={`${assessment.id}-agr-${answerId}`}>
-                                    Answer {answerId}: {value.score} — {value.selected}
+                                    <strong>{answerLabels[answerId] ?? resolveQuestionLabel(answerId, questionLabels)}:</strong>{" "}
+                                    {value.score} — {value.selected}
                                   </li>
                                 ))}
                               </ul>

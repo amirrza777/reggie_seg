@@ -67,6 +67,36 @@ describe("StaffPeerStudentAssessmentsPanel", () => {
   });
 
   it("on received tab shows feedback response and agreement rows", () => {
+    const lexicalReviewText = JSON.stringify({
+      root: {
+        children: [
+          {
+            children: [
+              { detail: 0, format: 0, mode: "normal", style: "", text: "sehjfuwef rf", type: "text", version: 1 },
+              { type: "linebreak", version: 1 },
+              { type: "linebreak", version: 1 },
+              { detail: 0, format: 0, mode: "normal", style: "", text: "wefw ", type: "text", version: 1 },
+              { type: "linebreak", version: 1 },
+              { type: "linebreak", version: 1 },
+              { detail: 0, format: 0, mode: "normal", style: "", text: "fewf", type: "text", version: 1 },
+            ],
+            direction: null,
+            format: "",
+            indent: 0,
+            type: "paragraph",
+            version: 1,
+            textFormat: 0,
+            textStyle: "",
+          },
+        ],
+        direction: null,
+        format: "",
+        indent: 0,
+        type: "root",
+        version: 1,
+      },
+    });
+
     const receivedGroups: StaffPeerAssessmentGroup[] = [
       {
         counterpartId: 9,
@@ -77,7 +107,7 @@ describe("StaffPeerStudentAssessmentsPanel", () => {
             submittedAt: "2026-02-01T08:00:00.000Z",
             answers: { q1: "" },
             feedbackReview: {
-              reviewText: "   ",
+              reviewText: lexicalReviewText,
               agreementsJson: { opt1: { selected: "Agree", score: 2 } },
             },
           },
@@ -93,9 +123,13 @@ describe("StaffPeerStudentAssessmentsPanel", () => {
       />,
     );
     fireEvent.click(screen.getByRole("tab", { name: /Assessments received \(1\/2\)/ }));
-    expect(screen.getByText("No written response submitted yet.")).toBeInTheDocument();
+    expect(screen.getByText(/sehjfuwef rf/)).toBeInTheDocument();
+    expect(screen.getByText(/fewf/)).toBeInTheDocument();
     expect(screen.getByText("No response")).toBeInTheDocument();
     expect(screen.getByText("Student feedback response")).toBeInTheDocument();
-    expect(screen.getByText(/Answer opt1: 2 — Agree/)).toBeInTheDocument();
+    const listItemTexts = screen
+      .getAllByRole("listitem")
+      .map((element) => element.textContent?.replace(/\s+/g, " ").trim());
+    expect(listItemTexts).toContain("opt1: 2 — Agree");
   });
 });
