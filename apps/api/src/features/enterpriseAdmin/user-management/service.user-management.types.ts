@@ -7,7 +7,7 @@ export const DEFAULT_PAGE = 1;
 export const DEFAULT_PAGE_SIZE = 25;
 export const MAX_PAGE_SIZE = 100;
 
-export type ManagedUserRole = Extract<Role, "STUDENT" | "STAFF">;
+export type ManagedUserRole = Extract<Role, "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN">;
 
 export type EnterpriseUserSearchFilters = {
   query: string | null;

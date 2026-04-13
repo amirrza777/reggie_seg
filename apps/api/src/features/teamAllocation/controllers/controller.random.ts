@@ -113,7 +113,7 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
       return res.status(409).json({ error: "Some students are no longer vacant. Regenerate preview and try again." });
     }
     if (error?.code === "TEAM_NAME_ALREADY_EXISTS") {
-      return res.status(409).json({ error: "One or more team names already exist in this enterprise" });
+      return res.status(409).json({ error: "One or more team names already exist in this project" });
     }
     console.error("Error applying random team allocation:", error);
     return res.status(500).json({ error: "Internal server error" });

@@ -134,12 +134,13 @@ export async function createStudentForumReport(
   reason?: string | null
 ) {
   const result = await createStudentReport(userId, projectId, postId, reason);
-  if (result.status === "ok") {
+  if (result.status === "ok" && result.shouldNotifyStaff !== false) {
     const leads = await getModuleLeadsForProject(projectId);
+    const leadIds = [...new Set(leads.map((lead) => lead.userId))];
     await Promise.all(
-      leads.map((lead) =>
+      leadIds.map((leadId) =>
         addNotification({
-          userId: lead.userId,
+          userId: leadId,
           type: "FORUM_REPORTED",
           message: "A forum post has been reported",
           link: `/staff/projects/${projectId}/discussion`,

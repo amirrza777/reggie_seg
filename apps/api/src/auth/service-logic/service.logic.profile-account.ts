@@ -6,6 +6,8 @@ export {
 } from "./service.logic.profile-email.js";
 export {
   requestPasswordReset,
+  sendPasswordSetupEmail,
+  sendEnterpriseAdminPromotionEmail,
   resetPassword,
   joinEnterpriseByCode,
   leaveEnterprise,

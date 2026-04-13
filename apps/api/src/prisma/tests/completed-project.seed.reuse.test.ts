@@ -135,7 +135,7 @@ function buildTypedQuestions() {
 
 function expectScenarioReusedWithoutCreates() {
   expect(prismaMock.project.create).not.toHaveBeenCalled();
-  expect(prismaMock.team.update).toHaveBeenCalledTimes(1);
+  expect(prismaMock.team.update).not.toHaveBeenCalled();
   expect(prismaMock.teamAllocation.createMany).toHaveBeenCalledWith({
     data: [{ teamId: 200, userId: 102 }],
     skipDuplicates: true,

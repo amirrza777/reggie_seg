@@ -8,6 +8,7 @@ import {
   REMOVED_USERS_ENTERPRISE_CODE,
   resetDebug,
   resetTtl,
+  setupTtl,
   SUPER_ADMIN_EMAIL,
 } from "./service.logic.constants.js";
 import {
@@ -21,8 +22,54 @@ import {
   verifyPasswordHash,
 } from "./service.logic.tokens.js";
 
-/** Requests the password reset. */
-export async function requestPasswordReset(email: string) {
+type PasswordAccessEmailPurpose = "reset" | "setup";
+
+function buildPasswordAccessEmail(params: {
+  purpose: PasswordAccessEmailPurpose;
+  firstName: string;
+  email: string;
+  resetUrl: string;
+  ttl: string;
+}) {
+  const sharedLines = [
+    `Account: ${params.email}`,
+    "",
+    `${params.purpose === "setup" ? "Set up your password" : "Reset your password"}: ${params.resetUrl}`,
+    "If the link does not open, copy and paste it into your browser.",
+    "",
+    `For your security, this link expires in ${params.ttl} and can only be used once.`,
+    params.purpose === "setup"
+      ? "If you were not expecting this account, contact your enterprise administrator."
+      : "If you did not request a reset, you can ignore this email and your current password will remain unchanged.",
+    "Do not share this link with anyone.",
+  ];
+
+  if (params.purpose === "setup") {
+    return {
+      subject: "Set up your password",
+      text: [
+        `Hi ${params.firstName},`,
+        "",
+        "An account has been created for you in Team Feedback.",
+        "Use the secure link below to set your password and sign in.",
+        "",
+        ...sharedLines,
+      ].join("\n"),
+    };
+  }
+
+  return {
+    subject: "Reset your password",
+    text: [
+      `Hi ${params.firstName},`,
+      "",
+      "We received a request to reset your Team Feedback password.",
+      ...sharedLines,
+    ].join("\n"),
+  };
+}
+
+async function issuePasswordAccessEmail(email: string, purpose: PasswordAccessEmailPurpose) {
   const normalizedEmail = email.toLowerCase();
   const emailMatchCount = await prisma.user.count({ where: { email: normalizedEmail } });
   if (emailMatchCount !== 1) {
@@ -34,34 +81,54 @@ export async function requestPasswordReset(email: string) {
   if (!user) {
     return;
   }
+  const ttl = purpose === "setup" ? setupTtl : resetTtl;
   await prisma.passwordResetToken.updateMany({
     where: { userId: user.id, revoked: false, expiresAt: { gt: new Date() } },
     data: { revoked: true },
   });
   const token = randomBytes(32).toString("hex");
   const tokenHash = hashToken(token);
-  const expiresAt = addDurationToNow(resetTtl);
+  const expiresAt = addDurationToNow(ttl);
   await prisma.passwordResetToken.create({ data: { userId: user.id, tokenHash, expiresAt } });
   if (resetDebug) {
-    console.log("password reset token issued", { email: user.email, token, tokenHash, expiresAt });
+    console.log("password reset token issued", { email: user.email, token, tokenHash, expiresAt, purpose });
     console.log("password reset url", { resetUrl: `${appBaseUrl}/reset-password?token=${token}` });
   }
   const resetUrl = `${appBaseUrl}/reset-password?token=${token}`;
   const firstName = user.firstName?.trim() || "there";
+  const message = buildPasswordAccessEmail({ purpose, firstName, email: user.email, resetUrl, ttl });
+  await sendEmail({ to: user.email, subject: message.subject, text: message.text });
+}
+
+/** Requests the password reset. */
+export async function requestPasswordReset(email: string) {
+  await issuePasswordAccessEmail(email, "reset");
+}
+
+/** Sends a password setup email for newly created or reinstated accounts. */
+export async function sendPasswordSetupEmail(email: string) {
+  await issuePasswordAccessEmail(email, "setup");
+}
+
+/** Sends a confirmation email when an account receives enterprise-admin access. */
+export async function sendEnterpriseAdminPromotionEmail(params: { email: string; firstName?: string }) {
+  const normalizedEmail = params.email.trim().toLowerCase();
+  const firstName = params.firstName?.trim() || "there";
   const text = [
     `Hi ${firstName},`,
     "",
-    "We received a request to reset your Team Feedback password.",
-    `Account: ${user.email}`,
+    "Your Team Feedback account has been granted Enterprise Admin access.",
     "",
-    `Reset your password: ${resetUrl}`,
-    "If the link does not open, copy and paste it into your browser.",
+    `Account: ${normalizedEmail}`,
+    "Permissions: manage enterprise users, modules, and enterprise settings.",
     "",
-    `For your security, this link expires in ${resetTtl} and can only be used once.`,
-    "If you did not request a reset, you can ignore this email and your current password will remain unchanged.",
-    "Do not share this link with anyone.",
-  ].join("\\n");
-  await sendEmail({ to: user.email, subject: "Reset your password", text });
+    "If you were not expecting this change, contact your platform administrator.",
+  ].join("\n");
+  await sendEmail({
+    to: normalizedEmail,
+    subject: "Enterprise admin access granted",
+    text,
+  });
 }
 
 /** Executes the reset password. */

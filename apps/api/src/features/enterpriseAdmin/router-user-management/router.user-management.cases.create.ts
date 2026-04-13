@@ -48,6 +48,43 @@ describe("enterpriseAdmin user-management routes", () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ id: 301, role: "STAFF", isStaff: true }));
   });
 
+  it("creates a new enterprise admin account when requested", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce(null);
+    (prisma.user.findMany as any).mockResolvedValueOnce([]);
+    (prisma.user.create as any).mockResolvedValueOnce({
+      id: 302,
+      email: "new.enterprise.admin@example.com",
+      firstName: "New",
+      lastName: "Enterprise Admin",
+      role: "ENTERPRISE_ADMIN",
+      active: true,
+    });
+
+    const res = mockRes();
+    await createUser(
+      {
+        enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
+        body: {
+          email: "new.enterprise.admin@example.com",
+          firstName: "New",
+          lastName: "Enterprise Admin",
+          role: "ENTERPRISE_ADMIN",
+        },
+      } as any,
+      res,
+    );
+
+    expect(prisma.user.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        enterpriseId: "ent-1",
+        email: "new.enterprise.admin@example.com",
+        role: "ENTERPRISE_ADMIN",
+      }),
+    }));
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ id: 302, role: "ENTERPRISE_ADMIN", isStaff: true }));
+  });
+
   it("reinstates a removed user by email during account creation", async () => {
     (prisma.user.findUnique as any).mockResolvedValueOnce(null);
     (prisma.user.findMany as any).mockResolvedValueOnce([

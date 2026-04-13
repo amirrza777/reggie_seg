@@ -1,4 +1,6 @@
 /* eslint-disable max-lines-per-function, max-statements, complexity */
+import { randomBytes } from "crypto";
+import argon2 from "argon2";
 import { recordAuditLog } from "../../audit/service.js";
 import {
   buildAdminUserSearchOrderBy,
@@ -17,10 +19,12 @@ import {
   canManageTargetUser,
   isSuperAdminActor,
   isSuperAdminEmail,
+  REMOVED_USERS_ENTERPRISE_CODE,
   resolveManagedScopeEnterpriseId,
   toAdminUserPayload,
   toAdminUserSearchResponse,
 } from "./service.operations.shared.js";
+import { prisma } from "../../../shared/db.js";
 
 export async function resolveAdminUser(payload: { sub?: number; admin?: boolean }) {
   if (!payload?.sub || !payload.admin) {
@@ -207,4 +211,41 @@ export async function updateEnterpriseUser(
     await recordAuditLog({ userId: actorId, enterpriseId, action });
   }
   return { ok: true as const, value: toAdminUserPayload(updated) };
+}
+
+export async function deleteUser(
+  id: number,
+  actor?: { id?: number; enterpriseId?: string; email?: string },
+) {
+  if (!isSuperAdminActor(actor)) {
+    return { ok: false as const, status: 403, error: "Only super admins can delete user accounts" };
+  }
+  const user = await repo.findUserById(id);
+  if (!user) {
+    return { ok: false as const, status: 404, error: "User not found" };
+  }
+  if (isSuperAdminEmail(user.email)) {
+    return { ok: false as const, status: 400, error: "Cannot delete the super admin account" };
+  }
+  if (actor?.id === id) {
+    return { ok: false as const, status: 400, error: "Cannot delete your own account" };
+  }
+
+  const holdingEnterprise = await prisma.enterprise.upsert({
+    where: { code: REMOVED_USERS_ENTERPRISE_CODE },
+    update: {},
+    create: { code: REMOVED_USERS_ENTERPRISE_CODE, name: "Removed Users" },
+    select: { id: true },
+  });
+
+  const anonymizedEmail = `deleted+${id}.${Date.now()}@account.invalid`;
+  const scrambledPasswordHash = await argon2.hash(randomBytes(32).toString("hex"));
+
+  await repo.deleteUserAccount(id, holdingEnterprise.id, anonymizedEmail, scrambledPasswordHash);
+
+  if (actor?.id) {
+    await recordAuditLog({ userId: actor.id, enterpriseId: user.enterpriseId, action: "USER_DELETED" });
+  }
+
+  return { ok: true as const, value: { success: true } };
 }

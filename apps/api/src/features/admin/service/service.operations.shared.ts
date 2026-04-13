@@ -9,7 +9,7 @@ export const ENTERPRISE_CODE_REGEX = /^[A-Z0-9]{3,16}$/;
 export const ENTERPRISE_INVITE_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const ENTERPRISE_CREATE_MAX_CODE_GENERATION_ATTEMPTS = 5;
 export const ENTERPRISE_ADMIN_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-export const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
+export const appBaseUrl = (process.env.FRONTEND_URL || process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
 
 export type AdminActor = { id?: number; enterpriseId?: string; email?: string } | undefined;
 

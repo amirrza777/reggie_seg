@@ -3,7 +3,7 @@ import argon2 from "argon2";
 import { randomBytes } from "crypto";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../../../shared/db.js";
-import { requestPasswordReset } from "../../../auth/service.js";
+import { sendEnterpriseAdminPromotionEmail, sendPasswordSetupEmail } from "../../../auth/service.js";
 import { isEnterpriseAdminRole } from "../service.helpers.js";
 import type { EnterpriseUser } from "../types.js";
 import {
@@ -128,6 +128,9 @@ export async function createEnterpriseUser(
       data: updateData,
       select: MANAGED_USER_SELECT,
     });
+    if (role === "ENTERPRISE_ADMIN" && inEnterprise.role !== "ENTERPRISE_ADMIN") {
+      await triggerEnterpriseAdminPromotionEmail(updated.email, updated.firstName);
+    }
     return { ok: true as const, value: mapManagedUser(updated, resolveMembershipStatus(updated)) };
   }
 
@@ -205,9 +208,20 @@ export async function createEnterpriseUser(
 
 async function triggerPasswordSetupEmail(email: string) {
   try {
-    await requestPasswordReset(email);
+    await sendPasswordSetupEmail(email);
   } catch (error) {
     console.error("Failed to send enterprise account password setup email.", error);
+  }
+}
+
+async function triggerEnterpriseAdminPromotionEmail(email: string, firstName: string | null | undefined) {
+  try {
+    await sendEnterpriseAdminPromotionEmail({
+      email,
+      ...(firstName?.trim() ? { firstName: firstName.trim() } : {}),
+    });
+  } catch (error) {
+    console.error("Failed to send enterprise admin promotion confirmation email.", error);
   }
 }
 

@@ -162,14 +162,14 @@ export async function findDraftTeamById(teamId: number): Promise<ProjectDraftTea
   return mapProjectDraftTeam(team);
 }
 
-export async function findTeamNameConflictInEnterprise(
-  enterpriseId: string,
+export async function findTeamNameConflictInProject(
+  projectId: number,
   teamName: string,
   options: { excludeTeamId?: number } = {},
 ) {
   const existing = await prisma.team.findFirst({
     where: {
-      enterpriseId,
+      projectId,
       teamName,
       ...(options.excludeTeamId !== undefined ? { id: { not: options.excludeTeamId } } : {}),
     },

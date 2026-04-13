@@ -30,11 +30,11 @@ export async function applyRandomAllocationPlan(
       }
     }
 
-    const enterpriseNames = await tx.team.findMany({
-      where: { enterpriseId },
+    const projectNames = await tx.team.findMany({
+      where: { projectId },
       select: { teamName: true },
     });
-    const usedNames = new Set(enterpriseNames.map((team) => team.teamName));
+    const usedNames = new Set(projectNames.map((team) => team.teamName));
     const targetTeams: Array<{ id: number; teamName: string }> = [];
 
     const requestedTeamNames =
@@ -103,7 +103,7 @@ export async function applyManualAllocationTeam(
   return prisma.$transaction(async (tx) => {
     const existingName = await tx.team.findFirst({
       where: {
-        enterpriseId,
+        projectId,
         teamName,
       },
       select: {

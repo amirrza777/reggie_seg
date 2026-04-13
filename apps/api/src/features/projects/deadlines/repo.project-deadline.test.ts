@@ -7,6 +7,9 @@ vi.mock("../../../shared/db.js", () => ({
     teamAllocation: {
       findFirst: vi.fn(),
     },
+    project: {
+      findUnique: vi.fn(),
+    },
   },
 }));
 
@@ -52,6 +55,7 @@ describe("projects user project deadline repo", () => {
 
   it("returns null when user has no active team allocation for project", async () => {
     (prisma.teamAllocation.findFirst as any).mockResolvedValueOnce(null);
+    (prisma.project.findUnique as any).mockResolvedValueOnce(null);
     await expect(getUserProjectDeadline(12, 34)).resolves.toBeNull();
   });
 

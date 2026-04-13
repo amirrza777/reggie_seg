@@ -24,6 +24,8 @@ const NOTIFICATION_SUBJECTS: Record<NotificationType, string> = {
   FORUM_REPORTED: "A forum post has been reported",
 };
 
+const EMAIL_SUPPRESSED_TYPES = new Set<NotificationType>(["TEAM_INVITE"]);
+
 export function listNotifications(userId: number) {
   return getNotificationsByUserId(userId);
 }
@@ -39,6 +41,10 @@ export async function addNotification(data: {
   link?: string;
 }) {
   const notification = await createNotification(data);
+
+  if (EMAIL_SUPPRESSED_TYPES.has(data.type)) {
+    return notification;
+  }
 
   const email = await getUserEmail(data.userId);
   if (email) {

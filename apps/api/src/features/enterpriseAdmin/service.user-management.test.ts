@@ -22,7 +22,8 @@ const argon2Mock = vi.hoisted(() => ({
 }));
 
 const authServiceMock = vi.hoisted(() => ({
-  requestPasswordReset: vi.fn(),
+  sendPasswordSetupEmail: vi.fn(),
+  sendEnterpriseAdminPromotionEmail: vi.fn(),
 }));
 
 vi.mock("argon2", () => ({ default: argon2Mock }));
@@ -90,7 +91,8 @@ describe("enterpriseAdmin service.user-management", () => {
     prismaMock.$transaction.mockImplementation(async (cb: any) => cb(prismaMock));
 
     argon2Mock.hash.mockResolvedValue("hashed-password");
-    authServiceMock.requestPasswordReset.mockResolvedValue(undefined);
+    authServiceMock.sendPasswordSetupEmail.mockResolvedValue(undefined);
+    authServiceMock.sendEnterpriseAdminPromotionEmail.mockResolvedValue(undefined);
   });
 
   it("parses enterprise search filters and validates invalid combinations", () => {

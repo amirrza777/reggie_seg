@@ -37,7 +37,7 @@ describe("repo.allocations", () => {
     ).rejects.toEqual({ code: "INVALID_TEAM_NAMES" });
   });
 
-  it("applyRandomAllocationPlan rejects duplicate names in enterprise", async () => {
+  it("applyRandomAllocationPlan rejects duplicate names in project", async () => {
     mocks.prisma.team.findMany.mockResolvedValue([{ teamName: "Blue" }]);
     await expect(
       applyRandomAllocationPlan(2, "ent-1", [{ members: [] }], { teamNames: ["Blue"] }),

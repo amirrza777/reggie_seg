@@ -189,6 +189,16 @@ describe("enterpriseAdmin router parsers", () => {
     });
   });
 
+  it("accepts enterprise admin role in enterprise user create payloads", () => {
+    expect(parseEnterpriseUserCreateBody({ email: "ok@example.com", role: "ENTERPRISE_ADMIN" })).toEqual({
+      ok: true,
+      value: {
+        email: "ok@example.com",
+        role: "ENTERPRISE_ADMIN",
+      },
+    });
+  });
+
   it("rejects invalid enterprise user create payload values", () => {
     expect(parseEnterpriseUserCreateBody({})).toEqual({ ok: false, error: "email is required" });
     expect(parseEnterpriseUserCreateBody({ email: "bad-email" })).toEqual({
@@ -203,13 +213,9 @@ describe("enterpriseAdmin router parsers", () => {
       ok: false,
       error: "lastName must be a string",
     });
-    expect(parseEnterpriseUserCreateBody({ email: "ok@example.com", role: "ENTERPRISE_ADMIN" })).toEqual({
-      ok: false,
-      error: "role must be STUDENT or STAFF",
-    });
     expect(parseEnterpriseUserCreateBody({ email: "ok@example.com", role: 99 })).toEqual({
       ok: false,
-      error: "role must be STUDENT or STAFF",
+      error: "role must be STUDENT, STAFF, or ENTERPRISE_ADMIN",
     });
   });
 });

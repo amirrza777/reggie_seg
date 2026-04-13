@@ -66,6 +66,8 @@ describe("forum repo", () => {
     vi.clearAllMocks();
     prismaMock.moduleLead.findMany.mockResolvedValue([] as any);
     prismaMock.moduleTeachingAssistant.findMany.mockResolvedValue([] as any);
+    prismaMock.forumStudentReport.create.mockResolvedValue({ id: 100 } as any);
+    prismaMock.forumStudentReport.update.mockResolvedValue({ id: 100 } as any);
   });
 
   it("returns null when user is not in the project", async () => {
@@ -164,15 +166,53 @@ describe("forum repo", () => {
     prismaMock.user.findUnique.mockResolvedValue({ role: "STUDENT" } as any);
     prismaMock.discussionPost.findFirst.mockResolvedValue({ id: 4 } as any);
     prismaMock.forumReport.findFirst.mockResolvedValue(null);
-    prismaMock.forumStudentReport.findFirst.mockResolvedValue({ id: 1, status: "IGNORED" } as any);
+    prismaMock.forumStudentReport.findFirst
+      .mockResolvedValueOnce({ id: 1, status: "IGNORED" } as any)
+      .mockResolvedValueOnce({ id: 1 } as any);
+    prismaMock.forumStudentReport.update.mockResolvedValue({ id: 1 } as any);
 
     const result = await createStudentReport(5, 10, 4, "reason");
 
-    expect(result).toEqual({ status: "ok" });
+    expect(result).toEqual({ status: "ok", shouldNotifyStaff: true });
     expect(prismaMock.forumStudentReport.update).toHaveBeenCalledWith({
       where: { id: 1 },
       data: expect.objectContaining({ status: "PENDING", reason: "reason", reviewedAt: null, reviewedById: null }),
+      select: { id: true },
     });
+  });
+
+  it("returns shouldNotifyStaff false when the post already has a pending student report", async () => {
+    prismaMock.project.findFirst.mockResolvedValue({ id: 10 } as any);
+    prismaMock.user.findUnique.mockResolvedValue({ role: "STUDENT" } as any);
+    prismaMock.discussionPost.findFirst.mockResolvedValue({ id: 4 } as any);
+    prismaMock.forumReport.findFirst.mockResolvedValue(null);
+    prismaMock.forumStudentReport.findFirst
+      .mockResolvedValueOnce(null as any)
+      .mockResolvedValueOnce({ id: 99 } as any);
+    prismaMock.forumStudentReport.create.mockResolvedValue({ id: 101 } as any);
+
+    const result = await createStudentReport(5, 10, 4, "reason");
+
+    expect(result).toEqual({ status: "ok", shouldNotifyStaff: false });
+    expect(prismaMock.forumStudentReport.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ postId: 4, projectId: 10, reporterId: 5, reason: "reason" }),
+      select: { id: true },
+    });
+  });
+
+  it("returns shouldNotifyStaff true when creating the first pending report for a post", async () => {
+    prismaMock.project.findFirst.mockResolvedValue({ id: 10 } as any);
+    prismaMock.user.findUnique.mockResolvedValue({ role: "STUDENT" } as any);
+    prismaMock.discussionPost.findFirst.mockResolvedValue({ id: 4 } as any);
+    prismaMock.forumReport.findFirst.mockResolvedValue(null);
+    prismaMock.forumStudentReport.findFirst
+      .mockResolvedValueOnce(null as any)
+      .mockResolvedValueOnce({ id: 101 } as any);
+    prismaMock.forumStudentReport.create.mockResolvedValue({ id: 101 } as any);
+
+    const result = await createStudentReport(5, 10, 4, "reason");
+
+    expect(result).toEqual({ status: "ok", shouldNotifyStaff: true });
   });
 
   it("approves student report and creates staff report when missing", async () => {
