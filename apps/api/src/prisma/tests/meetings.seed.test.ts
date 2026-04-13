@@ -36,7 +36,7 @@ vi.mock("@ngneat/falso", () => ({
   randSentence: randSentenceMock,
 }));
 
-import { seedMeetings } from "../../../prisma/seed/meetings";
+import { seedMeetings } from "../../../prisma/seed/steps/meetings";
 
 describe("seedMeetings", () => {
   beforeEach(() => {

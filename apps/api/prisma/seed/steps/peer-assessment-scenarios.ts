@@ -1,16 +1,16 @@
-import { withSeedLogging } from "./logging";
-import { seedCompletedUnmarkedStudentViewScenario } from "./peerAssessmentScenario/peer-assessment-completed-unmarked-scenario";
-import { prisma } from "./prismaClient";
-import type { SeedContext } from "./types";
+import { withSeedLogging } from "../logging";
+import { seedCompletedUnmarkedStudentViewScenario } from "../peerAssessmentScenario/peer-assessment-completed-unmarked-scenario";
+import { prisma } from "../prismaClient";
+import type { SeedContext } from "../types";
 import {
   ASSESSMENT_OPEN_PROJECT_NAME,
   ASSESSMENT_OPEN_TEAM_NAME,
   FEEDBACK_OPEN_PROJECT_NAME,
   FEEDBACK_OPEN_TEAM_NAME,
-} from "./peerAssessmentScenario/constants";
-import { clearScenarioPeerData, getTemplateQuestionLabels, upsertScenarioAssessments } from "./peerAssessmentScenario/assessments";
-import { prepareScenarioTeam } from "./peerAssessmentScenario/setup";
-import { resolveScenarioSeedTarget } from "./peerAssessmentScenario/target";
+} from "../peerAssessmentScenario/constants";
+import { clearScenarioPeerData, getTemplateQuestionLabels, upsertScenarioAssessments } from "../peerAssessmentScenario/assessments";
+import { prepareScenarioTeam } from "../peerAssessmentScenario/setup";
+import { resolveScenarioSeedTarget } from "../peerAssessmentScenario/target";
 
 async function seedAssessmentOpenScenario(
   enterpriseId: string,

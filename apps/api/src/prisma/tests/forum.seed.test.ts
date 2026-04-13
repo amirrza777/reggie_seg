@@ -29,7 +29,7 @@ vi.mock("@ngneat/falso", () => ({
   randSentence: falsoMock.randSentence,
 }));
 
-import { planForumReactionSeedData, planForumStudentReportSeedData, seedForumPosts } from "../../../prisma/seed/forum";
+import { planForumReactionSeedData, planForumStudentReportSeedData, seedForumPosts } from "../../../prisma/seed/steps/forum";
 
 describe("forum planners", () => {
   it("plans unique reactions and can generate DISLIKE branch", () => {

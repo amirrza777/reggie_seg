@@ -1,8 +1,8 @@
 import { TeamInviteStatus } from "@prisma/client";
-import { withSeedLogging } from "./logging";
-import { prisma } from "./prismaClient";
-import type { SeedContext } from "./types";
-import { SEED_TEAM_INVITES_TOTAL } from "./volumes";
+import { withSeedLogging } from "../logging";
+import { prisma } from "../prismaClient";
+import type { SeedContext } from "../types";
+import { SEED_TEAM_INVITES_TOTAL } from "../volumes";
 
 type PlannedInvite = {
   teamId: number;

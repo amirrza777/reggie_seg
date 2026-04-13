@@ -16,7 +16,7 @@ vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: mockState.prisma,
 }));
 
-import { seedNotifications } from "../../../prisma/seed/notifications";
+import { seedNotifications } from "../../../prisma/seed/steps/notifications";
 
 describe("seedNotifications", () => {
   beforeEach(() => {

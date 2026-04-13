@@ -1,8 +1,8 @@
 import { randParagraph, randSentence } from "@ngneat/falso";
-import { withSeedLogging } from "./logging";
-import { prisma } from "./prismaClient";
-import type { SeedProject, SeedUser } from "./types";
-import { SEED_FORUM_REACTIONS_PER_PROJECT, SEED_FORUM_STUDENT_REPORTS_PER_PROJECT } from "./volumes";
+import { withSeedLogging } from "../logging";
+import { prisma } from "../prismaClient";
+import type { SeedProject, SeedUser } from "../types";
+import { SEED_FORUM_REACTIONS_PER_PROJECT, SEED_FORUM_STUDENT_REPORTS_PER_PROJECT } from "../volumes";
 
 const ROOT_POSTS_PER_PROJECT = 3;
 

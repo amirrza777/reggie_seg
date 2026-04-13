@@ -1,5 +1,5 @@
-import { withSeedLogging } from "./logging";
-import { prisma } from "./prismaClient";
+import { withSeedLogging } from "../logging";
+import { prisma } from "../prismaClient";
 
 /**
  * For one project: ensure every user with a TeamAllocation on any team for this project

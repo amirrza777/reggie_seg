@@ -21,7 +21,7 @@ vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: prismaMock,
 }));
 
-import { seedPeerAssessmentProgressScenarios } from "../../../prisma/seed/peer-assessment-scenarios";
+import { seedPeerAssessmentProgressScenarios } from "../../../prisma/seed/steps/peer-assessment-scenarios";
 
 describe("seedPeerAssessmentProgressScenarios", () => {
   beforeEach(() => {

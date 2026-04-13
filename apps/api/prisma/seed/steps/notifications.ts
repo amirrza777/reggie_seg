@@ -1,7 +1,7 @@
 import type { NotificationType } from "@prisma/client";
-import { withSeedLogging } from "./logging";
-import { prisma } from "./prismaClient";
-import type { SeedContext } from "./types";
+import { withSeedLogging } from "../logging";
+import { prisma } from "../prismaClient";
+import type { SeedContext } from "../types";
 
 export async function seedNotifications(context: SeedContext) {
   return withSeedLogging("seedNotifications", async () => {

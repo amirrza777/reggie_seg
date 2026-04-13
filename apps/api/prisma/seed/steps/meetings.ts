@@ -1,8 +1,8 @@
 import { randSentence } from "@ngneat/falso";
-import { buildMeetingDefinitions, type MeetingInput } from "./meetings/definitions";
-import { withSeedLogging } from "./logging";
-import { prisma } from "./prismaClient";
-import type { SeedContext, SeedUser } from "./types";
+import { buildMeetingDefinitions, type MeetingInput } from "../meetings/definitions";
+import { withSeedLogging } from "../logging";
+import { prisma } from "../prismaClient";
+import type { SeedContext, SeedUser } from "../types";
 
 type SeedMeetingRecord = {
   id: number;

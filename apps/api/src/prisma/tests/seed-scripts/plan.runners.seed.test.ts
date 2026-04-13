@@ -44,7 +44,7 @@ vi.mock("../../../../prisma/seed/catalog", () => ({
   seedTeams: vi.fn(),
 }));
 
-vi.mock("../../../../prisma/seed/forum", () => ({
+vi.mock("../../../../prisma/seed/steps/forum", () => ({
   seedForumPosts: mocks.seedForumPosts,
 }));
 
@@ -55,7 +55,7 @@ vi.mock("../../../../prisma/seed/outcomes", () => ({
   seedFeatureFlags: mocks.seedFeatureFlags,
 }));
 
-vi.mock("../../../../prisma/seed/peer-assessment-scenarios", () => ({
+vi.mock("../../../../prisma/seed/steps/peer-assessment-scenarios", () => ({
   seedPeerAssessmentProgressScenarios: mocks.seedPeerAssessmentProgressScenarios,
 }));
 
@@ -63,15 +63,15 @@ vi.mock("../../../../prisma/seed/teamHealthScenario/team-health-warning-scenario
   seedTeamHealthWarningScenario: mocks.seedTeamHealthWarningScenario,
 }));
 
-vi.mock("../../../../prisma/seed/meetings", () => ({
+vi.mock("../../../../prisma/seed/steps/meetings", () => ({
   seedMeetings: mocks.seedMeetings,
 }));
 
-vi.mock("../../../../prisma/seed/notifications", () => ({
+vi.mock("../../../../prisma/seed/steps/notifications", () => ({
   seedNotifications: mocks.seedNotifications,
 }));
 
-vi.mock("../../../../prisma/seed/teamInvites", () => ({
+vi.mock("../../../../prisma/seed/steps/teamInvites", () => ({
   seedTeamInvites: mocks.seedTeamInvites,
 }));
 
