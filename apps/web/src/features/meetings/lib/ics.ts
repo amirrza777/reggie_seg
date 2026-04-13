@@ -7,7 +7,11 @@ type IcsMeetingData = {
 };
 
 function escapeIcsText(text: string): string {
-  return text.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,");
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\n/g, "\\n");
 }
 
 export function buildIcs(meeting: IcsMeetingData): string {
@@ -16,10 +20,7 @@ export function buildIcs(meeting: IcsMeetingData): string {
     `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
   const start = fmt(meeting.date);
   const end = fmt(new Date(meeting.date.getTime() + 60 * 60 * 1000));
-  const descParts = [];
-  if (meeting.agenda) descParts.push(meeting.agenda);
-  if (meeting.videoCallLink) descParts.push(`Video call: ${meeting.videoCallLink}`);
-  const description = descParts.join("\\n\\n");
+  const description = meeting.agenda ? escapeIcsText(meeting.agenda) : null;
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -29,7 +30,8 @@ export function buildIcs(meeting: IcsMeetingData): string {
     `DTEND:${end}`,
     `SUMMARY:${escapeIcsText(meeting.title)}`,
     meeting.location ? `LOCATION:${escapeIcsText(meeting.location)}` : null,
-    description ? `DESCRIPTION:${escapeIcsText(description)}` : null,
+    meeting.videoCallLink ? `URL:${meeting.videoCallLink}` : null,
+    description ? `DESCRIPTION:${description}` : null,
     "END:VEVENT",
     "END:VCALENDAR",
   ].filter(Boolean).join("\r\n");

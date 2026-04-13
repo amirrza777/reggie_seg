@@ -42,18 +42,25 @@ describe("buildIcs", () => {
     expect(ics).toContain("DESCRIPTION:Review progress");
   });
 
-  it("includes video call link in description", () => {
+  it("includes video call link as URL field", () => {
     const ics = buildIcs({ ...baseMeeting, videoCallLink: "https://meet.example.com" });
-    expect(ics).toContain("DESCRIPTION:Video call: https://meet.example.com");
+    expect(ics).toContain("URL:https://meet.example.com");
+    expect(ics).not.toContain("DESCRIPTION:");
   });
 
-  it("combines agenda and video call link in description", () => {
+  it("includes both URL and description when agenda and video link are present", () => {
     const ics = buildIcs({
       ...baseMeeting,
       agenda: "Review progress",
       videoCallLink: "https://meet.example.com",
     });
-    expect(ics).toContain("DESCRIPTION:Review progress\\\\n\\\\nVideo call: https://meet.example.com");
+    expect(ics).toContain("URL:https://meet.example.com");
+    expect(ics).toContain("DESCRIPTION:Review progress");
+  });
+
+  it("excludes URL when no video call link", () => {
+    const ics = buildIcs(baseMeeting);
+    expect(ics).not.toContain("URL:");
   });
 
   it("excludes description when no agenda or video link", () => {
@@ -69,5 +76,10 @@ describe("buildIcs", () => {
   it("escapes special characters in title", () => {
     const ics = buildIcs({ ...baseMeeting, title: "Team, Meeting; Review" });
     expect(ics).toContain("SUMMARY:Team\\, Meeting\\; Review");
+  });
+
+  it("escapes newlines in agenda as ICS line breaks", () => {
+    const ics = buildIcs({ ...baseMeeting, agenda: "First point\nSecond point" });
+    expect(ics).toContain("DESCRIPTION:First point\\nSecond point");
   });
 });
