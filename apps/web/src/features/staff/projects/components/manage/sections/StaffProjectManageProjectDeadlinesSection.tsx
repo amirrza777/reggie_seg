@@ -1,7 +1,6 @@
 "use client";
 
-import type { ChangeEvent } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { patchStaffProjectManage } from "@/features/projects/api/client";
 import { ApiError } from "@/shared/api/errors";
@@ -60,7 +59,9 @@ export function StaffProjectManageProjectDeadlinesSection() {
   const setField = useCallback((key: keyof LocalDeadlineFields, value: string) => {
     setFields((prev) => {
       /* v8 ignore next 2 -- setField is only used once fields have hydrated */
-      if (!prev) return prev;
+      if (!prev) {
+        return prev;
+      }
       return { ...prev, [key]: value };
     });
   }, []);
@@ -75,7 +76,9 @@ export function StaffProjectManageProjectDeadlinesSection() {
 
   const onSave = useCallback(async () => {
     /* v8 ignore next -- save is disabled until fields hydrate; guard kept for safety */
-    if (!fields) return;
+    if (!fields) {
+      return;
+    }
     const payload = deadlineBuildPayload(fields);
     if (!payload) {
       setSaveError("Each required deadline must have a valid date and time.");

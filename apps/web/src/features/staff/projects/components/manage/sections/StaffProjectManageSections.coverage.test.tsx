@@ -95,7 +95,12 @@ vi.mock("@/features/modules/components/ModuleAccessSearchSection", () => ({
         remove-ghost
       </button>
       {props.users.map((u) => {
-        const disabled = props.isCheckedDisabled();
+        const disabled = props.isCheckedDisabled
+          ? props.isCheckedDisabled({
+              ...u,
+              active: true,
+            })
+          : false;
         return (
           <label key={u.id}>
             <input
