@@ -33,4 +33,13 @@ describe("prisma.config.ts", () => {
     expect(cfg.migrations?.path).toBe("prisma/migrations");
     expect(cfg.engine).toBe("classic");
   });
+
+  it("falls back to local mysql URL when DATABASE_URL is empty", async () => {
+    process.env = { ...ORIGINAL_ENV, DATABASE_URL: "   " };
+
+    const mod = await import("../prisma.config.ts");
+    const cfg = mod.default;
+
+    expect(cfg.datasource?.url).toBe("mysql://root:root@localhost:3306/reggie_dev");
+  });
 });

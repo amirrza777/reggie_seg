@@ -164,6 +164,17 @@ function getTtlDaysByWarningType(config: ProjectWarningsConfig): Map<string, num
   return ttlByWarningType;
 }
 
+function resolveProjectWarningsEndAt(deadline: {
+  assessmentDueDate?: Date | null;
+  assessmentDueDateMcf?: Date | null;
+} | null | undefined): Date | null {
+  if (!deadline) return null;
+  const candidates = [deadline.assessmentDueDate, deadline.assessmentDueDateMcf]
+    .filter((value): value is Date => value instanceof Date);
+  if (candidates.length === 0) return null;
+  return candidates.reduce((latest, current) => (current.getTime() > latest.getTime() ? current : latest));
+}
+
 async function notifyTeamStudentsAboutWarning(
   projectId: number,
   teamId: number,
@@ -280,7 +291,18 @@ async function evaluateProjectWarningsWithConfig(
 ): Promise<ProjectWarningsEvaluationSummary> {
   const archiveGate = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { archivedAt: true, module: { select: { archivedAt: true } } },
+    select: {
+      archivedAt: true,
+      createdAt: true,
+      deadline: {
+        select: {
+          taskOpenDate: true,
+          assessmentDueDate: true,
+          assessmentDueDateMcf: true,
+        },
+      },
+      module: { select: { archivedAt: true } },
+    },
   });
   if (
     archiveGate &&
@@ -301,6 +323,22 @@ async function evaluateProjectWarningsWithConfig(
   const activeAutoWarnings = await getActiveAutoTeamWarningsForProjectInDb(projectId);
   const normalizedConfig = normalizeProjectWarningsConfig(rawWarningsConfig);
   const hasEnabledRules = normalizedConfig.rules.some((rule) => rule.enabled);
+  const now = new Date();
+  const warningsEndAt = resolveProjectWarningsEndAt(archiveGate?.deadline);
+
+  if (warningsEndAt && now.getTime() >= warningsEndAt.getTime()) {
+    await Promise.all(activeAutoWarnings.map((warning) => resolveTeamWarningByIdInDb(warning.id)));
+    return {
+      projectId,
+      evaluatedTeams: 0,
+      createdWarnings: 0,
+      refreshedWarnings: 0,
+      expiredWarnings: 0,
+      resolvedWarnings: activeAutoWarnings.length,
+      activeAutoWarnings: 0,
+      skippedRuleKeys: [],
+    };
+  }
 
   if (!hasEnabledRules) {
     await Promise.all(activeAutoWarnings.map((warning) => resolveTeamWarningByIdInDb(warning.id)));
@@ -317,11 +355,11 @@ async function evaluateProjectWarningsWithConfig(
   }
 
   const lookbackDays = getMaxLookbackDays(normalizedConfig);
-  const sinceDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+  const sinceDate = new Date(now.getTime() - lookbackDays * 24 * 60 * 60 * 1000);
   const teamSignals = await getProjectTeamWarningSignalsInDb(projectId, sinceDate);
-  const evaluation = evaluateWarningsForTeams(normalizedConfig, teamSignals);
+  const projectStartDate = archiveGate?.deadline?.taskOpenDate ?? archiveGate?.createdAt ?? null;
+  const evaluation = evaluateWarningsForTeams(normalizedConfig, teamSignals, now, projectStartDate);
   const ttlByWarningType = getTtlDaysByWarningType(normalizedConfig);
-  const now = new Date();
 
   const activeByKey = new Map(activeAutoWarnings.map((warning) => [`${warning.teamId}:${warning.type}`, warning]));
   const desiredByKey = new Map(evaluation.warnings.map((warning) => [`${warning.teamId}:${warning.type}`, warning]));
@@ -404,4 +442,30 @@ export async function evaluateProjectWarningsForProject(projectId: number) {
   const project = await getProjectWarningsSettingsInDb(projectId);
   if (!project) return null;
   return evaluateProjectWarningsWithConfig(projectId, project.warningsConfig);
+}
+
+export async function evaluateProjectWarningsForAllProjects() {
+  const projects = await prisma.project.findMany({
+    where: {
+      archivedAt: null,
+      module: {
+        archivedAt: null,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  const summaries: ProjectWarningsEvaluationSummary[] = [];
+  for (const project of projects) {
+    try {
+      const summary = await evaluateProjectWarningsForProject(project.id);
+      if (summary) summaries.push(summary);
+    } catch (error) {
+      console.error(`Project warnings evaluation failed for project ${project.id}:`, error);
+    }
+  }
+
+  return summaries;
 }

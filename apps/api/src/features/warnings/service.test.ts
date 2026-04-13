@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createTeamWarningForStaff,
+  evaluateProjectWarningsForAllProjects,
   evaluateProjectWarningsForStaff,
   fetchMyTeamWarnings,
   fetchProjectWarningsConfigForStaff,
@@ -13,6 +14,7 @@ import {
 import * as repo from "./repo.js";
 import * as projectRepo from "../projects/repo.js";
 import * as teamHealthRepo from "../team-health-review/repo.js";
+import { prisma } from "../../shared/db.js";
 
 vi.mock("./repo.js", () => ({
   getStaffProjectWarningsConfig: vi.fn(),
@@ -53,8 +55,11 @@ vi.mock("../../shared/db.js", async (importOriginal) => {
         ...mod.prisma.project,
         findUnique: vi.fn().mockResolvedValue({
           archivedAt: null,
+          createdAt: new Date("2020-01-01T00:00:00.000Z"),
+          deadline: { taskOpenDate: null, assessmentDueDate: null, assessmentDueDateMcf: null },
           module: { archivedAt: null },
         }),
+        findMany: vi.fn(),
       },
     },
   };
@@ -309,5 +314,110 @@ describe("projects/warnings service", () => {
     );
     expect(repo.resolveTeamWarningById).toHaveBeenCalledWith(81);
     expect(repo.createTeamWarning).not.toHaveBeenCalled();
+  });
+
+  it("evaluateProjectWarningsForStaff enforces hard grace period per rule using project start date", async () => {
+    const now = new Date();
+    const recentProjectStart = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+    (prisma.project.findUnique as any).mockResolvedValueOnce({
+      archivedAt: null,
+      createdAt: recentProjectStart,
+      deadline: { taskOpenDate: recentProjectStart, assessmentDueDate: null, assessmentDueDateMcf: null },
+      module: { archivedAt: null },
+    });
+    (repo.getStaffProjectWarningsConfig as any).mockResolvedValueOnce({
+      id: 3,
+      warningsConfig: {
+        version: 1,
+        rules: [
+          { key: "MEETING_FREQUENCY", enabled: true, severity: "MEDIUM", params: { minPerWeek: 1, lookbackDays: 28 } },
+        ],
+      },
+    });
+    (repo.getProjectTeamWarningSignals as any).mockResolvedValueOnce([
+      {
+        id: 11,
+        teamName: "Alpha",
+        meetings: [],
+      },
+    ]);
+    (repo.getActiveAutoTeamWarningsForProject as any).mockResolvedValueOnce([]);
+
+    const summary = await evaluateProjectWarningsForStaff(9, 3);
+
+    expect(summary).toEqual(
+      expect.objectContaining({
+        projectId: 3,
+        evaluatedTeams: 1,
+        createdWarnings: 0,
+        activeAutoWarnings: 0,
+      }),
+    );
+    expect(repo.createTeamWarning).not.toHaveBeenCalled();
+  });
+
+  it("evaluateProjectWarningsForStaff stops tracking after peer assessment deadline and resolves active auto warnings", async () => {
+    const endedAssessment = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    (prisma.project.findUnique as any).mockResolvedValueOnce({
+      archivedAt: null,
+      createdAt: new Date("2020-01-01T00:00:00.000Z"),
+      deadline: { taskOpenDate: new Date("2020-01-01T00:00:00.000Z"), assessmentDueDate: endedAssessment, assessmentDueDateMcf: null },
+      module: { archivedAt: null },
+    });
+    (repo.getStaffProjectWarningsConfig as any).mockResolvedValueOnce({
+      id: 3,
+      warningsConfig: {
+        version: 1,
+        rules: [
+          { key: "MEETING_FREQUENCY", enabled: true, severity: "MEDIUM", params: { minPerWeek: 1, lookbackDays: 28 } },
+        ],
+      },
+    });
+    (repo.getActiveAutoTeamWarningsForProject as any).mockResolvedValueOnce([
+      {
+        id: 81,
+        teamId: 11,
+        type: "MEETING_FREQUENCY",
+        severity: "MEDIUM",
+        title: "Meeting activity below recommendation",
+        details: "0 meeting(s) logged over the last 28 days. Recommended minimum: 4.",
+        createdAt: new Date("2026-03-20T00:00:00.000Z"),
+      },
+    ]);
+    (repo.resolveTeamWarningById as any).mockResolvedValueOnce({ id: 81 });
+
+    const summary = await evaluateProjectWarningsForStaff(9, 3);
+
+    expect(summary).toEqual(
+      expect.objectContaining({
+        projectId: 3,
+        evaluatedTeams: 0,
+        createdWarnings: 0,
+        resolvedWarnings: 1,
+        activeAutoWarnings: 0,
+      }),
+    );
+    expect(repo.getProjectTeamWarningSignals).not.toHaveBeenCalled();
+    expect(repo.createTeamWarning).not.toHaveBeenCalled();
+    expect(repo.resolveTeamWarningById).toHaveBeenCalledWith(81);
+  });
+
+  it("evaluateProjectWarningsForAllProjects sweeps active projects and continues when one fails", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    (prisma.project.findMany as any).mockResolvedValueOnce([{ id: 3 }, { id: 4 }, { id: 5 }]);
+    (repo.getProjectWarningsSettings as any)
+      .mockResolvedValueOnce({ id: 3, warningsConfig: { version: 1, rules: [] } })
+      .mockRejectedValueOnce(new Error("db exploded"))
+      .mockResolvedValueOnce({ id: 5, warningsConfig: { version: 1, rules: [] } });
+    (repo.getActiveAutoTeamWarningsForProject as any).mockResolvedValue([]);
+
+    const summaries = await evaluateProjectWarningsForAllProjects();
+
+    expect(repo.getProjectWarningsSettings).toHaveBeenNthCalledWith(1, 3);
+    expect(repo.getProjectWarningsSettings).toHaveBeenNthCalledWith(2, 4);
+    expect(repo.getProjectWarningsSettings).toHaveBeenNthCalledWith(3, 5);
+    expect(summaries.map((summary) => summary.projectId)).toEqual([3, 5]);
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Project warnings evaluation failed for project 4:", expect.any(Error));
+    consoleErrorSpy.mockRestore();
   });
 });
