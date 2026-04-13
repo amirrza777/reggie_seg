@@ -7,7 +7,7 @@ import {
   parsePositiveInt,
   parseTrimmedString,
   type ParseResult,
-} from "../../shared/parse.js";
+} from "../../../shared/parse.js";
 
 function parseBodyRecord(body: unknown, error = "Invalid request body"): ParseResult<Record<string, unknown>> {
   if (!body || typeof body !== "object" || Array.isArray(body)) {

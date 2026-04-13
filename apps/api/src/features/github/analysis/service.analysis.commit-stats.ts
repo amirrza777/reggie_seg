@@ -1,4 +1,4 @@
-import { getGitHubApiConfig } from "./config.js";
+import { getGitHubApiConfig } from "../config.js";
 import { getCachedCommitStats, setCachedCommitStats } from "./service.analysis.commit-stats-cache.js";
 
 type GithubCommitDetailResponse = {

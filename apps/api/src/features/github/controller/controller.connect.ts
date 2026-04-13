@@ -1,6 +1,6 @@
 import type { Response } from "express";
-import type { AuthRequest } from "../../auth/middleware.js";
-import { parseSearchQuery } from "../../shared/search.js";
+import type { AuthRequest } from "../../../auth/middleware.js";
+import { parseSearchQuery } from "../../../shared/search.js";
 import {
   buildGithubConnectUrl,
   connectGithubAccount,
@@ -8,7 +8,7 @@ import {
   getGithubConnectionStatus,
   listGithubRepositoriesForUser,
   GithubServiceError,
-} from "./service.js";
+} from "../service.js";
 import { toJsonSafe, withQuery } from "./controller.utils.js";
 import { parseGithubCallbackQuery, parseGithubConnectReturnTo } from "./controller.parsers.js";
 

@@ -12,8 +12,8 @@ const mockState = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../shared/db.js", () => ({ prisma: mockState.prisma }));
-vi.mock("./service.shared.js", () => ({
+vi.mock("../../../shared/db.js", () => ({ prisma: mockState.prisma }));
+vi.mock("../service.shared.js", () => ({
   canManageModuleAccess: mockState.core.canManageModuleAccess,
 }));
 

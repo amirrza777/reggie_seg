@@ -19,11 +19,11 @@ const { mockFns } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../prisma/seed/core", () => ({
+vi.mock("../../../../prisma/seed/core", () => ({
   seedAdminUser: mockFns.seedAdminUser,
 }));
 
-vi.mock("../../prisma/seed/catalog", () => ({
+vi.mock("../../../../prisma/seed/catalog", () => ({
   seedUsers: mockFns.seedUsers,
   seedModules: mockFns.seedModules,
   seedQuestionnaireTemplates: mockFns.seedQuestionnaireTemplates,
@@ -31,7 +31,7 @@ vi.mock("../../prisma/seed/catalog", () => ({
   seedTeams: mockFns.seedTeams,
 }));
 
-vi.mock("../../prisma/seed/allocation", () => ({
+vi.mock("../../../../prisma/seed/allocation", () => ({
   buildUsersByRole: mockFns.buildUsersByRole,
   seedAdminTeamAllocation: vi.fn(),
   seedAssessmentStudentModuleCoverage: vi.fn(),
@@ -42,7 +42,7 @@ vi.mock("../../prisma/seed/allocation", () => ({
   seedTeamAllocations: vi.fn(),
 }));
 
-import { buildSeedContext } from "../../prisma/seed/plan";
+import { buildSeedContext } from "../../../../prisma/seed/plan";
 
 describe("buildSeedContext", () => {
   it("assembles seed context from core and catalog seeders", async () => {

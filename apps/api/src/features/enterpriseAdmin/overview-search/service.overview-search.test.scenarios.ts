@@ -33,28 +33,28 @@ const mockState = vi.hoisted(() => ({
     toEnterpriseModuleSearchResponse: vi.fn(),
   },
 }));
-vi.mock("../../shared/db.js", () => ({ prisma: mockState.prisma }));
-vi.mock("../../shared/fuzzyFallback.js", () => ({
+vi.mock("../../../shared/db.js", () => ({ prisma: mockState.prisma }));
+vi.mock("../../../shared/fuzzyFallback.js", () => ({
   DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES: 100,
   shouldUseFuzzyFallback: mockState.fuzzy.shouldUseFuzzyFallback,
   fuzzyFilterAndPaginate: mockState.fuzzy.fuzzyFilterAndPaginate,
 }));
-vi.mock("./accessUserSearch.js", () => ({
+vi.mock("../accessUserSearch.js", () => ({
   buildEnterpriseAccessUserSearchWhere: mockState.accessSearch.buildEnterpriseAccessUserSearchWhere,
   matchesEnterpriseAccessUserSearchCandidate: mockState.accessSearch.matchesEnterpriseAccessUserSearchCandidate,
   parseEnterpriseAccessUserSearchFilters: mockState.accessSearch.parseEnterpriseAccessUserSearchFilters,
 }));
-vi.mock("./moduleSearch.js", () => ({
+vi.mock("../moduleSearch.js", () => ({
   buildEnterpriseModuleSearchWhere: mockState.moduleSearch.buildEnterpriseModuleSearchWhere,
   matchesEnterpriseModuleSearchCandidate: mockState.moduleSearch.matchesEnterpriseModuleSearchCandidate,
   parseEnterpriseModuleSearchFilters: mockState.moduleSearch.parseEnterpriseModuleSearchFilters,
 }));
-vi.mock("./service.helpers.js", () => ({
+vi.mock("../service.helpers.js", () => ({
   getUtcStartOfDaysAgo: mockState.helpers.getUtcStartOfDaysAgo,
   isEnterpriseAdminRole: (role: string) => role === "ENTERPRISE_ADMIN" || role === "ADMIN",
   normalizeFeatureFlagLabel: (flag: any) => (flag.key === "repos" && flag.label === "Repos" ? { ...flag, label: "Repositories" } : flag),
 }));
-vi.mock("./service.shared.js", () => ({
+vi.mock("../service.shared.js", () => ({
   buildManagedModuleSelect: mockState.core.buildManagedModuleSelect,
   buildModuleScopeWhere: mockState.core.buildModuleScopeWhere,
   mapModuleRecord: mockState.core.mapModuleRecord,

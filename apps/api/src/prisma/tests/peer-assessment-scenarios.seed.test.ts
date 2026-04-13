@@ -17,11 +17,11 @@ const { prismaMock } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../prisma/seed/prismaClient", () => ({
+vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: prismaMock,
 }));
 
-import { seedPeerAssessmentProgressScenarios } from "../../prisma/seed/peer-assessment-scenarios";
+import { seedPeerAssessmentProgressScenarios } from "../../../prisma/seed/peer-assessment-scenarios";
 
 describe("seedPeerAssessmentProgressScenarios", () => {
   beforeEach(() => {

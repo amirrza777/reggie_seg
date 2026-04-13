@@ -17,7 +17,7 @@ async function importDataWithMocks(options: {
 }) {
   vi.resetModules();
 
-  vi.doMock("../../prisma/seed/volumes", () => ({
+  vi.doMock("../../../prisma/seed/volumes", () => ({
     SEED_MODULE_COUNT: options.volumeOverrides?.SEED_MODULE_COUNT ?? 2,
     SEED_PROJECT_COUNT: options.volumeOverrides?.SEED_PROJECT_COUNT ?? 3,
     SEED_QUESTIONS_PER_TEMPLATE: options.volumeOverrides?.SEED_QUESTIONS_PER_TEMPLATE ?? 2,
@@ -33,7 +33,7 @@ async function importDataWithMocks(options: {
     randLastName: vi.fn(options.randLastNameImpl ?? (() => "Smith")),
   }));
 
-  return import("../../prisma/seed/data");
+  return import("../../../prisma/seed/data");
 }
 
 describe("seed data generation", () => {

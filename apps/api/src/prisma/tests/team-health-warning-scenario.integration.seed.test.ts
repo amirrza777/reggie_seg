@@ -24,11 +24,11 @@ const mockState = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../prisma/seed/prismaClient", () => ({
+vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: mockState.prisma,
 }));
 
-import { seedTeamHealthWarningScenario } from "../../prisma/seed/team-health-warning-scenario";
+import { seedTeamHealthWarningScenario } from "../../../prisma/seed/team-health-warning-scenario";
 
 function makeContext(overrides: Record<string, unknown> = {}) {
   return {

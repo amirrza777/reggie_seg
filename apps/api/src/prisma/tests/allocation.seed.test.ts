@@ -37,7 +37,7 @@ vi.mock("argon2", () => ({
   },
 }));
 
-vi.mock("../../prisma/seed/prismaClient", () => ({
+vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: prismaMock,
 }));
 
@@ -54,7 +54,7 @@ import {
   seedModuleTeachingAssistants,
   seedStudentEnrollments,
   seedTeamAllocations,
-} from "../../prisma/seed/allocation";
+} from "../../../prisma/seed/allocation";
 
 describe("seed allocation planners", () => {
   it("buildUsersByRole separates staff/admin from students", () => {

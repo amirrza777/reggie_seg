@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { buildPrismaMock, flushAsyncWork, mockSeedRuntime } from "./seed.script.shared";
+import { buildPrismaMock, flushAsyncWork, mockSeedRuntime } from "../../seed.script.shared";
 
 describe("prisma seed script smoke", () => {
   const originalEnv = process.env;
@@ -25,7 +25,7 @@ describe("prisma seed script smoke", () => {
     process.env.ADMIN_BOOTSTRAP_EMAIL = "admin@kcl.ac.uk";
     process.env.ADMIN_BOOTSTRAP_PASSWORD = "admin123";
 
-    await import("../../prisma/seed/seed.ts");
+    await import("../../../../prisma/seed/seed.ts");
     await flushAsyncWork();
 
     expect(prismaMock.user.createMany).toHaveBeenCalledWith(

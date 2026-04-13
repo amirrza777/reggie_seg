@@ -18,11 +18,11 @@ const { prismaMock } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../prisma/seed/prismaClient", () => ({
+vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: prismaMock,
 }));
 
-import { seedCompletedProjectScenario } from "../../prisma/seed/completed-project";
+import { seedCompletedProjectScenario } from "../../../prisma/seed/completed-project";
 
 describe("seedCompletedProjectScenario", registerCompletedProjectTests);
 

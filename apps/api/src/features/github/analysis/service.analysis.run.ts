@@ -1,6 +1,6 @@
 import { aggregateLineChangesByDay } from "./analysis.helpers.js";
-import { GithubServiceError } from "./errors.js";
-import { getValidGithubAccessToken } from "./oauth.service.js";
+import { GithubServiceError } from "../errors.js";
+import { getValidGithubAccessToken } from "../oauth.service.js";
 import {
   createGithubSnapshot,
   findGithubAccountByUserId,
@@ -8,7 +8,7 @@ import {
   findProjectGithubRepositoryLinkById,
   isUserInProject,
   listProjectGithubIdentityCandidates,
-} from "./repo.js";
+} from "../repo.js";
 import {
   contributorKeyFromCommit,
   fetchBranchCommitCount,

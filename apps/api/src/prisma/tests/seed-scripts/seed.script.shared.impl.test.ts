@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildPrismaMock } from "./seed.script.shared.impl";
+import { buildPrismaMock } from "../../seed.script.shared.impl";
 
 describe("seed.script.shared.impl", () => {
   it("covers all $transaction argument branches", async () => {

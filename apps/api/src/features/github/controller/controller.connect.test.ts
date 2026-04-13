@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Response } from "express";
-import type { AuthRequest } from "../../auth/middleware.js";
-import { GithubServiceError } from "./errors.js";
+import type { AuthRequest } from "../../../auth/middleware.js";
+import { GithubServiceError } from "../errors.js";
 
 const serviceMocks = vi.hoisted(() => ({
   buildGithubConnectUrl: vi.fn(),
@@ -11,7 +11,7 @@ const serviceMocks = vi.hoisted(() => ({
   listGithubRepositoriesForUser: vi.fn(),
 }));
 
-vi.mock("./service.js", async () => ({
+vi.mock("../service.js", async () => ({
   buildGithubConnectUrl: serviceMocks.buildGithubConnectUrl,
   connectGithubAccount: serviceMocks.connectGithubAccount,
   disconnectGithubAccount: serviceMocks.disconnectGithubAccount,

@@ -8,11 +8,11 @@ const { prismaMock } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../prisma/seed/prismaClient", () => ({
+vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: prismaMock,
 }));
 
-import { planTeamInviteSeedData, seedTeamInvites } from "../../prisma/seed/teamInvites";
+import { planTeamInviteSeedData, seedTeamInvites } from "../../../prisma/seed/teamInvites";
 
 describe("planTeamInviteSeedData", () => {
   it("plans invite scenarios with expected status semantics", () => {

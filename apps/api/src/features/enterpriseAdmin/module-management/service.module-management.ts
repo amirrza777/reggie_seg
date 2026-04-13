@@ -1,18 +1,18 @@
 import type { Prisma } from "@prisma/client";
-import { prisma } from "../../shared/db.js";
-import { getModuleJoinCode as getManagedModuleJoinCode, withGeneratedModuleJoinCode } from "../moduleJoin/service.js";
+import { prisma } from "../../../shared/db.js";
+import { getModuleJoinCode as getManagedModuleJoinCode, withGeneratedModuleJoinCode } from "../../moduleJoin/service.js";
 import {
   ensureCreatorLeader,
   isEnterpriseAdminRole,
   replaceModuleAssignments,
   validateAssignmentUsers,
-} from "./service.helpers.js";
+} from "../service.helpers.js";
 import {
   canManageModuleAccess,
   mapModuleRecord,
   MODULE_SELECT,
-} from "./service.shared.js";
-import type { EnterpriseUser, ParsedModulePayload } from "./types.js";
+} from "../service.shared.js";
+import type { EnterpriseUser, ParsedModulePayload } from "../types.js";
 import {
   findManagedModule,
   loadModuleAccessUsers,

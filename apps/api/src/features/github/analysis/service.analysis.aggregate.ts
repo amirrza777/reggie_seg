@@ -1,4 +1,4 @@
-import { findLatestGithubSnapshotByProjectLinkId } from "./repo.js";
+import { findLatestGithubSnapshotByProjectLinkId } from "../repo.js";
 import { contributorKeyFromCommit, toUtcDayKey, type GithubCommitListItem } from "./service.analysis.fetch.js";
 
 type AggregatedContributor = {

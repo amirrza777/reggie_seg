@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSeedStepPlan,
-} from "../../prisma/seed/plan";
-import type { SeedProfileConfig } from "../../prisma/seed/config";
-import type { SeedContext } from "../../prisma/seed/types";
+} from "../../../../prisma/seed/plan";
+import type { SeedProfileConfig } from "../../../../prisma/seed/config";
+import type { SeedContext } from "../../../../prisma/seed/types";
 
 const context: SeedContext = {
   enterprise: { id: "ent-1", code: "ENT", name: "Enterprise" },

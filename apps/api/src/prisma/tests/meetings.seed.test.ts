@@ -28,7 +28,7 @@ const { prismaMock, randSentenceMock } = vi.hoisted(() => ({
   randSentenceMock: vi.fn(() => "seed sentence"),
 }));
 
-vi.mock("../../prisma/seed/prismaClient", () => ({
+vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: prismaMock,
 }));
 
@@ -36,7 +36,7 @@ vi.mock("@ngneat/falso", () => ({
   randSentence: randSentenceMock,
 }));
 
-import { seedMeetings } from "../../prisma/seed/meetings";
+import { seedMeetings } from "../../../prisma/seed/meetings";
 
 describe("seedMeetings", () => {
   beforeEach(() => {

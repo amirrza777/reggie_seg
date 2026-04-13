@@ -1,5 +1,5 @@
-import { getGitHubApiConfig } from "./config.js";
-import { GithubServiceError } from "./errors.js";
+import { getGitHubApiConfig } from "../config.js";
+import { GithubServiceError } from "../errors.js";
 import { parseLastPageFromLinkHeader } from "./service.analysis.link-header.js";
 export { fetchCommitStatsForRepository } from "./service.analysis.commit-stats.js";
 

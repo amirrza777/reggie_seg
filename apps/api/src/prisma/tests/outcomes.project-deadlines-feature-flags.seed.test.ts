@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { prismaMock, resetOutcomesSeedMocks } from "./outcomes.seed.shared";
-import { seedFeatureFlags, seedProjectDeadlines } from "../../prisma/seed/outcomes";
+import { prismaMock, resetOutcomesSeedMocks } from "../outcomes.seed.shared";
+import { seedFeatureFlags, seedProjectDeadlines } from "../../../prisma/seed/outcomes";
 
 describe("outcomes seeder deadlines and feature flags", () => {
   beforeEach(() => {

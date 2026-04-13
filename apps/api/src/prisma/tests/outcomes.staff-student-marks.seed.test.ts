@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { configState, prismaMock, randSentenceMock, resetOutcomesSeedMocks } from "./outcomes.seed.shared";
-import { seedStaffStudentMarks } from "../../prisma/seed/outcomes";
+import { configState, prismaMock, randSentenceMock, resetOutcomesSeedMocks } from "../outcomes.seed.shared";
+import { seedStaffStudentMarks } from "../../../prisma/seed/outcomes";
 
 describe("outcomes seeder staff student marks", registerStaffStudentMarksTests);
 

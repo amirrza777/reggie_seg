@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { withSeedLogging } from "../../prisma/seed/logging";
+import { withSeedLogging } from "../../../prisma/seed/logging";
 
 describe("withSeedLogging", () => {
   it("logs success with singular row wording and details", async () => {

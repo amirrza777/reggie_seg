@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { buildPrismaMock, flushAsyncWork, mockSeedRuntime } from "./seed.script.shared";
+import { buildPrismaMock, flushAsyncWork, mockSeedRuntime } from "../../seed.script.shared";
 
 describe("prisma seed script multi-enterprise", registerMultiEnterpriseTests);
 
@@ -22,7 +22,7 @@ function registerMultiEnterpriseTests() {
   it("repeats the seed flow for each configured enterprise", async () => {
     const prismaMock = arrangeMultiEnterpriseRuntime();
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    await import("../../prisma/seed/seed.ts");
+    await import("../../../../prisma/seed/seed.ts");
     await flushAsyncWork();
     expectMultiEnterpriseArtifacts(prismaMock, logSpy);
   });

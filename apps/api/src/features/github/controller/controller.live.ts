@@ -1,13 +1,13 @@
 import type { Response } from "express";
-import type { AuthRequest } from "../../auth/middleware.js";
-import { parseSearchQuery } from "../../shared/search.js";
+import type { AuthRequest } from "../../../auth/middleware.js";
+import { parseSearchQuery } from "../../../shared/search.js";
 import {
   listLiveProjectGithubRepositoryBranchCommits,
   listLiveProjectGithubRepositoryBranches,
   listLiveProjectGithubRepositoryMyCommits,
   updateProjectGithubSyncSettings,
   GithubServiceError,
-} from "./service.js";
+} from "../service.js";
 import { toJsonSafe } from "./controller.utils.js";
 import {
   parseBranchCommitsQuery,

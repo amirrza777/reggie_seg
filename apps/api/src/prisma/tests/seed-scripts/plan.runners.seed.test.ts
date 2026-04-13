@@ -21,7 +21,7 @@ const mocks = vi.hoisted(() => ({
   seedNotifications: vi.fn(async () => undefined),
 }));
 
-vi.mock("../../prisma/seed/allocation", () => ({
+vi.mock("../../../../prisma/seed/allocation", () => ({
   buildUsersByRole: vi.fn(),
   seedModuleLeads: mocks.seedModuleLeads,
   seedModuleTeachingAssistants: mocks.seedModuleTeachingAssistants,
@@ -32,11 +32,11 @@ vi.mock("../../prisma/seed/allocation", () => ({
   seedGithubE2EUsers: mocks.seedGithubE2EUsers,
 }));
 
-vi.mock("../../prisma/seed/completed-project", () => ({
+vi.mock("../../../../prisma/seed/completed-project", () => ({
   seedCompletedProjectScenario: mocks.seedCompletedProjectScenario,
 }));
 
-vi.mock("../../prisma/seed/catalog", () => ({
+vi.mock("../../../../prisma/seed/catalog", () => ({
   seedUsers: vi.fn(),
   seedModules: vi.fn(),
   seedQuestionnaireTemplates: vi.fn(),
@@ -44,44 +44,44 @@ vi.mock("../../prisma/seed/catalog", () => ({
   seedTeams: vi.fn(),
 }));
 
-vi.mock("../../prisma/seed/forum", () => ({
+vi.mock("../../../../prisma/seed/forum", () => ({
   seedForumPosts: mocks.seedForumPosts,
 }));
 
-vi.mock("../../prisma/seed/outcomes", () => ({
+vi.mock("../../../../prisma/seed/outcomes", () => ({
   seedStaffStudentMarks: mocks.seedStaffStudentMarks,
   seedProjectDeadlines: mocks.seedProjectDeadlines,
   seedPeerAssessments: mocks.seedPeerAssessments,
   seedFeatureFlags: mocks.seedFeatureFlags,
 }));
 
-vi.mock("../../prisma/seed/peer-assessment-scenarios", () => ({
+vi.mock("../../../../prisma/seed/peer-assessment-scenarios", () => ({
   seedPeerAssessmentProgressScenarios: mocks.seedPeerAssessmentProgressScenarios,
 }));
 
-vi.mock("../../prisma/seed/team-health-warning-scenario", () => ({
+vi.mock("../../../../prisma/seed/team-health-warning-scenario", () => ({
   seedTeamHealthWarningScenario: mocks.seedTeamHealthWarningScenario,
 }));
 
-vi.mock("../../prisma/seed/meetings", () => ({
+vi.mock("../../../../prisma/seed/meetings", () => ({
   seedMeetings: mocks.seedMeetings,
 }));
 
-vi.mock("../../prisma/seed/notifications", () => ({
+vi.mock("../../../../prisma/seed/notifications", () => ({
   seedNotifications: mocks.seedNotifications,
 }));
 
-vi.mock("../../prisma/seed/teamInvites", () => ({
+vi.mock("../../../../prisma/seed/teamInvites", () => ({
   seedTeamInvites: mocks.seedTeamInvites,
 }));
 
-vi.mock("../../prisma/seed/core", () => ({
+vi.mock("../../../../prisma/seed/core", () => ({
   seedAdminUser: vi.fn(),
 }));
 
-import { buildSeedStepPlan } from "../../prisma/seed/plan";
-import type { SeedProfileConfig } from "../../prisma/seed/config";
-import type { SeedContext } from "../../prisma/seed/types";
+import { buildSeedStepPlan } from "../../../../prisma/seed/plan";
+import type { SeedProfileConfig } from "../../../../prisma/seed/config";
+import type { SeedContext } from "../../../../prisma/seed/types";
 
 const context: SeedContext = {
   enterprise: { id: "ent-1", code: "ENT", name: "Enterprise" },

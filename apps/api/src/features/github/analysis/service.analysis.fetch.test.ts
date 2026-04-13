@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { GithubServiceError } from "./errors.js";
+import { GithubServiceError } from "../errors.js";
 
 const cacheMocks = vi.hoisted(() => ({
   getCachedCommitStats: vi.fn(),
   setCachedCommitStats: vi.fn(),
 }));
 
-vi.mock("./config.js", () => ({
+vi.mock("../config.js", () => ({
   getGitHubApiConfig: () => ({ baseUrl: "https://api.github.com" }),
 }));
 vi.mock("./service.analysis.commit-stats-cache.js", () => cacheMocks);

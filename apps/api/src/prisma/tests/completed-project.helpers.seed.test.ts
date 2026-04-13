@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAgreementPayload } from "../../prisma/seed/completed-project/helpers";
+import { buildAgreementPayload } from "../../../prisma/seed/completed-project/helpers";
 
 describe("completed-project helper agreements", () => {
   it("uses default agreement keys when question labels are missing", () => {

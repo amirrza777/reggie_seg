@@ -31,7 +31,7 @@ async function loadConfig(overrides: Partial<Record<(typeof ENV_KEYS)[number], s
   }
 
   vi.resetModules();
-  return import("../../prisma/seed/config");
+  return import("../../../prisma/seed/config");
 }
 
 afterEach(() => {

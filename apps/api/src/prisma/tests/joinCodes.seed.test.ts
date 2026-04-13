@@ -5,7 +5,7 @@ const { seedConfigMock, randomBytesMock } = vi.hoisted(() => ({
   randomBytesMock: vi.fn(),
 }));
 
-vi.mock("../../prisma/seed/config", () => ({
+vi.mock("../../../prisma/seed/config", () => ({
   SEED_CONFIG: seedConfigMock,
 }));
 
@@ -13,7 +13,7 @@ vi.mock("node:crypto", () => ({
   randomBytes: randomBytesMock,
 }));
 
-import { planSeedModuleJoinCode } from "../../prisma/seed/joinCodes";
+import { planSeedModuleJoinCode } from "../../../prisma/seed/joinCodes";
 
 describe("planSeedModuleJoinCode", () => {
   it("returns deterministic fixture code when fixture mode is enabled", () => {

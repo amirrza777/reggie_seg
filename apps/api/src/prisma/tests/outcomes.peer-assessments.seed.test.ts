@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { prismaMock, resetOutcomesSeedMocks } from "./outcomes.seed.shared";
-import { seedPeerAssessments } from "../../prisma/seed/outcomes";
+import { prismaMock, resetOutcomesSeedMocks } from "../outcomes.seed.shared";
+import { seedPeerAssessments } from "../../../prisma/seed/outcomes";
 
 describe("outcomes seeder peer assessments", () => {
   beforeEach(() => {

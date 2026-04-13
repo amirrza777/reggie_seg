@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GithubServiceError } from "./errors.js";
+import { GithubServiceError } from "../errors.js";
 
 const repoMocks = vi.hoisted(() => ({
   createGithubSnapshot: vi.fn(),
@@ -33,8 +33,8 @@ const aggregateMocks = vi.hoisted(() => ({
   mergeUserStats: vi.fn(),
 }));
 
-vi.mock("./repo.js", () => repoMocks);
-vi.mock("./oauth.service.js", () => ({
+vi.mock("../repo.js", () => repoMocks);
+vi.mock("../oauth.service.js", () => ({
   getValidGithubAccessToken: oauthMocks.getValidGithubAccessToken,
 }));
 vi.mock("./service.analysis.fetch.js", () => fetchMocks);

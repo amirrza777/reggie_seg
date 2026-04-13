@@ -20,11 +20,11 @@ const { prismaState, configState } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../prisma/seed/prismaClient", () => ({
+vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: prismaState.prisma,
 }));
 
-vi.mock("../../prisma/seed/config", () => ({
+vi.mock("../../../prisma/seed/config", () => ({
   get ADMIN_BOOTSTRAP_EMAIL() {
     return configState.ADMIN_BOOTSTRAP_EMAIL;
   },
@@ -39,7 +39,7 @@ vi.mock("argon2", () => ({
   },
 }));
 
-import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "../../prisma/seed/core";
+import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "../../../prisma/seed/core";
 
 describe("seed core", () => {
   beforeEach(() => {

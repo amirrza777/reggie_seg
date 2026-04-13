@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertSeedCleanupCoverage, getSeedCleanupManifest } from "../../prisma/seed/schema";
+import { assertSeedCleanupCoverage, getSeedCleanupManifest } from "../../../../prisma/seed/schema";
 
 describe("seed cleanup manifest", () => {
   it("derives cleanup coverage from prisma metadata", () => {

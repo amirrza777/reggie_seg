@@ -13,14 +13,14 @@ const mockState = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../shared/db.js", () => ({ prisma: mockState.prisma }));
-vi.mock("./accessUserSearch.js", () => mockState.accessSearch);
+vi.mock("../../../shared/db.js", () => ({ prisma: mockState.prisma }));
+vi.mock("../accessUserSearch.js", () => mockState.accessSearch);
 
 import {
   listAssignableUsersByEnterprise,
   runFuzzyAssignableUserSearch,
 } from "./service.overview-search.assignable.js";
-import { DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES } from "../../shared/fuzzyFallback.js";
+import { DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES } from "../../../shared/fuzzyFallback.js";
 
 describe("enterpriseAdmin assignable overview search", () => {
   beforeEach(() => {

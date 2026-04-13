@@ -1,34 +1,34 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 import type { ParsedQs } from "qs";
 import {
   DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES,
   fuzzyFilterAndPaginate,
   shouldUseFuzzyFallback,
-} from "../../shared/fuzzyFallback.js";
+} from "../../../shared/fuzzyFallback.js";
 import {
   buildEnterpriseAccessUserSearchWhere,
   parseEnterpriseAccessUserSearchFilters,
   type EnterpriseAccessUserSearchFilters,
-} from "./accessUserSearch.js";
+} from "../accessUserSearch.js";
 import {
   buildEnterpriseModuleSearchWhere,
   matchesEnterpriseModuleSearchCandidate,
   parseEnterpriseModuleSearchFilters,
-} from "./moduleSearch.js";
+} from "../moduleSearch.js";
 import {
   getUtcStartOfDaysAgo,
   isEnterpriseAdminRole,
   normalizeFeatureFlagLabel,
-} from "./service.helpers.js";
-import { ENTERPRISE_FEATURE_FLAG_DEFAULTS } from "../featureFlags/defaults.js";
-import { ensureFeatureFlagsByEnterprise } from "../featureFlags/repo.js";
+} from "../service.helpers.js";
+import { ENTERPRISE_FEATURE_FLAG_DEFAULTS } from "../../featureFlags/defaults.js";
+import { ensureFeatureFlagsByEnterprise } from "../../featureFlags/repo.js";
 import {
   buildManagedModuleSelect,
   buildModuleScopeWhere,
   mapModuleRecord,
   toEnterpriseModuleSearchResponse,
-} from "./service.shared.js";
-import type { EnterpriseUser } from "./types.js";
+} from "../service.shared.js";
+import type { EnterpriseUser } from "../types.js";
 import {
   listAssignableUsersByEnterprise,
   runFuzzyAssignableUserSearch,

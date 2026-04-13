@@ -11,7 +11,7 @@ describe("seed schema dynamic branches", () => {
       Prisma: { dmmf: undefined },
     }));
 
-    const schema = await import("../../prisma/seed/schema");
+    const schema = await import("../../../../prisma/seed/schema");
     expect(schema.getSeedCleanupManifest()).toEqual([]);
   });
 
@@ -39,7 +39,7 @@ describe("seed schema dynamic branches", () => {
       },
     }));
 
-    const schema = await import("../../prisma/seed/schema");
+    const schema = await import("../../../../prisma/seed/schema");
     const manifest = schema.getSeedCleanupManifest();
     const tableOrder = manifest.map((entry) => entry.tableName);
     expect(tableOrder.indexOf("Child")).toBeLessThan(tableOrder.indexOf("Parent"));

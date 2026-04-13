@@ -12,11 +12,11 @@ const mockState = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../prisma/seed/prismaClient", () => ({
+vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: mockState.prisma,
 }));
 
-import { seedNotifications } from "../../prisma/seed/notifications";
+import { seedNotifications } from "../../../prisma/seed/notifications";
 
 describe("seedNotifications", () => {
   beforeEach(() => {

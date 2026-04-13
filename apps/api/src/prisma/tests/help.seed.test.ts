@@ -9,11 +9,11 @@ const { prismaMock } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../prisma/seed/prismaClient", () => ({
+vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: prismaMock,
 }));
 
-import { seedHelpContent } from "../../prisma/seed/help";
+import { seedHelpContent } from "../../../prisma/seed/help";
 
 describe("seedHelpContent", () => {
   beforeEach(() => {

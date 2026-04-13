@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planModuleSeedData } from "../../prisma/seed/catalog";
+import { planModuleSeedData } from "../../../prisma/seed/catalog";
 
 describe("planModuleSeedData", () => {
   it("returns generated content fields for every module", () => {

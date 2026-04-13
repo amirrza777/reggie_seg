@@ -1,12 +1,12 @@
 import type { Response } from "express";
-import type { AuthRequest } from "../../auth/middleware.js";
+import type { AuthRequest } from "../../../auth/middleware.js";
 import {
   analyseProjectGithubRepository,
   linkGithubRepositoryToProject,
   removeProjectGithubRepositoryLink,
   listProjectGithubRepositories,
   GithubServiceError,
-} from "./service.js";
+} from "../service.js";
 import { toJsonSafe } from "./controller.utils.js";
 import { parseGithubRepoLinkBody, parseLinkIdParam, parseProjectIdQuery } from "./controller.parsers.js";
 

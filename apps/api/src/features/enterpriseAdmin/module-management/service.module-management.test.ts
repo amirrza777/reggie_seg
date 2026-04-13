@@ -40,15 +40,15 @@ const mockState = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../../shared/db.js", () => ({ prisma: mockState.prisma }));
-vi.mock("./service.helpers.js", () => ({
+vi.mock("../../../shared/db.js", () => ({ prisma: mockState.prisma }));
+vi.mock("../service.helpers.js", () => ({
   ensureCreatorLeader: mockState.helpers.ensureCreatorLeader,
   replaceModuleAssignments: mockState.helpers.replaceModuleAssignments,
   sanitiseModuleStudentIdsForUpdate: mockState.helpers.sanitiseModuleStudentIdsForUpdate,
   validateAssignmentUsers: mockState.helpers.validateAssignmentUsers,
   isEnterpriseAdminRole: (role: string) => role === "ENTERPRISE_ADMIN" || role === "ADMIN",
 }));
-vi.mock("./service.shared.js", () => ({
+vi.mock("../service.shared.js", () => ({
   canManageModuleAccess: mockState.core.canManageModuleAccess,
   mapModuleRecord: mockState.core.mapModuleRecord,
   MODULE_SELECT: { id: true, name: true, _count: true },

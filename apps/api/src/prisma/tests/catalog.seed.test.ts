@@ -31,15 +31,15 @@ const { prismaMock, planJoinCodeMock, buildModuleContentMock } = vi.hoisted(() =
   })),
 }));
 
-vi.mock("../../prisma/seed/prismaClient", () => ({
+vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: prismaMock,
 }));
 
-vi.mock("../../prisma/seed/joinCodes", () => ({
+vi.mock("../../../prisma/seed/joinCodes", () => ({
   planSeedModuleJoinCode: planJoinCodeMock,
 }));
 
-vi.mock("../../prisma/seed/moduleContent", () => ({
+vi.mock("../../../prisma/seed/moduleContent", () => ({
   buildSeedModuleContent: buildModuleContentMock,
 }));
 
@@ -54,7 +54,7 @@ import {
   seedQuestionnaireTemplates,
   seedTeams,
   seedUsers,
-} from "../../prisma/seed/catalog";
+} from "../../../prisma/seed/catalog";
 
 describe("catalog planners", () => {
   it("builds user seed rows with enterprise/password", () => {

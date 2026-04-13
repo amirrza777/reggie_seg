@@ -60,7 +60,7 @@ describe("prisma unseed script", () => {
       Prisma: { dmmf: prismaDmmfMock },
     }));
 
-    await import("../../prisma/seed/unseed.ts");
+    await import("../../../../prisma/seed/unseed.ts");
     await flushAsyncWork();
 
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("SET FOREIGN_KEY_CHECKS = 0;");
@@ -90,7 +90,7 @@ describe("prisma unseed script", () => {
       Prisma: { dmmf: prismaDmmfMock },
     }));
 
-    await import("../../prisma/seed/unseed.ts");
+    await import("../../../../prisma/seed/unseed.ts");
     await flushAsyncWork();
 
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `QuestionnaireTemplate`;");
@@ -113,7 +113,7 @@ describe("prisma unseed script", () => {
       Prisma: { dmmf: prismaDmmfMock },
     }));
 
-    await import("../../prisma/seed/unseed.ts").catch(() => undefined);
+    await import("../../../../prisma/seed/unseed.ts").catch(() => undefined);
     await flushAsyncWork();
 
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("SET FOREIGN_KEY_CHECKS = 1;");
@@ -125,7 +125,7 @@ describe("prisma unseed script", () => {
   it("uses postgres cleanup strategy when provider is postgresql", async () => {
     const prismaMock = createUnseedMock();
 
-    vi.doMock("../../prisma/seed/config", () => ({
+    vi.doMock("../../../../prisma/seed/config", () => ({
       SEED_DATABASE_PROVIDER: "postgresql",
     }));
     vi.doMock("@prisma/client", () => ({
@@ -133,7 +133,7 @@ describe("prisma unseed script", () => {
       Prisma: { dmmf: prismaDmmfMock },
     }));
 
-    await import("../../prisma/seed/unseed.ts");
+    await import("../../../../prisma/seed/unseed.ts");
     await flushAsyncWork();
 
     expect(prismaMock.$executeRawUnsafe).not.toHaveBeenCalledWith("SET FOREIGN_KEY_CHECKS = 0;");
@@ -152,7 +152,7 @@ describe("prisma unseed script", () => {
       return undefined;
     });
 
-    vi.doMock("../../prisma/seed/config", () => ({
+    vi.doMock("../../../../prisma/seed/config", () => ({
       SEED_DATABASE_PROVIDER: "postgresql",
     }));
     vi.doMock("@prisma/client", () => ({
@@ -160,7 +160,7 @@ describe("prisma unseed script", () => {
       Prisma: { dmmf: prismaDmmfMock },
     }));
 
-    await import("../../prisma/seed/unseed.ts");
+    await import("../../../../prisma/seed/unseed.ts");
     await flushAsyncWork();
 
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith('TRUNCATE TABLE "Project" RESTART IDENTITY CASCADE;');

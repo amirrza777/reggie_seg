@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildScenarioMemberIds, validateScenarioPrerequisites } from "../../prisma/seed/teamHealthScenario/actors";
-import { buildOpenScenarioMessages, buildResolvedScenarioMessage, buildScenarioTeamHealthMessageRows } from "../../prisma/seed/teamHealthScenario/messages";
-import { buildTeamHealthScenarioDetails } from "../../prisma/seed/teamHealthScenario/summary";
-import { toDateFromNow } from "../../prisma/seed/teamHealthScenario/time";
-import { uniquePositiveIds } from "../../prisma/seed/scenarioUtils";
-import { makeSeedContext } from "./test-helpers/seed-context";
+import { buildScenarioMemberIds, validateScenarioPrerequisites } from "../../../prisma/seed/teamHealthScenario/actors";
+import { buildOpenScenarioMessages, buildResolvedScenarioMessage, buildScenarioTeamHealthMessageRows } from "../../../prisma/seed/teamHealthScenario/messages";
+import { buildTeamHealthScenarioDetails } from "../../../prisma/seed/teamHealthScenario/summary";
+import { toDateFromNow } from "../../../prisma/seed/teamHealthScenario/time";
+import { uniquePositiveIds } from "../../../prisma/seed/scenarioUtils";
+import { makeSeedContext } from "../test-helpers/seed-context";
 
 describe("team-health warning pure helpers", () => {
   it("buildScenarioMemberIds includes reviewer and deduplicates positive ids", () => {
