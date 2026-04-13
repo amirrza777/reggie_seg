@@ -3,5 +3,5 @@
 @import "./app-shell/components.css";
 @import "./app-shell/ui-primitives.css";
 @import "./app-shell/questionnaire.css";
-@import "./app-shell/feature-panels.css";
+@import "./app-shell/feature-panels/feature-panels.css";
 @import "./app-shell/popup-glass.css";
