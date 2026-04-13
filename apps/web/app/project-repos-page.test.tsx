@@ -10,7 +10,7 @@ vi.mock("@/features/projects/api/client", () => ({
   getTeamByUserAndProject: vi.fn().mockResolvedValue({ id: 10 }),
 }));
 
-vi.mock("@/features/github/components/GithubProjectReposClient", () => ({
+vi.mock("@/features/github/components/repos/GithubProjectReposClient", () => ({
   GithubProjectReposClient: ({ projectId }: { projectId: string }) => (
     <div data-testid="repos-client">repos:{projectId}</div>
   ),

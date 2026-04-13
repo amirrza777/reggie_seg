@@ -1,8 +1,8 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../../../shared/db.js";
 import { assertProjectMutableForWritesByProjectId } from "../../../shared/projectWriteGuard.js";
-import { assertTemplatePurpose } from "../repo.project-write.js";
-import type { ProjectDeadlineInput } from "../repo.types.js";
+import { assertTemplatePurpose } from "../repo/repo.project-write.js";
+import type { ProjectDeadlineInput } from "../repo/repo.types.js";
 
 const MAX_PROJECT_NAME_LENGTH = 200;
 

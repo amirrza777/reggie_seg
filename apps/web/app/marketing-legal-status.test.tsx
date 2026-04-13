@@ -5,7 +5,7 @@ import LegalLayout from "./(legal)/layout";
 import MarketingPagesLayout from "./(marketing-pages)/layout";
 import StatusPage, { metadata } from "./status/page";
 
-vi.mock("./layouts/marketing", () => ({
+vi.mock("@/marketing/layouts/marketing", () => ({
   MarketingLayout: ({ children }: { children: ReactNode }) => <div data-testid="marketing-layout">{children}</div>,
 }));
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { Card } from "@/shared/ui/Card";
-import { PerformanceSummaryCard } from "@/shared/ui/PerformanceSummaryCard";
+import { PerformanceSummaryCard } from "@/shared/ui/progress/PerformanceSummaryCard";
 import { formatDateTime } from "@/shared/lib/dateFormatter";
 import { getStudentDetails, getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { StaffMarkingCard } from "@/features/staff/peerAssessments/components/StaffMarkingCard";

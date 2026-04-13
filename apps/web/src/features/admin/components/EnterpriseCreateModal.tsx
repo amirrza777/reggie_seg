@@ -1,7 +1,7 @@
 import type { FormEvent } from "react";
 import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
-import { ModalPortal } from "@/shared/ui/ModalPortal";
+import { ModalPortal } from "@/shared/ui/modal/ModalPortal";
 
 type EnterpriseCreateModalProps = {
   open: boolean;

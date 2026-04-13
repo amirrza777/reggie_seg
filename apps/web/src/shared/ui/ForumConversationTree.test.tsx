@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ForumConversationTree, type ForumConversationTreePost } from "./ForumConversationTree";
 
-vi.mock("./RichTextViewer", () => ({
+vi.mock("./rich-text/RichTextViewer", () => ({
   RichTextViewer: ({ content }: { content: string }) => <div data-testid="rich-text-viewer">{content}</div>,
 }));
 

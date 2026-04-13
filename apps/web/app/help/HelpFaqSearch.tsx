@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FaqAccordion } from "../components/FaqAccordion";
+import { FaqAccordion } from "@/shared/ui/faq/FaqAccordion";
 import { searchHelpFaqs, type HelpFaqRecord } from "./api/search";
 import { SEARCH_DEBOUNCE_MS, normalizeSearchQuery } from "@/shared/lib/search";
 import { SearchField } from "@/shared/ui/SearchField";

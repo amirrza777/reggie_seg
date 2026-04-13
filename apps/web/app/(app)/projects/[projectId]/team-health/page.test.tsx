@@ -29,11 +29,11 @@ const projectTeamHealthPanelsMock = vi.fn((props: Record<string, unknown>) => (
   <div data-testid="team-health-panels" data-props={JSON.stringify(props)} />
 ));
 
-vi.mock("@/features/projects/components/ProjectTeamHealthPanels", () => ({
+vi.mock("@/features/projects/components/team-health/ProjectTeamHealthPanels", () => ({
   ProjectTeamHealthPanels: (props: Record<string, unknown>) => projectTeamHealthPanelsMock(props),
 }));
 
-vi.mock("@/features/projects/components/ProjectTeamHealthTitleWithInfo", () => ({
+vi.mock("@/features/projects/components/team-health/ProjectTeamHealthTitleWithInfo", () => ({
   ProjectTeamHealthTitleWithInfo: ({ title }: { title: string }) => <span>{title}</span>,
 }));
 

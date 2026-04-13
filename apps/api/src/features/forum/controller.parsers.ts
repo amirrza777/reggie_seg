@@ -96,7 +96,7 @@ export function parseCreateDiscussionPostBody(body: unknown): ParseResult<{
   });
 }
 
-export function parseUpdateDiscussionPostBody(body: unknown): ParseResult<{
+export function parseUpdateDiscussionPostBody(body: unknown, parentPostId: number | null = null): ParseResult<{
   userId: number;
   title: string;
   body: string;
@@ -107,11 +107,22 @@ export function parseUpdateDiscussionPostBody(body: unknown): ParseResult<{
   const userId = parsePositiveInt(parsedBody.value.userId, "userId");
   if (!userId.ok) return fail("Invalid user ID");
 
-  const title = parseTrimmedString(parsedBody.value.title, "title");
   const postBody = parseTrimmedString(parsedBody.value.body, "body");
-  if (!title.ok || !postBody.ok) return fail("Title and body are required");
+  if (!postBody.ok) return fail("Body is required");
 
-  return ok({ userId: userId.value, title: title.value, body: postBody.value });
+  // For root posts, title is required
+  // For replies, title is optional
+  if (parentPostId === null) {
+    const title = parseTrimmedString(parsedBody.value.title, "title");
+    if (!title.ok) return fail("Title and body are required");
+    return ok({ userId: userId.value, title: title.value, body: postBody.value });
+  }
+
+  // For replies, allow empty title (optional)
+  if (typeof parsedBody.value.title !== "string") {
+    return ok({ userId: userId.value, title: "", body: postBody.value });
+  }
+  return ok({ userId: userId.value, title: parsedBody.value.title.trim(), body: postBody.value });
 }
 
 export function parseForumSettingsBody(body: unknown): ParseResult<{ userId: number; forumIsAnonymous: boolean }> {

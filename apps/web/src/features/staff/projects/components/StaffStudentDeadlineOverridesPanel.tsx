@@ -10,7 +10,7 @@ import type { StaffStudentDeadlineOverride, StaffStudentDeadlineOverridePayload 
 import { filterBySearchQuery } from "@/shared/lib/search";
 import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
 import { SearchField } from "@/shared/ui/SearchField";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 
 type StaffTeamMemberLite = {
   id: number;

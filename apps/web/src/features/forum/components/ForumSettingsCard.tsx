@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type Dispatch, type MutableRefObject, type
 import { useUser } from "@/features/auth/useUser";
 import { getForumSettings, updateForumSettings } from "@/features/forum/api/client";
 import { Button } from "@/shared/ui/Button";
-import { Skeleton, SkeletonText } from "@/shared/ui/Skeleton";
+import { Skeleton, SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import "../styles/discussion-forum.css";
 
 type ForumSettingsCardProps = {

@@ -1,1 +1,1 @@
-export { ProjectWorkspaceRouteSkeleton as default } from "@/shared/ui/FeatureRouteSkeletons";
+export { ProjectWorkspaceRouteSkeleton as default } from "@/shared/ui/skeletons/FeatureRouteSkeletons";

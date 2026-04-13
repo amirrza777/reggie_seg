@@ -2,7 +2,7 @@
 import type { Dispatch, KeyboardEvent, SetStateAction } from "react";
 import { AlertTriangle, MailCheck } from "lucide-react";
 import { Button } from "@/shared/ui/Button";
-import { ModalPortal } from "@/shared/ui/ModalPortal";
+import { ModalPortal } from "@/shared/ui/modal/ModalPortal";
 import { AuthField } from "@/features/auth/components/AuthField";
 
 type EmailStep = "request" | "confirm";

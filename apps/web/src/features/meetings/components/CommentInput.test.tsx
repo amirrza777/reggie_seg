@@ -28,8 +28,8 @@ vi.mock("@lexical/react/LexicalOnChangePlugin", () => ({
 vi.mock("@lexical/react/LexicalComposerContext", () => ({
   useLexicalComposerContext: () => [mockEditor],
 }));
-vi.mock("@/shared/ui/MentionPlugin", () => ({ MentionPlugin: () => null }));
-vi.mock("@/shared/ui/MentionNode", () => ({ MentionNode: class {} }));
+vi.mock("@/shared/ui/rich-text/MentionPlugin", () => ({ MentionPlugin: () => null }));
+vi.mock("@/shared/ui/rich-text/MentionNode", () => ({ MentionNode: class {} }));
 vi.mock("lexical", () => ({
   $getRoot: vi.fn(),
   CLEAR_EDITOR_COMMAND: "clear_editor",

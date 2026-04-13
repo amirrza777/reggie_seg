@@ -12,7 +12,7 @@ vi.mock("@/features/staff/projects/server/getStaffProjectTeamsCached", () => ({
   getStaffProjectTeams: vi.fn(),
 }));
 
-vi.mock("@/features/github/components/StaffProjectReposReadOnlyClient", () => ({
+vi.mock("@/features/github/components/repos/StaffProjectReposReadOnlyClient", () => ({
   StaffProjectReposReadOnlyClient: ({
     projectId,
     projectName,

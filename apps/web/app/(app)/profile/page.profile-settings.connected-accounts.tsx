@@ -2,7 +2,7 @@
 import type { GithubConnectionStatus } from "@/features/github/types";
 import type { TrelloProfile } from "@/features/trello/api/client";
 import { Button } from "@/shared/ui/Button";
-import { Skeleton } from "@/shared/ui/Skeleton";
+import { Skeleton } from "@/shared/ui/skeletons/Skeleton";
 
 type ConnectedAccountsSectionProps = {
   trelloProfile: TrelloProfile | null;

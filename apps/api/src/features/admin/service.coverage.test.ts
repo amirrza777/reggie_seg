@@ -43,7 +43,7 @@ vi.mock("../audit/service.js", () => mockState.audit);
 vi.mock("./repo.js", () => mockState.repo);
 vi.mock("../../shared/fuzzyFallback.js", () => mockState.fuzzy);
 vi.mock("../../shared/email.js", () => mockState.email);
-vi.mock("../services/enterprise/enterpriseCodeGeneratorService.js", () => mockState.enterpriseCodeGenerator);
+vi.mock("./enterpriseCodeGeneratorService.js", () => mockState.enterpriseCodeGenerator);
 
 import {
   inviteEnterpriseAdmin,

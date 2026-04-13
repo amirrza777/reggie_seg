@@ -16,7 +16,7 @@ vi.mock("../api/client", () => ({
   unarchiveItem: (...a: unknown[]) => unarchiveItem(...a),
 }));
 
-vi.mock("@/shared/ui/Skeleton", () => ({
+vi.mock("@/shared/ui/skeletons/Skeleton", () => ({
   SkeletonText: () => <div data-testid="skeleton" />,
 }));
 

@@ -96,10 +96,21 @@ export async function updateProjectDiscussionPostHandler(req: Request, res: Resp
     }
     return res.status(400).json({ error: "Invalid user ID" });
   }
-  const parsedBody = parseUpdateDiscussionPostBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
+  // Fetch the post to get its parentPostId for validation
   try {
+    const existingPost = await fetchDiscussionPost(
+      route.value.userId,
+      route.value.projectId,
+      route.value.postId,
+    );
+    if (!existingPost) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    const parsedBody = parseUpdateDiscussionPostBody(req.body, existingPost.parentPostId);
+    if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+
     const result = await updateDiscussionPost(
       parsedBody.value.userId,
       route.value.projectId,

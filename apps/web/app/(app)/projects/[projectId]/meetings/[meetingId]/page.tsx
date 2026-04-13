@@ -1,4 +1,4 @@
-import { MeetingDetailContent } from "@/features/meetings/components/MeetingDetailContent";
+import { MeetingDetailContent } from "@/features/meetings/components/detail/MeetingDetailContent";
 
 type MeetingPageProps = {
   params: Promise<{ projectId: string; meetingId: string }>;

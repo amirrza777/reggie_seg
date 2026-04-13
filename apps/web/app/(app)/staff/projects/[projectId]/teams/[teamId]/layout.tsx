@@ -1,5 +1,5 @@
 import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
-import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
+import { StaffTeamSectionNav } from "@/features/staff/projects/components/navigation/StaffTeamSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type LayoutProps = {

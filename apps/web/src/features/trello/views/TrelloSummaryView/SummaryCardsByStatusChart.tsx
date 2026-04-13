@@ -5,7 +5,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import type { CardCountByStatus } from "@/features/trello/lib/velocity";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
-import { usePieCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
+import { usePieCursorTooltip } from "@/shared/ui/progress/usePieCursorTooltip";
 
 type Props = { counts: CardCountByStatus };
 

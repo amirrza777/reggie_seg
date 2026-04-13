@@ -37,9 +37,15 @@ describe("forum controller parsers", () => {
       ok: true,
       value: { userId: 1, title: "", body: "Reply", parentPostId: 4 },
     });
-    expect(parseUpdateDiscussionPostBody({ userId: "1", title: " T ", body: " B " })).toEqual({
+    // Root post update requires title
+    expect(parseUpdateDiscussionPostBody({ userId: "1", title: " T ", body: " B " }, null)).toEqual({
       ok: true,
       value: { userId: 1, title: "T", body: "B" },
+    });
+    // Reply update allows empty title
+    expect(parseUpdateDiscussionPostBody({ userId: "1", title: "", body: " B " }, 42)).toEqual({
+      ok: true,
+      value: { userId: 1, title: "", body: "B" },
     });
   });
 
@@ -114,9 +120,15 @@ describe("forum controller parsers", () => {
       ok: false,
       error: "Body is required",
     });
-    expect(parseUpdateDiscussionPostBody({ userId: 1, title: " ", body: "x" })).toEqual({
+    // Root post with empty title should fail
+    expect(parseUpdateDiscussionPostBody({ userId: 1, title: " ", body: "x" }, null)).toEqual({
       ok: false,
       error: "Title and body are required",
+    });
+    // Reply with empty title should succeed
+    expect(parseUpdateDiscussionPostBody({ userId: 1, title: " ", body: "x" }, 42)).toEqual({
+      ok: true,
+      value: { userId: 1, title: "", body: "x" },
     });
     expect(parseForumSettingsBody({ userId: 2, forumIsAnonymous: "yes" })).toEqual({
       ok: false,

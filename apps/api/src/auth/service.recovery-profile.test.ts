@@ -1,1 +1,1 @@
-import "./service.recovery-profile.cases.js";
+import "./cases/service.recovery-profile.cases.js";

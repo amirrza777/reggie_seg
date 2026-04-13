@@ -12,7 +12,7 @@ import { getEffectiveTotalPages, getPaginationEnd, getPaginationStart, parsePage
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
+import { ConfirmationModal } from "@/shared/ui/modal/ConfirmationModal";
 import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationControls";
 import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";

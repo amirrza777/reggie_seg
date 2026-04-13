@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectOverviewDashboard } from "./ProjectOverviewDashboard";
 
-vi.mock("@/shared/ui/RichTextViewer", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextViewer", () => ({
   RichTextViewer: ({ content }: { content: string }) => <div data-testid="rich-text-content">{content}</div>,
 }));
 

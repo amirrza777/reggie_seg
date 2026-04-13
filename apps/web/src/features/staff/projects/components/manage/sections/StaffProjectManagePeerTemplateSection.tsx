@@ -7,7 +7,7 @@ import type { Questionnaire } from "@/features/questionnaires/types";
 import { patchStaffProjectManage } from "@/features/projects/api/client";
 import { ApiError } from "@/shared/api/errors";
 import { StaffProjectManageFormCollapsible } from "../../StaffProjectManageFormCollapsible";
-import { loadProjectPeerTemplates } from "../../StaffProjectCreatePanel.templates";
+import { loadProjectPeerTemplates } from "../../create/StaffProjectCreatePanel.templates";
 import { useStaffProjectManageSetup } from "../StaffProjectManageSetupContext";
 
 export function StaffProjectManagePeerTemplateSection() {

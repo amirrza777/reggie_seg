@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
-import { StaffProjectBreadcrumbs } from "@/features/staff/projects/components/StaffProjectBreadcrumbs";
-import { StaffProjectSectionNavGate } from "@/features/staff/projects/components/StaffProjectSectionNavGate";
+import { StaffProjectBreadcrumbs } from "@/features/staff/projects/components/navigation/StaffProjectBreadcrumbs";
+import { StaffProjectSectionNavGate } from "@/features/staff/projects/components/navigation/StaffProjectSectionNavGate";
 import { StaffProjectsWorkspacePageHeader } from "@/features/staff/projects/components/StaffProjectsWorkspacePageHeader";
 import { staffProjectWorkspaceAggregates } from "@/features/staff/projects/lib/staffProjectWorkspaceAggregates";
 import { ArchivedProjectScopeBanner } from "@/features/modules/components/ArchivedProjectScopeBanner";

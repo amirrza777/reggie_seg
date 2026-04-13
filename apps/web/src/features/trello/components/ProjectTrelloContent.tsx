@@ -16,7 +16,7 @@ import { getMyBoards } from "@/features/trello/api/client";
 import type { ProjectDeadline } from "@/features/projects/types";
 import type { BoardView } from "@/features/trello/api/client";
 import type { TeamBoardViewState } from "@/features/trello/lib/teamBoardState";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 
 export type TrelloBoardContentViewProps = {
   projectId: string;

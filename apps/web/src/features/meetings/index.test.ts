@@ -9,16 +9,16 @@ vi.mock("./components/AttendanceTable", () => ({
 vi.mock("./components/MeetingList", () => ({
   MeetingList: () => null,
 }));
-vi.mock("./components/MeetingMinutes", () => ({
+vi.mock("./components/minutes/MeetingMinutes", () => ({
   MeetingMinutes: () => null,
 }));
-vi.mock("./components/CreateMeetingForm", () => ({
+vi.mock("./components/forms/CreateMeetingForm", () => ({
   CreateMeetingForm: () => null,
 }));
 vi.mock("./components/CommentSection", () => ({
   CommentSection: () => null,
 }));
-vi.mock("./components/MeetingDetail", () => ({
+vi.mock("./components/detail/MeetingDetail", () => ({
   MeetingDetail: () => null,
 }));
 vi.mock("./components/MeetingsPageContent", () => ({

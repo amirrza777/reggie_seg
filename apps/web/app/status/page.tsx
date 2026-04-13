@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import type { Metadata } from "next";
-import { MarketingLayout } from "../layouts/marketing";
+import { MarketingLayout } from "@/marketing/layouts/marketing";
 import "../styles/global-marketing.css";
 
 export const metadata: Metadata = {

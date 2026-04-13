@@ -7,7 +7,7 @@ import type { Module } from "@/features/modules/types";
 import { EnterpriseAccessRecoveryPanel } from "@/features/auth/components/EnterpriseAccessRecoveryPanel";
 import { StudentModulesOverviewClient } from "@/features/modules/components/StudentModulesOverviewClient";
 import { Card } from "@/shared/ui/Card";
-import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
+import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
 import { Table } from "@/shared/ui/Table";
 
 const TYPE_LABEL: Record<string, string> = {

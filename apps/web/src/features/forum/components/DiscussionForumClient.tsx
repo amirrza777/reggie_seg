@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { logDevError } from "@/shared/lib/devLogger";
-import type { Member } from "@/shared/ui/MentionPlugin";
-import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
+import type { Member } from "@/shared/ui/rich-text/MentionPlugin";
+import { ConfirmationModal } from "@/shared/ui/modal/ConfirmationModal";
 import {
   createDiscussionPost,
   createStudentForumReport,

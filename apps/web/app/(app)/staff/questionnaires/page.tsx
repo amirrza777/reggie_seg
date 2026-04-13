@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { QuestionnaireList } from "@/features/questionnaires/components/questionnaireList";
+import { QuestionnaireList } from "@/features/questionnaires/components/QuestionnaireList";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 export default function QuestionnairesPage() {

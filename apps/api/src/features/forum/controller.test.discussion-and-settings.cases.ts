@@ -61,6 +61,7 @@ describe("forum controller", () => {
   });
 
   it("updates post and returns it", async () => {
+    (service.fetchDiscussionPost as any).mockResolvedValue({ id: 4, parentPostId: null, title: "original", body: "orig body" });
     (service.updateDiscussionPost as any).mockResolvedValue({ status: "ok", post: { id: 4 } });
     const res = mockResponse();
     await updateProjectDiscussionPostHandler(
@@ -132,6 +133,7 @@ describe("forum controller", () => {
   });
 
   it("returns 403 and 404 from update post result status", async () => {
+    (service.fetchDiscussionPost as any).mockResolvedValue({ id: 4, parentPostId: null, title: "original", body: "orig body" });
     (service.updateDiscussionPost as any).mockResolvedValueOnce({ status: "forbidden" });
     const res1 = mockResponse();
     await updateProjectDiscussionPostHandler(
@@ -150,6 +152,7 @@ describe("forum controller", () => {
   });
 
   it("returns 500 when update post throws", async () => {
+    (service.fetchDiscussionPost as any).mockResolvedValue({ id: 4, parentPostId: null, title: "original", body: "orig body" });
     (service.updateDiscussionPost as any).mockRejectedValue(new Error("boom"));
     const res = mockResponse();
     await updateProjectDiscussionPostHandler(
