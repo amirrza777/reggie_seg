@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getEnterpriseModuleJoinCode } from "@/features/enterprise/api/client";
-import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/EnterpriseModuleCreateForm";
+import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/module-create/EnterpriseModuleCreateForm";
 import { ApiError } from "@/shared/api/errors";
 import { Breadcrumbs } from "@/shared/layout/Breadcrumbs";
 import { Card } from "@/shared/ui/Card";

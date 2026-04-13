@@ -24,7 +24,7 @@ vi.mock("@/features/staff/projects/server/getStaffProjectTeamsCached", () => ({
   getStaffProjectTeams: vi.fn(),
 }));
 
-vi.mock("@/features/staff/projects/components/StaffProjectBreadcrumbs", () => ({
+vi.mock("@/features/staff/projects/components/navigation/StaffProjectBreadcrumbs", () => ({
   StaffProjectBreadcrumbs: (props: Record<string, unknown>) => {
     breadcrumbProps.push(props);
     return <div data-testid="breadcrumbs">{String(props.projectName)}</div>;

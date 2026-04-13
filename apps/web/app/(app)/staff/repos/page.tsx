@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { GithubProjectReposClient } from "@/features/github/components/GithubProjectReposClient";
+import { GithubProjectReposClient } from "@/features/github/components/repos/GithubProjectReposClient";
 import { getStaffProjects } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { Placeholder } from "@/shared/ui/Placeholder";

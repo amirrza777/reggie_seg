@@ -1,7 +1,7 @@
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
-import { StaffProjectReposReadOnlyClient } from "@/features/github/components/StaffProjectReposReadOnlyClient";
+import { StaffProjectReposReadOnlyClient } from "@/features/github/components/repos/StaffProjectReposReadOnlyClient";
 type PageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
 };

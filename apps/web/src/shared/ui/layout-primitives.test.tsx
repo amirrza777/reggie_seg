@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { AppShell } from "@/shared/layout/AppShell";
-import { SidebarChevron } from "@/shared/layout/SidebarChevron";
-import { MinimalLoader } from "./MinimalLoader";
+import { SidebarChevron } from "@/shared/layout/sidebar/SidebarChevron";
+import { MinimalLoader } from "./skeletons/MinimalLoader";
 import { PageSection } from "./PageSection";
 
 describe("layout primitives", () => {

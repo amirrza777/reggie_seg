@@ -15,7 +15,7 @@ import {
 import { formatDate } from "@/shared/lib/formatDate";
 import type { SummaryChartPoint } from "@/features/trello/lib/summaryChartData";
 import { getWeekStartKeyUTC } from "@/features/trello/lib/weekUtils";
-import { useChartCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
+import { useChartCursorTooltip } from "@/shared/ui/progress/usePieCursorTooltip";
 import { ProjectBoundaryReferenceLine } from "../../components/ProjectBoundaryReferenceLine";
 import { TrelloTimeXAxis } from "../../components/TrelloTimeXAxis";
 

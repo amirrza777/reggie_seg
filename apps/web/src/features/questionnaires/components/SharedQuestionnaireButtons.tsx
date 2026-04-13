@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@/shared/api/errors";
 import { Button } from "@/shared/ui/Button";
-import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
+import { ConfirmationModal } from "@/shared/ui/modal/ConfirmationModal";
 import { deleteQuestionnaire } from "../api/client";
 import type { QuestionnairePurpose } from "../types";
 import { QUESTIONNAIRE_PURPOSE_OPTIONS } from "../purpose";

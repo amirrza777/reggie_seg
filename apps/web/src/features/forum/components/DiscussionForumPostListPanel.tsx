@@ -1,4 +1,4 @@
-import type { Member } from "@/shared/ui/MentionPlugin";
+import type { Member } from "@/shared/ui/rich-text/MentionPlugin";
 import type { DiscussionPost } from "@/features/forum/types";
 import { DiscussionForumPosts } from "./DiscussionForumPosts";
 import { DiscussionForumPostThread, type ReportConfirmationState } from "./DiscussionForumPostThread";

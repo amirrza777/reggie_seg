@@ -7,7 +7,7 @@ import { logout } from "../api/client";
 import { AUTH_STATE_EVENT } from "../api/session";
 import type { UserProfile } from "../types";
 import { useUser } from "../useUser";
-import { MinimalLoader } from "@/shared/ui/MinimalLoader";
+import { MinimalLoader } from "@/shared/ui/skeletons/MinimalLoader";
 
 function initials(user: UserProfile) {
   const first = user.firstName?.[0] ?? "";

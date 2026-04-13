@@ -9,7 +9,7 @@ import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 import { searchUsers, updateUser, updateUserRole } from "../api/client";
 import type { AdminUser, AdminUserRecord, UserRole } from "../types";
-import { buildUserManagementRows } from "./userManagementRows";
+import { buildUserManagementRows } from "./rows/userManagementRows";
 
 type RequestState = "idle" | "loading" | "success" | "error";
 type UserSortValue = "default" | "joinDateDesc" | "joinDateAsc" | "nameAsc" | "nameDesc";

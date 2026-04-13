@@ -36,7 +36,7 @@ vi.mock("@/features/projects/api/client", () => ({
   getStaffProjectTeams: vi.fn(),
 }));
 
-vi.mock("@/features/github/components/GithubProjectReposClient", () => ({
+vi.mock("@/features/github/components/repos/GithubProjectReposClient", () => ({
   GithubProjectReposClient: ({ projectId }: { projectId: string }) => <div data-testid="github-client">{projectId}</div>,
 }));
 

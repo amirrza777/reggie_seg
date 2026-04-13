@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { AcceptEnterpriseAdminInviteForm } from "@/features/auth/components/AcceptEnterpriseAdminInviteForm";
+import { AcceptEnterpriseAdminInviteForm } from "@/features/auth/components/invites/AcceptEnterpriseAdminInviteForm";
 
 function InviteAcceptContent() {
   const searchParams = useSearchParams();

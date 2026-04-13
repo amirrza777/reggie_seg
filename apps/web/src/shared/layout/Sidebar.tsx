@@ -2,10 +2,10 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ComponentProps } from "react";
-import { SidebarDesktopNav } from "./SidebarDesktopNav";
-import { SidebarMobileNav } from "./SidebarMobileNav";
+import { SidebarDesktopNav } from "./sidebar/SidebarDesktopNav";
+import { SidebarMobileNav } from "./sidebar/SidebarMobileNav";
 import type { SidebarProps } from "./Sidebar.types";
-import { useSidebarState } from "./useSidebarState";
+import { useSidebarState } from "./sidebar/useSidebarState";
 
 export type { SidebarLink, SidebarProps, SpaceKey } from "./Sidebar.types";
 

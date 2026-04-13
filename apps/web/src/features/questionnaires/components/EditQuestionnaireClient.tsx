@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { logDevError } from "@/shared/lib/devLogger";
 import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import type {
   EditableQuestion,
   MultipleChoiceConfigs,

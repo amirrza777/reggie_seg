@@ -10,8 +10,8 @@ import {
   TestimonialsSection,
   ToolkitSection,
   TrustSection,
-} from "./sections/marketing";
-import { MarketingLayout } from "./layouts/marketing";
+} from "@/marketing/sections";
+import { MarketingLayout } from "@/marketing/layouts/marketing";
 import "./styles/global-marketing.css";
 
 export default function HomePage() {

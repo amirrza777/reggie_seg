@@ -1,6 +1,6 @@
 "use client";
 
-import { TitleWithInfoModal } from "@/shared/ui/TitleWithInfoModal";
+import { TitleWithInfoModal } from "@/shared/ui/modal/TitleWithInfoModal";
 
 type PeerFeedbackTitleWithInfoProps = {
   title?: string;

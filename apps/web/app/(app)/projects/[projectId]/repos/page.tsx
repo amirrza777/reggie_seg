@@ -1,4 +1,4 @@
-import { GithubProjectReposClient } from "@/features/github/components/GithubProjectReposClient";
+import { GithubProjectReposClient } from "@/features/github/components/repos/GithubProjectReposClient";
 import { getProject, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { CustomAllocationWaitingBoard } from "@/features/projects/components/CustomAllocationWaitingBoard";
 import { getCurrentUser } from "@/shared/auth/session";

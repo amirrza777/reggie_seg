@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi, type MockedFunction } from "vites
 import { FeedbackReviewForm } from "./FeedbackReviewForm";
 import type { PeerFeedback, PeerAssessmentReviewPayload } from "../types";
 
-vi.mock("@/shared/ui/RichTextEditor", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextEditor", () => ({
   RichTextEditor: ({ onChange, onEmptyChange, placeholder }: { onChange: (v: string) => void; onEmptyChange?: (e: boolean) => void; placeholder?: string }) => (
     <textarea
       placeholder={placeholder}
@@ -15,7 +15,7 @@ vi.mock("@/shared/ui/RichTextEditor", () => ({
   ),
 }));
 
-vi.mock("@/shared/ui/RichTextViewer", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextViewer", () => ({
   RichTextViewer: ({ content }: { content: string }) => <p>{content}</p>,
 }));
 

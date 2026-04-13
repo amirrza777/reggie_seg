@@ -28,8 +28,8 @@ const aggregateMocks = vi.hoisted(() => ({
 
 vi.mock("./repo.js", () => repoMocks);
 vi.mock("./oauth.service.js", () => ({ getValidGithubAccessToken: oauthMocks.getValidGithubAccessToken }));
-vi.mock("./service.analysis.fetch.js", () => fetchMocks);
-vi.mock("./service.analysis.aggregate.js", () => ({ isMergePullRequestCommit: aggregateMocks.isMergePullRequestCommit }));
+vi.mock("./analysis/service.analysis.fetch.js", () => fetchMocks);
+vi.mock("./analysis/service.analysis.aggregate.js", () => ({ isMergePullRequestCommit: aggregateMocks.isMergePullRequestCommit }));
 
 import {
   listLiveProjectGithubRepositoryBranchCommits,

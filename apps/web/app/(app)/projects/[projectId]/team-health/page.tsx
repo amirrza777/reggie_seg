@@ -6,8 +6,8 @@ import {
   getProject,
   getTeamByUserAndProject,
 } from "@/features/projects/api/client";
-import { ProjectTeamHealthPanels } from "@/features/projects/components/ProjectTeamHealthPanels";
-import { ProjectTeamHealthTitleWithInfo } from "@/features/projects/components/ProjectTeamHealthTitleWithInfo";
+import { ProjectTeamHealthPanels } from "@/features/projects/components/team-health/ProjectTeamHealthPanels";
+import { ProjectTeamHealthTitleWithInfo } from "@/features/projects/components/team-health/ProjectTeamHealthTitleWithInfo";
 import { CustomAllocationWaitingBoard } from "@/features/projects/components/CustomAllocationWaitingBoard";
 import type { TeamHealthMessage, TeamWarning } from "@/features/projects/types";
 import { PageSection } from "@/shared/ui/PageSection";

@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
-import { ModuleDashboardPageView } from "@/features/modules/components/ModuleDashboard";
+import { ModuleDashboardPageView } from "@/features/modules/components/dashboard/ModuleDashboard";
 import { buildModuleDashboardData } from "@/features/modules/moduleDashboardData";
 import type { Module } from "@/features/modules/types";
 import { getProjectDeadline, getProjectMarking, getUserProjects } from "@/features/projects/api/client";

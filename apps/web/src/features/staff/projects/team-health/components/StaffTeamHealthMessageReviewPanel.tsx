@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
-import { RichTextEditor } from "@/shared/ui/RichTextEditor";
-import { RichTextViewer } from "@/shared/ui/RichTextViewer";
+import { RichTextEditor } from "@/shared/ui/rich-text/RichTextEditor";
+import { RichTextViewer } from "@/shared/ui/rich-text/RichTextViewer";
 import { reviewStaffTeamHealthMessage } from "@/features/projects/api/client";
 import type { TeamHealthMessage } from "@/features/projects/types";
 

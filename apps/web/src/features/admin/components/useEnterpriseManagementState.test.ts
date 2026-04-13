@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useEnterpriseManagementState } from "./useEnterpriseManagementState";
 import { createEnterprise, deleteEnterprise, inviteEnterpriseAdmin, searchEnterprises } from "../api/client";
-import { useEnterpriseUserManagementState } from "./useEnterpriseUserManagementState";
+import { useEnterpriseUserManagementState } from "./state/useEnterpriseUserManagementState";
 
 vi.mock("../api/client", () => ({
   searchEnterprises: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock("../api/client", () => ({
   deleteEnterprise: vi.fn(),
 }));
 
-vi.mock("./useEnterpriseUserManagementState", () => ({
+vi.mock("./state/useEnterpriseUserManagementState", () => ({
   useEnterpriseUserManagementState: vi.fn(),
 }));
 

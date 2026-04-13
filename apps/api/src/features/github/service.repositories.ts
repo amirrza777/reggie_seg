@@ -12,7 +12,7 @@ import {
 } from "./repo.js";
 import { getValidGithubAccessToken } from "./oauth.service.js";
 import { GithubServiceError } from "./errors.js";
-import { analyseProjectGithubRepository } from "./service.analysis.run.js";
+import { analyseProjectGithubRepository } from "./analysis/service.analysis.run.js";
 import { matchesFuzzySearchCandidate } from "../../shared/fuzzySearch.js";
 
 type GithubRepoResponse = {

@@ -5,7 +5,7 @@ import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/Projec
 import { isMeetingMember } from "../lib/meetingMember";
 import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
 import { MeetingBreadcrumbs } from "./MeetingBreadcrumbs";
-import { MeetingEditForm } from "./MeetingEditForm";
+import { MeetingEditForm } from "./forms/MeetingEditForm";
 import "../styles/meeting-detail.css";
 
 type MeetingEditContentProps = {

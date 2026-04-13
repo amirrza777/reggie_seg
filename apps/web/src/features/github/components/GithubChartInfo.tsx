@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ModalPortal } from "@/shared/ui/ModalPortal";
+import { ModalPortal } from "@/shared/ui/modal/ModalPortal";
 
 export type GithubChartInfoContent = {
   overview: string;

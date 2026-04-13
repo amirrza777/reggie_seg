@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useSidebarState } from "./useSidebarState";
+import { useSidebarState } from "./sidebar/useSidebarState";
 import { Sidebar } from "./Sidebar";
 
 vi.mock("next/navigation", () => ({
@@ -9,17 +9,17 @@ vi.mock("next/navigation", () => ({
   useSearchParams: vi.fn(),
 }));
 
-vi.mock("./useSidebarState", () => ({
+vi.mock("./sidebar/useSidebarState", () => ({
   useSidebarState: vi.fn(),
 }));
 
-vi.mock("./SidebarMobileNav", () => ({
+vi.mock("./sidebar/SidebarMobileNav", () => ({
   SidebarMobileNav: ({ title, isOpen }: { title: string; isOpen: boolean }) => (
     <div data-testid="mobile-nav" data-title={title} data-open={String(isOpen)} />
   ),
 }));
 
-vi.mock("./SidebarDesktopNav", () => ({
+vi.mock("./sidebar/SidebarDesktopNav", () => ({
   SidebarDesktopNav: ({ links, activeVisibleHref }: { links: unknown[]; activeVisibleHref: string | null }) => (
     <div data-testid="desktop-nav" data-link-count={links.length} data-active={activeVisibleHref ?? ""} />
   ),
