@@ -206,8 +206,8 @@ describe("AddToCalendarDropdown", () => {
     fireEvent.click(screen.getByText("Apple / iCal"));
 
     expect(blobContent).toContain("LOCATION:Bush House 4.02");
-    expect(blobContent).toContain("DESCRIPTION:");
-    expect(blobContent).toContain("Review project progress");
+    expect(blobContent).toContain("DESCRIPTION:Review project progress");
+    expect(blobContent).toContain("URL:https://meet.example.com/abc");
 
     spy.mockRestore();
     global.Blob = originalBlob;
