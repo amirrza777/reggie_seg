@@ -49,7 +49,6 @@
                 FALLBACK_DB_PORT="3307"
                 FALLBACK_DB_USER="root"
                 FALLBACK_DB_NAME="appdb"
-                FALLBACK_DATABASE_URL="mysql://$FALLBACK_DB_USER@$FALLBACK_DB_HOST:$FALLBACK_DB_PORT/$FALLBACK_DB_NAME"
 
                 ensure_repo_root() {
                   if [ ! -d "./apps/api" ] || [ ! -d "./apps/web" ]; then
@@ -114,6 +113,11 @@
                   echo "Configured apps/api/.env DATABASE_URL."
                 }
 
+                fallback_database_url_for_port() {
+                  local port="$1"
+                  printf 'mysql://%s@%s:%s/%s' "$FALLBACK_DB_USER" "$FALLBACK_DB_HOST" "$port" "$FALLBACK_DB_NAME"
+                }
+
                 resolve_database_url() {
                   local database_url=""
                   if [ -n "''${DB_URL_OVERRIDE:-}" ]; then
@@ -173,6 +177,29 @@
                     return 1
                   }
 
+                  is_port_open() {
+                    local port="$1"
+                    (echo >"/dev/tcp/$FALLBACK_DB_HOST/$port") >/dev/null 2>&1
+                  }
+
+                  choose_fallback_port() {
+                    local start_port="$1"
+                    local max_tries=25
+                    local try=0
+                    local candidate="$start_port"
+
+                    while [ "$try" -lt "$max_tries" ]; do
+                      if ! is_port_open "$candidate"; then
+                        printf '%s' "$candidate"
+                        return 0
+                      fi
+                      candidate=$((candidate + 1))
+                      try=$((try + 1))
+                    done
+
+                    return 1
+                  }
+
                   start_docker_mysql() {
                     if ! compose up -d mysql; then
                       return 1
@@ -196,7 +223,9 @@
                     local data_dir="$base_dir/data"
                     local socket_path="$base_dir/mysql.sock"
                     local pid_path="$base_dir/mysqld.pid"
+                    local port_path="$base_dir/port"
                     local log_path="$base_dir/mysqld.log"
+                    local fallback_port="$FALLBACK_DB_PORT"
 
                     mkdir -p "$base_dir"
 
@@ -214,22 +243,41 @@
                     fi
 
                     if [ -f "$pid_path" ] && kill -0 "$(cat "$pid_path" 2>/dev/null)" 2>/dev/null; then
-                      echo "Local MySQL fallback already running."
+                      if [ -f "$port_path" ]; then
+                        fallback_port="$(cat "$port_path" 2>/dev/null || true)"
+                      fi
+                      if [ -z "$fallback_port" ]; then
+                        fallback_port="$FALLBACK_DB_PORT"
+                      fi
+
+                      if wait_for_mysql "$FALLBACK_DB_HOST" "$fallback_port" "root" ""; then
+                        echo "Local MySQL fallback already running on $FALLBACK_DB_HOST:$fallback_port."
+                        printf '%s\n' "$fallback_port" > "$port_path"
+                      else
+                        echo "Warning: existing fallback mysqld pid is running but not reachable on expected port." >&2
+                      fi
                     else
-                      echo "Starting local MySQL fallback on $FALLBACK_DB_HOST:$FALLBACK_DB_PORT ..."
+                      if ! fallback_port="$(choose_fallback_port "$FALLBACK_DB_PORT")"; then
+                        echo "Warning: could not find an available fallback MySQL port near $FALLBACK_DB_PORT." >&2
+                        return 1
+                      fi
+
+                      echo "Starting local MySQL fallback on $FALLBACK_DB_HOST:$fallback_port ..."
                       mysqld \
                         --datadir="$data_dir" \
                         --socket="$socket_path" \
                         --pid-file="$pid_path" \
-                        --port="$FALLBACK_DB_PORT" \
+                        --port="$fallback_port" \
                         --bind-address="$FALLBACK_DB_HOST" \
                         --skip-log-bin \
                         --skip-networking=0 \
                         --log-error="$log_path" \
                         --user="$(id -un)" >>"$log_path" 2>&1 &
+
+                      printf '%s\n' "$fallback_port" > "$port_path"
                     fi
 
-                    if ! wait_for_mysql "$FALLBACK_DB_HOST" "$FALLBACK_DB_PORT" "root" ""; then
+                    if ! wait_for_mysql "$FALLBACK_DB_HOST" "$fallback_port" "root" ""; then
                       echo "Warning: local MySQL fallback failed to start." >&2
                       echo "Check $log_path for details." >&2
                       echo "---- fallback log (last 40 lines) ----" >&2
@@ -238,7 +286,7 @@
                       return 1
                     fi
 
-                    if ! mysql --protocol=tcp -h"$FALLBACK_DB_HOST" -P"$FALLBACK_DB_PORT" -uroot >"$log_path" 2>&1 <<'SQL'
+                    if ! mysql --protocol=tcp -h"$FALLBACK_DB_HOST" -P"$fallback_port" -uroot >>"$log_path" 2>&1 <<'SQL'
 CREATE DATABASE IF NOT EXISTS appdb;
 SQL
                     then
@@ -249,8 +297,8 @@ SQL
                       return 1
                     fi
 
-                    set_database_url "$FALLBACK_DATABASE_URL"
-                    echo "Using local MySQL fallback database at $FALLBACK_DB_HOST:$FALLBACK_DB_PORT."
+                    set_database_url "$(fallback_database_url_for_port "$fallback_port")"
+                    echo "Using local MySQL fallback database at $FALLBACK_DB_HOST:$fallback_port."
                     return 0
                   }
 
