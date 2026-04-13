@@ -1,10 +1,10 @@
-import { withSeedLogging } from "./logging";
-import type { SeedContext } from "./types";
-import { buildScenarioMemberIds, resolveScenarioActors, validateScenarioPrerequisites } from "./teamHealthScenario/actors";
-import { clearPrimaryScenarioWarningsAndMeetings } from "./teamHealthScenario/cleanup";
-import { seedExistingSeTeamHealthMessages, seedTeamHealthMessages } from "./teamHealthScenario/messages";
-import { preparePrimaryScenarioTeam, resolveScenarioModuleId } from "./teamHealthScenario/setup";
-import { buildTeamHealthScenarioDetails } from "./teamHealthScenario/summary";
+import { withSeedLogging } from "../logging";
+import type { SeedContext } from "../types";
+import { buildScenarioMemberIds, resolveScenarioActors, validateScenarioPrerequisites } from "./actors";
+import { clearPrimaryScenarioWarningsAndMeetings } from "./cleanup";
+import { seedExistingSeTeamHealthMessages, seedTeamHealthMessages } from "./messages";
+import { preparePrimaryScenarioTeam, resolveScenarioModuleId } from "./setup";
+import { buildTeamHealthScenarioDetails } from "./summary";
 
 export async function seedTeamHealthWarningScenario(context: SeedContext) {
   return withSeedLogging("seedTeamHealthWarningScenario", async () => {

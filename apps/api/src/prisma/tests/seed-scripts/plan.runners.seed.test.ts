@@ -59,7 +59,7 @@ vi.mock("../../../../prisma/seed/peer-assessment-scenarios", () => ({
   seedPeerAssessmentProgressScenarios: mocks.seedPeerAssessmentProgressScenarios,
 }));
 
-vi.mock("../../../../prisma/seed/team-health-warning-scenario", () => ({
+vi.mock("../../../../prisma/seed/teamHealthScenario/team-health-warning-scenario", () => ({
   seedTeamHealthWarningScenario: mocks.seedTeamHealthWarningScenario,
 }));
 

@@ -17,7 +17,7 @@ import { seedForumPosts } from "./forum";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines, seedStaffStudentMarks } from "./outcomes";
 import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios";
 import { seedMeetings } from "./meetings";
-import { seedTeamHealthWarningScenario } from "./team-health-warning-scenario";
+import { seedTeamHealthWarningScenario } from "./teamHealthScenario/team-health-warning-scenario";
 import { seedNotifications } from "./notifications";
 import { seedSyncProjectStudentsFromTeamAllocations } from "./projectStudentsFromAllocations";
 import { seedTeamInvites } from "./teamInvites";

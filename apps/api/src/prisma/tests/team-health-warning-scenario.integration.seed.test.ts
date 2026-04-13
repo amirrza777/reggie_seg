@@ -28,7 +28,7 @@ vi.mock("../../../prisma/seed/prismaClient", () => ({
   prisma: mockState.prisma,
 }));
 
-import { seedTeamHealthWarningScenario } from "../../../prisma/seed/team-health-warning-scenario";
+import { seedTeamHealthWarningScenario } from "../../../prisma/seed/teamHealthScenario/team-health-warning-scenario";
 
 function makeContext(overrides: Record<string, unknown> = {}) {
   return {

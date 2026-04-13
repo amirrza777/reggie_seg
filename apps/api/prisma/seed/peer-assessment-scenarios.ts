@@ -1,5 +1,5 @@
 import { withSeedLogging } from "./logging";
-import { seedCompletedUnmarkedStudentViewScenario } from "./peer-assessment-completed-unmarked-scenario";
+import { seedCompletedUnmarkedStudentViewScenario } from "./peerAssessmentScenario/peer-assessment-completed-unmarked-scenario";
 import { prisma } from "./prismaClient";
 import type { SeedContext } from "./types";
 import {

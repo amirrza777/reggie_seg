@@ -1,6 +1,6 @@
-import { buildAgreementPayload, buildFeedbackText } from "./completed-project/helpers";
-import { prisma } from "./prismaClient";
-import type { SeedContext } from "./types";
+import { buildAgreementPayload, buildFeedbackText } from "../completed-project/helpers";
+import { prisma } from "../prismaClient";
+import type { SeedContext } from "../types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEV_ADMIN_EMAIL = "admin@kcl.ac.uk";
