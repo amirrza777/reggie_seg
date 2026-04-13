@@ -27,6 +27,7 @@ type Props = {
   initialInvites: TeamInvite[];
   projectCompleted?: boolean;
   teamFormationMode?: "self" | "custom" | "staff";
+  questionnaireWindowOpen?: boolean;
 };
 
 function formatDate(iso: string) {
@@ -44,9 +45,14 @@ export function TeamFormationPanel({
   initialInvites,
   projectCompleted = false,
   teamFormationMode = "self",
+  questionnaireWindowOpen = true,
 }: Props) {
   const router = useRouter();
   const { canEdit: canEditTeamWorkspace, workspaceArchived } = useProjectWorkspaceCanEdit();
+
+  // Check if invitations should be disabled (after questionnaire deadline)
+  const isQuestionnaireDeadlinePassed = !questionnaireWindowOpen;
+  const shouldDisableInvites = isQuestionnaireDeadlinePassed;
 
   // Create team state
   const [teamName, setTeamName] = useState("");
@@ -374,7 +380,7 @@ export function TeamFormationPanel({
         </div>
       ) : null}
 
-      {!projectCompleted && canEditTeamWorkspace ? (
+      {!projectCompleted && canEditTeamWorkspace && !shouldDisableInvites && teamFormationMode === "self" ? (
         <>
           {/* Invite by email */}
           <div className="team-formation__section">

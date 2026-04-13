@@ -127,6 +127,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
               initialInvites={initialInvites}
               projectCompleted={projectCompleted}
               teamFormationMode={teamFormationMode}
+              questionnaireWindowOpen={teamAllocationQuestionnaireStatus?.windowIsOpen ?? true}
             />
           ) : (
             <p>Please sign in to manage your team.</p>

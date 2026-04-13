@@ -38,11 +38,13 @@ vi.mock("@/features/projects/components/TeamFormationPanel", () => ({
     projectId,
     initialInvites,
     teamFormationMode,
+    questionnaireWindowOpen,
   }: {
     team: { id: number; teamName?: string } | null;
     projectId: number;
     initialInvites: unknown[];
     teamFormationMode?: "self" | "custom" | "staff";
+    questionnaireWindowOpen?: boolean;
   }) => (
     <div
       data-testid="team-formation-panel"
@@ -51,6 +53,7 @@ vi.mock("@/features/projects/components/TeamFormationPanel", () => ({
       data-team-name={team?.teamName ?? ""}
       data-invite-count={initialInvites.length}
       data-team-mode={teamFormationMode ?? ""}
+      data-questionnaire-window-open={String(Boolean(questionnaireWindowOpen))}
     />
   ),
 }));
