@@ -47,6 +47,10 @@ vi.mock("../../../shared/db.js", () => ({
       findFirst: vi.fn(),
       findUnique: vi.fn(),
     },
+    featureFlag: {
+      findMany: vi.fn(),
+      createMany: vi.fn(),
+    },
     $transaction: vi.fn(async (callback: (tx: any) => Promise<any>) =>
       callback({
         project: {
@@ -75,6 +79,8 @@ describe("projects repo read and create flows", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    (prisma.featureFlag.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (prisma.featureFlag.createMany as ReturnType<typeof vi.fn>).mockResolvedValue({ count: 0 });
   });
 
   it("getUserProjects queries projects by membership with module select", async () => {
@@ -311,6 +317,33 @@ describe("projects repo read and create flows", () => {
         moduleId: 2,
         questionnaireTemplateId: 3,
         teamAllocationQuestionnaireTemplateId: null,
+        projectNavFlags: {
+          version: 1,
+          active: {
+            team: true,
+            meetings: true,
+            peer_assessment: true,
+            peer_feedback: true,
+            repos: true,
+            trello: true,
+            discussion: true,
+            team_health: true,
+          },
+          completed: {
+            team: true,
+            meetings: true,
+            peer_assessment: true,
+            peer_feedback: true,
+            repos: true,
+            trello: true,
+            discussion: true,
+            team_health: true,
+          },
+          peerModes: {
+            peer_assessment: "NATURAL",
+            peer_feedback: "NATURAL",
+          },
+        },
         deadline: {
           create: {
             taskOpenDate: deadlineInput.taskOpenDate,
@@ -324,6 +357,7 @@ describe("projects repo read and create flows", () => {
             feedbackDueDateMcf: deadlineInput.feedbackDueDateMcf,
             teamAllocationQuestionnaireOpenDate: null,
             teamAllocationQuestionnaireDueDate: null,
+            teamAllocationInviteDueDate: null,
           },
         },
       },
@@ -347,6 +381,7 @@ describe("projects repo read and create flows", () => {
             feedbackDueDateMcf: true,
             teamAllocationQuestionnaireOpenDate: true,
             teamAllocationQuestionnaireDueDate: true,
+            teamAllocationInviteDueDate: true,
           },
         },
       },
@@ -361,6 +396,47 @@ describe("projects repo read and create flows", () => {
         ...deadlineInput,
       },
     });
+    expect(prisma.featureFlag.createMany).toHaveBeenCalled();
+    expect(prisma.featureFlag.findMany).toHaveBeenCalled();
+  });
+
+  it("createProject seeds projectNavFlags with disabled tabs matching enterprise feature flags", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({
+      id: 99,
+      role: "STAFF",
+      enterpriseId: "ent-1",
+    });
+    (prisma.module.findFirst as any).mockResolvedValue({ id: 2, archivedAt: null });
+    (prisma.moduleLead.findFirst as any).mockResolvedValue({ moduleId: 2 });
+    (prisma.questionnaireTemplate.findUnique as any).mockResolvedValue({ id: 3, purpose: "PEER_ASSESSMENT" });
+    (prisma.featureFlag.findMany as any).mockResolvedValue([{ key: "trello", enabled: false }]);
+    const txProjectCreate = vi.fn().mockResolvedValue({
+      id: 2,
+      name: "P2",
+      informationText: null,
+      moduleId: 2,
+      questionnaireTemplateId: 3,
+      deadline: { ...deadlineInput },
+    });
+    (prisma.$transaction as any).mockImplementation(async (callback: (tx: any) => Promise<any>) =>
+      callback({
+        project: { create: txProjectCreate },
+        projectStudent: { createMany: vi.fn() },
+      }),
+    );
+
+    await createProject(99, "P2", 2, 3, undefined, null, deadlineInput, undefined);
+
+    expect(txProjectCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          projectNavFlags: expect.objectContaining({
+            active: expect.objectContaining({ trello: false, team: true }),
+            completed: expect.objectContaining({ trello: false, team: true }),
+          }),
+        }),
+      }),
+    );
   });
 
   it("createProject rejects staff who are not module leads", async () => {

@@ -63,6 +63,7 @@ export type ProjectDeadline = {
   feedbackDueDateMcf?: string | null;
   teamAllocationQuestionnaireOpenDate?: string | null;
   teamAllocationQuestionnaireDueDate?: string | null;
+  teamAllocationInviteDueDate?: string | null;
   isOverridden: boolean;
   overrideScope?: "NONE" | "TEAM" | "STUDENT";
   deadlineProfile?: "STANDARD" | "MCF";
@@ -203,10 +204,9 @@ export type StaffProjectTeamsResponse = {
     viewerAccessLabel?: string;
     canManageProjectSettings?: boolean;
     informationText?: string | null;
+    teamAllocationQuestionnaireTemplateId?: number | null;
   };
-  /** Students explicitly on this project (project access), used for allocation scope. */
   projectStudentCount: number;
-  /** Of those, not yet on any active team for this project. */
   unassignedProjectStudentCount: number;
   teams: Team[];
 };
@@ -223,6 +223,7 @@ export type StaffProjectManageDeadlineSnapshot = {
   feedbackDueDateMcf: string | null;
   teamAllocationQuestionnaireOpenDate: string | null;
   teamAllocationQuestionnaireDueDate: string | null;
+  teamAllocationInviteDueDate: string | null;
 };
 
 export type StaffProjectManageAccessPerson = {
@@ -251,6 +252,8 @@ export type StaffProjectManageSummary = {
   projectDeadline: StaffProjectManageDeadlineSnapshot | null;
   hasSubmittedPeerAssessments: boolean;
   projectAccess: StaffProjectManageAccessSnapshot;
+  /** False for TAs, they can open this page to view but must not edit via the API. */
+  canMutateProjectSettings: boolean;
 };
 
 export type StaffProjectManageDeadlinePatchPayload = {
@@ -265,6 +268,7 @@ export type StaffProjectManageDeadlinePatchPayload = {
   feedbackDueDateMcf: string;
   teamAllocationQuestionnaireOpenDate?: string | null;
   teamAllocationQuestionnaireDueDate?: string | null;
+  teamAllocationInviteDueDate?: string | null;
 };
 
 export type StaffProjectPeerAssessmentOverview = {

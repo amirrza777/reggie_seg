@@ -306,17 +306,6 @@ export function StaffProjectNavFlagsPanel({
       ) : null}
 
       {table}
-      {globallyDisabledTabs.length > 0 ? (
-        <div className="status-alert status-alert--error staff-projects__enterprise-override-alert">
-          <p>
-            Enterprise feature flags are currently overriding this project configuration.
-          </p>
-          <p>
-            Disabled at enterprise level: <strong>{globallyDisabledTabs.join(", ")}</strong>.
-          </p>
-          <p>These tabs stay hidden for students until re-enabled in Enterprise feature flags.</p>
-        </div>
-      ) : null}
     </div>
   );
 }

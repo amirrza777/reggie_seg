@@ -40,6 +40,7 @@ export async function submitCreateProject(params: SubmitParams): Promise<SubmitR
 
   const allocationOpenDate = parseLocalDateTime(deadline.teamAllocationQuestionnaireOpenDate);
   const allocationDueDate = parseLocalDateTime(deadline.teamAllocationQuestionnaireDueDate);
+  const inviteDueDate = parseLocalDateTime(deadline.teamAllocationInviteDueDate);
 
   if (parsedAllocationTemplateId !== null) {
     if (!allocationOpenDate || !allocationDueDate) {
@@ -50,6 +51,11 @@ export async function submitCreateProject(params: SubmitParams): Promise<SubmitR
     }
     if (allocationDueDate >= parsedDeadline.taskOpenDate) {
       return { ok: false, error: "Team allocation questionnaire due date must be before project start (task open date)." };
+    }
+  } else {
+    // Self-organization mode: validate invite deadline
+    if (inviteDueDate && inviteDueDate >= parsedDeadline.taskOpenDate) {
+      return { ok: false, error: "Team invite deadline must be before project start (task open date)." };
     }
   }
 
@@ -78,6 +84,10 @@ export async function submitCreateProject(params: SubmitParams): Promise<SubmitR
         teamAllocationQuestionnaireDueDate:
           parsedAllocationTemplateId !== null && allocationDueDate
             ? allocationDueDate.toISOString()
+            : null,
+        teamAllocationInviteDueDate:
+          parsedAllocationTemplateId === null && inviteDueDate
+            ? inviteDueDate.toISOString()
             : null,
       },
     });

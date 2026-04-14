@@ -43,6 +43,7 @@ const emptyManageSummary: StaffProjectManageSummary = {
     moduleMemberDirectory: [],
     projectStudentIds: [],
   },
+  canMutateProjectSettings: true,
 };
 
 describe("StaffProjectTeamsPage (project overview)", () => {

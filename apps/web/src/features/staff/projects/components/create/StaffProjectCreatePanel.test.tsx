@@ -75,7 +75,9 @@ describe("StaffProjectCreatePanel", () => {
       />,
     );
 
-    await waitFor(() => expect(getMyQuestionnairesMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(getMyQuestionnairesMock).toHaveBeenCalledWith(expect.objectContaining({ purpose: "PEER_ASSESSMENT" })),
+    );
     await waitFor(() => expect(screen.getByRole("option", { name: "Team Feedback Template" })).toBeInTheDocument());
 
     const [templateSelect] = screen.getAllByRole("combobox");
@@ -120,7 +122,9 @@ describe("StaffProjectCreatePanel", () => {
       />,
     );
 
-    await waitFor(() => expect(getMyQuestionnairesMock).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(getMyQuestionnairesMock).toHaveBeenCalledWith(expect.objectContaining({ purpose: "PEER_ASSESSMENT" })),
+    );
     await waitFor(() => expect(screen.getByRole("option", { name: "Team Feedback Template" })).toBeInTheDocument());
 
     const [templateSelect] = screen.getAllByRole("combobox");

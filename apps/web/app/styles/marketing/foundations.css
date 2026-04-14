@@ -10,14 +10,53 @@
   --landing-body: var(--fs-marketing-body, var(--fs-body-lg, var(--fs-body)));
   --fw-bold: 500;
   --fw-semibold: 500;
+  /* Keep marketing rendering stable across environments regardless of prefers-color-scheme. */
+  --bg-canvas: #030303;
+  --bg: var(--bg-canvas);
+  --bg-strong: #080808;
+  --surface: #0a0a0a;
+  --ink: #fcfdff;
+  --ink-strong: #e2e8f0;
+  --ink-subtle: #e2e8f0;
+  --ink-lede: #cbd5e1;
+  --muted: #cbd5e1;
+  --muted-subtle: #94a3b8;
+  --border: rgba(148, 163, 184, 0.16);
+  --accent: var(--ink);
+  --accent-strong: var(--ink-strong);
+  --accent-soft: color-mix(in srgb, var(--ink) 14%, transparent);
+  --accent-border: color-mix(in srgb, var(--ink) 24%, transparent);
+  --btn-primary-bg: var(--accent);
+  --btn-primary-border: var(--accent-strong);
+  --btn-primary-text: var(--surface);
+  --btn-ghost-text: #e2e8f0;
+  --btn-ghost-border: #e2e8f0;
+  --glass-surface: rgba(3, 3, 3, 0.32);
+  --glass-hover: rgba(226, 232, 240, 0.025);
+  --glass-ui-bg: color-mix(in srgb, var(--surface) 82%, transparent);
+  --glass-ui-bg-soft: color-mix(in srgb, var(--surface) 92%, transparent);
+  --glass-ui-border: color-mix(in srgb, var(--border) 84%, rgba(226, 232, 240, 0.26) 16%);
   position: relative;
   isolation: isolate;
   overflow: hidden;
   background: var(--bg);
+  color-scheme: dark;
 }
 
 .marketing-shell :where(h1, h2, h3) {
   font-weight: var(--fw-semibold);
+}
+
+.marketing-shell .btn.btn--primary {
+  background: #fcfdff;
+  color: #0a0a0a;
+  border-color: #e2e8f0;
+}
+
+.marketing-shell .btn.btn--ghost,
+.marketing-shell .link-ghost {
+  color: #e2e8f0;
+  border-color: #e2e8f0;
 }
 
 .marketing-shell::before {
@@ -34,7 +73,7 @@
     linear-gradient(0deg, var(--color-fixed-rgba-32-173-120-0-12) 0%, var(--color-fixed-rgba-32-173-120-0-04) 16%, transparent 32%),
     radial-gradient(ellipse 90% 45% at 90% 105%, var(--color-fixed-rgba-32-173-120-0-48), var(--color-fixed-rgba-32-173-120-0-16) 35%, transparent 65%),
     radial-gradient(ellipse 40% 25% at 100% 100%, var(--color-fixed-rgba-32-173-120-0-38), transparent 50%);
-  mix-blend-mode: darken;
+  mix-blend-mode: screen;
   pointer-events: none;
 }
 
@@ -65,12 +104,6 @@
       radial-gradient(circle farthest-corner at -16% -5%, var(--color-fixed-rgba-32-173-120-0-46), var(--color-fixed-rgba-32-173-120-0-06) 4%, transparent 7%),
       radial-gradient(ellipse 120% 42% at 100% 100%, var(--color-fixed-rgba-32-173-120-0-44), var(--color-fixed-rgba-32-173-120-0-14) 34%, transparent 62%),
       radial-gradient(ellipse 62% 22% at 96% 100%, var(--color-fixed-rgba-32-173-120-0-34), transparent 52%);
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .marketing-shell::before {
-    mix-blend-mode: screen;
   }
 }
 

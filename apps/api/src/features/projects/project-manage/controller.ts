@@ -8,6 +8,7 @@ import {
 import { parsePositiveIntArray } from "../../../shared/parse.js";
 import { parsePositiveInt, resolveAuthenticatedUserId } from "../controller.shared.js";
 import {
+  canStaffMutateProjectManageSettings,
   deleteStaffProjectManage,
   getStaffProjectManageSummary,
   patchStaffProjectManage,
@@ -103,6 +104,7 @@ export function mapStaffProjectManageRowToJson(row: StaffProjectManageSummaryRow
           feedbackDueDateMcf: iso(dl.feedbackDueDateMcf),
           teamAllocationQuestionnaireOpenDate: iso(dl.teamAllocationQuestionnaireOpenDate),
           teamAllocationQuestionnaireDueDate: iso(dl.teamAllocationQuestionnaireDueDate),
+          teamAllocationInviteDueDate: iso(dl.teamAllocationInviteDueDate),
         }
       : null,
     hasSubmittedPeerAssessments: row._count.peerAssessments > 0,
@@ -126,7 +128,8 @@ export async function getStaffProjectManageHandler(req: AuthRequest, res: Respon
     if (!row) {
       return res.status(404).json({ error: "Project not found" });
     }
-    return res.json(mapStaffProjectManageRowToJson(row));
+    const canMutateProjectSettings = await canStaffMutateProjectManageSettings(actorUserId, row.moduleId);
+    return res.json({ ...mapStaffProjectManageRowToJson(row), canMutateProjectSettings });
   } catch (error: unknown) {
     const err = error as { code?: string; message?: string };
     if (err?.code === "FORBIDDEN") {

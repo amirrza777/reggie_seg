@@ -12,13 +12,87 @@ import {
   type LocalDeadlineFields,
 } from "./StaffProjectManageProjectDeadlinesSection.lib";
 
-type RowProps = {
-  label: string;
-  name: keyof LocalDeadlineFields;
-  value: string;
-  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  disabled: boolean;
+function toDatetimeLocalValue(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromDatetimeLocalValue(value: string): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) {
+    return "";
+  }
+  return d.toISOString();
+}
+
+type LocalDeadlineFields = {
+  taskOpenDate: string;
+  taskDueDate: string;
+  taskDueDateMcf: string;
+  assessmentOpenDate: string;
+  assessmentDueDate: string;
+  assessmentDueDateMcf: string;
+  feedbackOpenDate: string;
+  feedbackDueDate: string;
+  feedbackDueDateMcf: string;
+  teamAllocationQuestionnaireOpenDate: string;
+  teamAllocationQuestionnaireDueDate: string;
+  teamAllocationInviteDueDate: string;
 };
+
+function snapshotToLocal(dl: StaffProjectManageDeadlineSnapshot): LocalDeadlineFields {
+  return {
+    taskOpenDate: toDatetimeLocalValue(dl.taskOpenDate),
+    taskDueDate: toDatetimeLocalValue(dl.taskDueDate),
+    taskDueDateMcf: toDatetimeLocalValue(dl.taskDueDateMcf),
+    assessmentOpenDate: toDatetimeLocalValue(dl.assessmentOpenDate),
+    assessmentDueDate: toDatetimeLocalValue(dl.assessmentDueDate),
+    assessmentDueDateMcf: toDatetimeLocalValue(dl.assessmentDueDateMcf),
+    feedbackOpenDate: toDatetimeLocalValue(dl.feedbackOpenDate),
+    feedbackDueDate: toDatetimeLocalValue(dl.feedbackDueDate),
+    feedbackDueDateMcf: toDatetimeLocalValue(dl.feedbackDueDateMcf),
+    teamAllocationQuestionnaireOpenDate: toDatetimeLocalValue(dl.teamAllocationQuestionnaireOpenDate),
+    teamAllocationQuestionnaireDueDate: toDatetimeLocalValue(dl.teamAllocationQuestionnaireDueDate),
+    teamAllocationInviteDueDate: toDatetimeLocalValue(dl.teamAllocationInviteDueDate),
+  };
+}
+
+function buildPayload(fields: LocalDeadlineFields): StaffProjectManageDeadlinePatchPayload | null {
+  const core = {
+    taskOpenDate: fromDatetimeLocalValue(fields.taskOpenDate),
+    taskDueDate: fromDatetimeLocalValue(fields.taskDueDate),
+    taskDueDateMcf: fromDatetimeLocalValue(fields.taskDueDateMcf),
+    assessmentOpenDate: fromDatetimeLocalValue(fields.assessmentOpenDate),
+    assessmentDueDate: fromDatetimeLocalValue(fields.assessmentDueDate),
+    assessmentDueDateMcf: fromDatetimeLocalValue(fields.assessmentDueDateMcf),
+    feedbackOpenDate: fromDatetimeLocalValue(fields.feedbackOpenDate),
+    feedbackDueDate: fromDatetimeLocalValue(fields.feedbackDueDate),
+    feedbackDueDateMcf: fromDatetimeLocalValue(fields.feedbackDueDateMcf),
+  };
+  if (Object.values(core).some((v) => !v)) {
+    return null;
+  }
+  const taOpen = fields.teamAllocationQuestionnaireOpenDate.trim()
+    ? fromDatetimeLocalValue(fields.teamAllocationQuestionnaireOpenDate)
+    : null;
+  const taDue = fields.teamAllocationQuestionnaireDueDate.trim()
+    ? fromDatetimeLocalValue(fields.teamAllocationQuestionnaireDueDate)
+    : null;
+  const inviteDue = fields.teamAllocationInviteDueDate.trim()
+    ? fromDatetimeLocalValue(fields.teamAllocationInviteDueDate)
+    : null;
+  return {
+    ...core,
+    teamAllocationQuestionnaireOpenDate: taOpen,
+    teamAllocationQuestionnaireDueDate: taDue,
+    teamAllocationInviteDueDate: inviteDue,
+  };
+}
+
+type RowProps = { label: string; name: keyof LocalDeadlineFields; value: string; onChange: (v: string) => void; disabled: boolean };
 
 function DeadlineRow({ label, name, value, onChange, disabled }: RowProps) {
   return (
@@ -194,6 +268,13 @@ export function StaffProjectManageProjectDeadlinesSection() {
           value={fields.teamAllocationQuestionnaireDueDate}
           disabled={disabled}
           onChange={onDeadlineFieldChange}
+        />
+        <DeadlineRow
+          label="Team invite deadline"
+          name="teamAllocationInviteDueDate"
+          value={fields.teamAllocationInviteDueDate}
+          disabled={disabled}
+          onChange={(v) => setField("teamAllocationInviteDueDate", v)}
         />
       </fieldset>
 
