@@ -33,15 +33,14 @@ async function findAssessmentStudent(enterpriseId: string) {
 }
 
 function resolveCoverageTeamTargets(modules: SeedModule[], projects: SeedProject[], teams: SeedTeam[]) {
-  const projectByModuleId = new Map<number, SeedProject>();
-  for (const project of [...projects].sort((left, right) => left.id - right.id)) {
-    if (!projectByModuleId.has(project.moduleId)) projectByModuleId.set(project.moduleId, project);
-  }
-  return modules
-    .map((module) => projectByModuleId.get(module.id))
-    .filter((project): project is SeedProject => Boolean(project))
-    .map((project) => teams.find((candidate) => candidate.projectId === project.id)?.id ?? null)
-    .filter((teamId): teamId is number => typeof teamId === "number");
+  const firstModule = modules[0];
+  if (!firstModule) return [];
+  const project = [...projects]
+    .sort((left, right) => left.id - right.id)
+    .find((candidate) => candidate.moduleId === firstModule.id);
+  if (!project) return [];
+  const teamId = teams.find((candidate) => candidate.projectId === project.id)?.id ?? null;
+  return typeof teamId === "number" ? [teamId] : [];
 }
 
 async function createCoverageAllocations(userId: number, targetTeamIds: number[]) {

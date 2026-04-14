@@ -6,12 +6,12 @@ const mockState = vi.hoisted(() => ({
     project: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
     team: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn(), findFirst: vi.fn() },
     teamAllocation: { deleteMany: vi.fn(), createMany: vi.fn(), findFirst: vi.fn() },
-    meeting: { findMany: vi.fn(), deleteMany: vi.fn() },
+    meeting: { findMany: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
+    meetingAttendance: { deleteMany: vi.fn(), upsert: vi.fn() },
+    meetingMinutes: { deleteMany: vi.fn(), upsert: vi.fn() },
     meetingComment: { findMany: vi.fn(), deleteMany: vi.fn() },
     mention: { deleteMany: vi.fn() },
-    meetingAttendance: { deleteMany: vi.fn() },
     meetingParticipant: { deleteMany: vi.fn() },
-    meetingMinutes: { deleteMany: vi.fn() },
     projectDeadline: { upsert: vi.fn(), findUnique: vi.fn() },
     teamDeadlineOverride: { deleteMany: vi.fn() },
     studentDeadlineOverride: { deleteMany: vi.fn() },
@@ -55,6 +55,13 @@ function resetDefaultMocks() {
   mockState.prisma.team.findFirst.mockResolvedValue({ id: 51 });
   mockState.prisma.teamAllocation.findFirst.mockResolvedValue({ userId: 101 });
   mockState.prisma.meeting.findMany.mockResolvedValue([]);
+  mockState.prisma.meeting.findFirst.mockResolvedValue(null);
+  mockState.prisma.meeting.update.mockResolvedValue({ id: 1 });
+  mockState.prisma.meeting.create.mockResolvedValue({ id: 1 });
+  mockState.prisma.meetingAttendance.deleteMany.mockResolvedValue({ count: 0 });
+  mockState.prisma.meetingAttendance.upsert.mockResolvedValue({ id: 1 });
+  mockState.prisma.meetingMinutes.deleteMany.mockResolvedValue({ count: 0 });
+  mockState.prisma.meetingMinutes.upsert.mockResolvedValue({ id: 1 });
   mockState.prisma.meetingComment.findMany.mockResolvedValue([]);
   mockState.prisma.projectDeadline.findUnique.mockResolvedValue({ id: 61 });
   mockState.prisma.question.findMany.mockResolvedValue([{ label: "Q1" }, { label: "Q2" }]);

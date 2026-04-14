@@ -1,5 +1,6 @@
-import { Role } from "@prisma/client";
+import { seedAssessmentStudentEmail } from "../data";
 import { prisma } from "../prismaClient";
+import { COMPLETED_DEMO_PROJECT_INFORMATION_TEXT } from "../scenarioDescriptions";
 import type { SeedContext } from "../types";
 import {
   buildAgreementPayload,
@@ -25,7 +26,13 @@ export async function runCompletedProjectScenario(context: SeedContext): Promise
   const deadlineCreated = await ensureScenarioDeadline(setup.project.id);
   const questions = await resolveScenarioQuestions(setup.project.questionnaireTemplateId, context.templates[0]!.questionLabels);
   const assessmentResult = await seedScenarioAssessments(setup.project.id, setup.team.id, setup.memberIds, setup.project.questionnaireTemplateId, questions);
-  const markingResult = await seedScenarioMarkings(setup.team.id, setup.memberIds, setup.marker.id, context.usersByRole.students.map((student) => student.id));
+  const markingResult = await seedScenarioMarkings(
+    setup.team.id,
+    setup.memberIds,
+    setup.marker.id,
+    context.usersByRole.students.map((student) => student.id),
+    setup.adminMemberIds,
+  );
   const meetingResult = await ensureScenarioMeetings(setup.team.id, setup.memberIds[0] ?? setup.marker.id, setup.memberIds);
 
   const rows = setup.createdProject + setup.createdTeam + allocationsCreated + deadlineCreated + assessmentResult.rows + markingResult.rows + meetingResult.createdMeetings + meetingResult.createdMinutes + meetingResult.createdAttendances;
@@ -37,8 +44,8 @@ async function resolveScenarioSetupInput(context: SeedContext) {
   const template = context.templates[0];
   const marker = context.usersByRole.adminOrStaff[0];
   if (!module || !template || !marker) return null;
-  const memberIds = await resolveScenarioMembers(context);
-  return { enterpriseId: context.enterprise.id, moduleId: module.id, templateId: template.id, marker, memberIds };
+  const { memberIds, adminMemberIds } = await resolveScenarioMembers(context);
+  return { enterpriseId: context.enterprise.id, moduleId: module.id, templateId: template.id, marker, memberIds, adminMemberIds };
 }
 
 async function resolveScenarioSetup(setupInput: {
@@ -47,12 +54,14 @@ async function resolveScenarioSetup(setupInput: {
   templateId: number;
   marker: { id: number };
   memberIds: number[];
+  adminMemberIds: number[];
 }) {
   const projectSeed = await upsertScenarioProject(setupInput.enterpriseId, setupInput.moduleId, setupInput.templateId);
   const teamSeed = await upsertScenarioTeam(setupInput.enterpriseId, projectSeed.project.id);
   return {
     marker: setupInput.marker,
     memberIds: setupInput.memberIds,
+    adminMemberIds: setupInput.adminMemberIds,
     project: projectSeed.project,
     team: teamSeed.team,
     createdProject: projectSeed.createdProject,
@@ -61,11 +70,19 @@ async function resolveScenarioSetup(setupInput: {
 }
 
 async function resolveScenarioMembers(context: SeedContext) {
-  const enterpriseAdmins = await prisma.user.findMany({
-    where: { enterpriseId: context.enterprise.id, role: { in: [Role.ADMIN, Role.ENTERPRISE_ADMIN] } },
-    select: { id: true },
-  });
-  return Array.from(new Set([...context.usersByRole.students.slice(0, 4).map((user) => user.id), ...enterpriseAdmins.map((user) => user.id)]));
+  const assessmentStudentId = (context.assessmentAccounts ?? []).find(
+    (user) => user.role === "STUDENT" && user.email.toLowerCase() === seedAssessmentStudentEmail,
+  )?.id ?? (context.users ?? []).find(
+    (user) => user.role === "STUDENT" && user.email.toLowerCase() === seedAssessmentStudentEmail,
+  )?.id;
+  const memberIds = Array.from(
+    new Set([
+      ...context.usersByRole.students.slice(0, 4).map((user) => user.id),
+      assessmentStudentId,
+    ]),
+  ).filter((id): id is number => Number.isInteger(id) && id > 0);
+  const adminMemberIds: number[] = [];
+  return { memberIds, adminMemberIds };
 }
 
 async function upsertScenarioProject(enterpriseId: string, moduleId: number, questionnaireTemplateId: number) {
@@ -73,11 +90,22 @@ async function upsertScenarioProject(enterpriseId: string, moduleId: number, que
     where: { name: SCENARIO_PROJECT_NAME, module: { enterpriseId } },
     select: { id: true, questionnaireTemplateId: true },
   });
-  if (existingProject) return { project: existingProject, createdProject: 0 };
+  if (existingProject) {
+    const project = await prisma.project.update({
+      where: { id: existingProject.id },
+      data: {
+        moduleId,
+        questionnaireTemplateId,
+        informationText: COMPLETED_DEMO_PROJECT_INFORMATION_TEXT,
+      },
+      select: { id: true, questionnaireTemplateId: true },
+    });
+    return { project, createdProject: 0 };
+  }
   const project = await prisma.project.create({
     data: {
       name: SCENARIO_PROJECT_NAME,
-      informationText: "This completed demo project is seeded for reviewing final outcomes, marks, and feedback history.",
+      informationText: COMPLETED_DEMO_PROJECT_INFORMATION_TEXT,
       moduleId,
       questionnaireTemplateId,
     },
@@ -297,9 +325,15 @@ function createScenarioFeedback(
   });
 }
 
-async function seedScenarioMarkings(teamId: number, memberIds: number[], markerId: number, studentIds: number[]) {
+async function seedScenarioMarkings(
+  teamId: number,
+  memberIds: number[],
+  markerId: number,
+  studentIds: number[],
+  adminMemberIds: number[],
+) {
   const teamMarkingCreated = await ensureTeamMarking(teamId, markerId);
-  const studentMarksCreated = await ensureStudentMarkings(teamId, memberIds, markerId, studentIds);
+  const studentMarksCreated = await ensureStudentMarkings(teamId, memberIds, markerId, studentIds, adminMemberIds);
   return { rows: teamMarkingCreated + studentMarksCreated };
 }
 
@@ -317,15 +351,22 @@ async function ensureTeamMarking(teamId: number, markerId: number) {
   return 1;
 }
 
-async function ensureStudentMarkings(teamId: number, memberIds: number[], markerId: number, studentIds: number[]) {
-  const studentIdSet = new Set(studentIds);
-  const studentMemberIds = memberIds.filter((memberId) => studentIdSet.has(memberId));
+async function ensureStudentMarkings(
+  teamId: number,
+  memberIds: number[],
+  markerId: number,
+  studentIds: number[],
+  adminMemberIds: number[],
+) {
+  void studentIds;
+  void adminMemberIds;
+  const markableMemberIds = Array.from(new Set(memberIds)).filter((memberId) => memberId !== markerId);
   const existingStudentMarks = await prisma.staffStudentMarking.findMany({
-    where: { teamId, studentUserId: { in: studentMemberIds } },
+    where: { teamId, studentUserId: { in: markableMemberIds } },
     select: { studentUserId: true },
   });
   const markedStudentIds = new Set(existingStudentMarks.map((record) => record.studentUserId));
-  const studentMarksToCreate = studentMemberIds
+  const studentMarksToCreate = markableMemberIds
     .filter((studentUserId) => !markedStudentIds.has(studentUserId))
     .map((studentUserId, index) => ({
       teamId,

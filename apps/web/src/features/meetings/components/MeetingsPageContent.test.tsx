@@ -155,8 +155,11 @@ describe("MeetingsPageContent", () => {
 
   it("locks new meeting tab when project is completed", async () => {
     render(<MeetingsPageContent teamId={10} projectId={1} projectCompleted />);
-    await waitFor(() => screen.getByText("Team Meeting"));
+    await waitFor(() => screen.getByText("Group Check-in"));
     expect(screen.queryByRole("button", { name: /new meeting/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /upcoming meetings/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /previous meetings/i })).toBeInTheDocument();
+    expect(screen.queryByText("Team Meeting")).not.toBeInTheDocument();
     expect(screen.getByText("Project is completed. Meeting creation is closed.")).toBeInTheDocument();
   });
 });

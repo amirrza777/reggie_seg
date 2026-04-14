@@ -1,4 +1,5 @@
 import { Role } from "@prisma/client";
+import { seedAssessmentStudentEmail } from "../data";
 import { prisma } from "../prismaClient";
 import { uniquePositiveIds } from "../scenarioUtils";
 import type { SeedContext } from "../types";
@@ -20,8 +21,11 @@ export async function resolveScenarioActors(context: SeedContext) {
     select: { id: true },
     orderBy: { id: "asc" },
   });
+  const assessmentStudentId = (context.users ?? []).find(
+    (user) => user.role === "STUDENT" && user.email.toLowerCase() === seedAssessmentStudentEmail,
+  )?.id;
   const scenarioStudents = context.usersByRole.students.slice(-4);
-  const fallbackRequester = scenarioStudents[0]?.id ?? context.usersByRole.students[0]?.id ?? null;
+  const fallbackRequester = assessmentStudentId ?? scenarioStudents[0]?.id ?? context.usersByRole.students[0]?.id ?? null;
   const fallbackReviewer = context.usersByRole.adminOrStaff[0]?.id ?? null;
   return {
     enterpriseAdmins,
@@ -30,10 +34,14 @@ export async function resolveScenarioActors(context: SeedContext) {
   };
 }
 
-export function buildScenarioMemberIds(context: SeedContext, requesterId: number, reviewerId: number | null) {
+export function buildScenarioMemberIds(context: SeedContext, requesterId: number, _reviewerId: number | null) {
+  void _reviewerId;
+  const assessmentStudentId = (context.users ?? []).find(
+    (user) => user.role === "STUDENT" && user.email.toLowerCase() === seedAssessmentStudentEmail,
+  )?.id;
   const scenarioStudents = context.usersByRole.students.slice(-4);
   return uniquePositiveIds([
-    ...(reviewerId ? [reviewerId] : []),
+    assessmentStudentId,
     ...scenarioStudents.map((user) => user.id),
     requesterId,
   ]);

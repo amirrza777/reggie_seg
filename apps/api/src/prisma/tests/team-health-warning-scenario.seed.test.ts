@@ -8,8 +8,9 @@ import { uniquePositiveIds } from "../../../prisma/seed/scenarioUtils";
 import { makeSeedContext } from "../test-helpers/seed-context";
 
 describe("team-health warning pure helpers", () => {
-  it("buildScenarioMemberIds includes reviewer and deduplicates positive ids", () => {
+  it("buildScenarioMemberIds includes assessment student and excludes reviewer from team memberships", () => {
     const context = makeSeedContext({
+      users: [{ id: 777, role: "STUDENT", email: "student.assessment@example.com" }],
       usersByRole: {
         students: [
           { id: 101, role: "STUDENT", email: "s1@example.com" },
@@ -21,7 +22,8 @@ describe("team-health warning pure helpers", () => {
       },
     });
     const memberIds = buildScenarioMemberIds(context, 101, 900);
-    expect(memberIds).toEqual(expect.arrayContaining([101, 102, 103, 104, 900]));
+    expect(memberIds).toEqual(expect.arrayContaining([101, 102, 103, 104, 777]));
+    expect(memberIds).not.toContain(900);
     expect(uniquePositiveIds([1, 2, 2, -1, 0])).toEqual([1, 2]);
   });
 

@@ -157,6 +157,7 @@ export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetail
 
       {meeting.minutes && (
         <Card title="Minutes">
+          <p>Minutes taken by: {meeting.minutes.writer.firstName} {meeting.minutes.writer.lastName}</p>
           <RichTextViewer content={meeting.minutes.content} />
         </Card>
       )}

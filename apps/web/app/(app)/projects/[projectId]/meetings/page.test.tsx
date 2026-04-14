@@ -16,8 +16,24 @@ vi.mock("@/features/projects/api/client", () => ({
 }));
 
 vi.mock("@/features/meetings/components/MeetingsPageContent", () => ({
-  MeetingsPageContent: ({ teamId, projectId, initialTab }: { teamId: number; projectId: number; initialTab: string }) => (
-    <div data-testid="meetings-page-content" data-team-id={teamId} data-project-id={projectId} data-initial-tab={initialTab} />
+  MeetingsPageContent: ({
+    teamId,
+    projectId,
+    initialTab,
+    projectCompleted,
+  }: {
+    teamId: number;
+    projectId: number;
+    initialTab: string;
+    projectCompleted?: boolean;
+  }) => (
+    <div
+      data-testid="meetings-page-content"
+      data-team-id={teamId}
+      data-project-id={projectId}
+      data-initial-tab={initialTab}
+      data-project-completed={String(Boolean(projectCompleted))}
+    />
   ),
 }));
 
@@ -67,6 +83,28 @@ describe("ProjectMeetingsPage", () => {
     expect(content).toHaveAttribute("data-team-id", "44");
     expect(content).toHaveAttribute("data-project-id", "15");
     expect(content).toHaveAttribute("data-initial-tab", "previous");
+    expect(content).toHaveAttribute("data-project-completed", "false");
+  });
+
+  it("forces previous tab when project is completed", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 12 } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getTeamByUserAndProjectMock.mockResolvedValue({ id: 44 } as Awaited<ReturnType<typeof getTeamByUserAndProject>>);
+    getProjectMarkingMock.mockResolvedValue({
+      teamId: 44,
+      teamMarking: null,
+      studentMarking: { mark: 80 },
+    } as Awaited<ReturnType<typeof getProjectMarking>>);
+
+    const page = await ProjectMeetingsPage({
+      params: Promise.resolve({ projectId: "15" }),
+      searchParams: Promise.resolve({ tab: "upcoming" }),
+    });
+
+    render(page);
+
+    const content = screen.getByTestId("meetings-page-content");
+    expect(content).toHaveAttribute("data-initial-tab", "previous");
+    expect(content).toHaveAttribute("data-project-completed", "true");
   });
 
   it("falls back when no team is found", async () => {

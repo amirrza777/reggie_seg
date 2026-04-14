@@ -25,15 +25,18 @@ export function MeetingsPageContent({
   const { canEdit: workspaceCanEdit } = useProjectWorkspaceCanEdit();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [permissions, setPermissions] = useState<MeetingPermissions | null>(null);
-  const [tab, setTab] = useState<Tab>(initialTab);
+  const [tab, setTab] = useState<Tab>(projectCompleted && initialTab === "upcoming" ? "previous" : initialTab);
 
   const meetingsAllowEdits = workspaceCanEdit && !projectCompleted;
 
   useEffect(() => {
     if (!meetingsAllowEdits && tab === "new") {
-      setTab("upcoming");
+      setTab(projectCompleted ? "previous" : "upcoming");
     }
-  }, [meetingsAllowEdits, tab]);
+    if (projectCompleted && tab === "upcoming") {
+      setTab("previous");
+    }
+  }, [meetingsAllowEdits, projectCompleted, tab]);
 
   useEffect(() => {
     Promise.all([listMeetings(teamId), getTeamMeetingSettings(teamId)]).then(([m, s]) => {
@@ -59,13 +62,15 @@ export function MeetingsPageContent({
   return (
     <div className="stack projects-panel">
       <nav className="pill-nav">
-        <button
-          type="button"
-          className={`pill-nav__link${tab === "upcoming" ? " pill-nav__link--active" : ""}`}
-          onClick={() => setTab("upcoming")}
-        >
-          Upcoming meetings
-        </button>
+        {!projectCompleted ? (
+          <button
+            type="button"
+            className={`pill-nav__link${tab === "upcoming" ? " pill-nav__link--active" : ""}`}
+            onClick={() => setTab("upcoming")}
+          >
+            Upcoming meetings
+          </button>
+        ) : null}
         <button
           type="button"
           className={`pill-nav__link${tab === "previous" ? " pill-nav__link--active" : ""}`}
@@ -99,9 +104,9 @@ export function MeetingsPageContent({
           teamId={teamId}
           onCreated={() => {
             refreshList();
-            setTab("upcoming");
-          }}
-          onCancel={() => setTab("upcoming")}
+              setTab("upcoming");
+            }}
+          onCancel={() => setTab(projectCompleted ? "previous" : "upcoming")}
         />
       ) : (
         <MeetingList

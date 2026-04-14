@@ -1,10 +1,10 @@
 import { buildAgreementPayload, buildFeedbackText } from "../completed-project/helpers";
+import { seedAssessmentStudentEmail } from "../data";
 import { prisma } from "../prismaClient";
+import { COMPLETED_UNMARKED_PROJECT_INFORMATION_TEXT } from "../scenarioDescriptions";
 import type { SeedContext } from "../types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DEV_ADMIN_EMAIL = "admin@kcl.ac.uk";
-
 const COMPLETED_UNMARKED_PROJECT_NAME = "Completed Unmarked Demo Project";
 const COMPLETED_UNMARKED_TEAM_NAME = "Completed Unmarked Demo Team";
 
@@ -22,21 +22,18 @@ function pickRandomStudentIds(studentIds: number[], count: number) {
 }
 
 async function resolveScenarioMemberIds(context: SeedContext) {
-  const devAdmin = await prisma.user.findUnique({
-    where: {
-      enterpriseId_email: {
-        enterpriseId: context.enterprise.id,
-        email: DEV_ADMIN_EMAIL,
-      },
-    },
-    select: { id: true },
-  });
-
+  const assessmentStudentId = (context.users ?? []).find(
+    (user) => user.role === "STUDENT" && user.email.toLowerCase() === seedAssessmentStudentEmail,
+  )?.id;
   // Avoid the head of the student pool where marker/demo users are often seeded.
-  const studentPool = context.usersByRole.students.slice(-12).map((user) => user.id);
+  const studentPool = context.usersByRole.students
+    .slice(-12)
+    .map((user) => user.id)
+    .filter((userId) => userId !== assessmentStudentId);
   const randomStudents = pickRandomStudentIds(studentPool, 4);
-  const memberIds = uniqueUserIds([...(devAdmin ? [devAdmin.id] : []), ...randomStudents]);
-  return memberIds;
+  if (!assessmentStudentId) return uniqueUserIds(randomStudents);
+  if (randomStudents.length < 2) return uniqueUserIds([assessmentStudentId]);
+  return uniqueUserIds([assessmentStudentId, ...randomStudents]);
 }
 
 async function ensureScenarioProject(
@@ -296,7 +293,7 @@ export async function seedCompletedUnmarkedStudentViewScenario(
     context.enterprise.id,
     moduleId,
     templateId,
-    "This scenario represents a finished student project where peer assessment and feedback are complete, deadlines have passed, and staff marking is still pending.",
+    COMPLETED_UNMARKED_PROJECT_INFORMATION_TEXT,
   );
   const team = await ensureScenarioTeam(context.enterprise.id, project.id);
   const createdAllocations = await syncTeamAllocations(team.id, memberIds);
