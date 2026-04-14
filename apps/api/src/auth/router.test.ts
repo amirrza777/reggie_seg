@@ -46,7 +46,7 @@ function createGoogleCallbackResponseMock() {
 }
 
 async function invokeGoogleCallback(
-  user: { id: number; email: string; role?: "ADMIN" | "STAFF" | "ENTERPRISE_ADMIN" },
+  user: { id: number; email: string; role?: "ADMIN" | "STAFF" | "ENTERPRISE_ADMIN"; needsEnterpriseCode?: boolean },
 ) {
   const callbackHandler = await loadGoogleCallbackHandler();
   const res = createGoogleCallbackResponseMock();
@@ -126,6 +126,14 @@ describe("auth router", () => {
     const res = await invokeGoogleCallback({ id: 5, email, role });
 
     expect(res.redirect).toHaveBeenCalledWith(APP_HOME_REDIRECT);
+  });
+
+  it("google callback redirects to enterprise-code page when needsEnterpriseCode is true", async () => {
+    const res = await invokeGoogleCallback({ id: 9, email: "student@test.com", needsEnterpriseCode: true });
+
+    expect(res.redirect).toHaveBeenCalledWith(
+      "http://localhost:3001/google/success?token=a&redirect=%2Fgoogle%2Fenterprise-code",
+    );
   });
 
   it("google callback uses secure cookie settings in production", async () => {

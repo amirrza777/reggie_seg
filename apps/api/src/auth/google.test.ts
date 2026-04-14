@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const useMock = vi.fn();
 const strategyCtor = vi.fn();
 const signUpWithProviderMock = vi.fn();
+const needsEnterpriseCodeEntryMock = vi.fn();
 const GOOGLE_REDIRECT_URL = "http://localhost/callback";
 
 vi.mock("passport", () => ({ default: { use: useMock } }));
@@ -13,7 +14,10 @@ vi.mock("passport-google-oauth20", () => ({
     }
   },
 }));
-vi.mock("./service.js", () => ({ signUpWithProvider: signUpWithProviderMock }));
+vi.mock("./service.js", () => ({
+  signUpWithProvider: signUpWithProviderMock,
+  needsEnterpriseCodeEntry: needsEnterpriseCodeEntryMock,
+}));
 vi.mock("../shared/db.js", () => ({ prisma: {} }));
 
 function setGoogleEnv() {
@@ -72,6 +76,7 @@ describe("configureGoogle", () => {
   it("verify callback creates user via provider and calls done with user", async () => {
     setGoogleEnv();
     signUpWithProviderMock.mockResolvedValueOnce({ id: 5, email: "user@example.com" });
+    needsEnterpriseCodeEntryMock.mockResolvedValueOnce(false);
 
     const verify = await configureGoogleAndGetVerifyCallback();
     const done = vi.fn();
@@ -92,7 +97,26 @@ describe("configureGoogle", () => {
       lastName: "Lovelace",
       provider: "google",
     });
-    expect(done).toHaveBeenCalledWith(null, { id: 5, email: "user@example.com" });
+    expect(done).toHaveBeenCalledWith(null, { id: 5, email: "user@example.com", needsEnterpriseCode: false });
+  });
+
+  it("verify callback passes needsEnterpriseCode: true for DEFAULT enterprise student", async () => {
+    setGoogleEnv();
+    signUpWithProviderMock.mockResolvedValueOnce({ id: 9, email: "student@example.com" });
+    needsEnterpriseCodeEntryMock.mockResolvedValueOnce(true);
+
+    const verify = await configureGoogleAndGetVerifyCallback();
+    const done = vi.fn();
+
+    await verify(
+      "access",
+      "refresh",
+      { emails: [{ value: "student@example.com" }], name: { givenName: "Jane", familyName: "Doe" } },
+      done,
+    );
+
+    expect(needsEnterpriseCodeEntryMock).toHaveBeenCalledWith(9);
+    expect(done).toHaveBeenCalledWith(null, { id: 9, email: "student@example.com", needsEnterpriseCode: true });
   });
 
   it("verify callback fails when profile email is missing", async () => {

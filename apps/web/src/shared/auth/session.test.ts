@@ -111,6 +111,30 @@ describe("shared/auth/session", () => {
     });
   });
 
+  it("propagates needsEnterpriseCode from API response and defaults to false", async () => {
+    apiFetchMock.mockResolvedValue({
+      id: 20,
+      email: "student@example.com",
+      firstName: "New",
+      lastName: "Student",
+      role: "STUDENT",
+      needsEnterpriseCode: true,
+    });
+    const session = await loadSessionModule();
+    const user = await session.getCurrentUser();
+    expect(user).toMatchObject({ needsEnterpriseCode: true });
+
+    apiFetchMock.mockResolvedValue({
+      id: 21,
+      email: "other@example.com",
+      firstName: "Other",
+      lastName: "Student",
+      role: "STUDENT",
+    });
+    const user2 = await session.getCurrentUser();
+    expect(user2).toMatchObject({ needsEnterpriseCode: false });
+  });
+
   it("preserves explicit role and flags from API response", async () => {
     apiFetchMock.mockResolvedValue({
       id: 10,
