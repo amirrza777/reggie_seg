@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const setModeMock = vi.fn(() => ({ toggleDirectionless: vi.fn() }));
+const toggleDirectionlessMock = vi.fn();
+const setModeMock = vi.fn(() => ({ toggleDirectionless: toggleDirectionlessMock }));
 const setTextContentMock = vi.fn();
 const setFormatMock = vi.fn();
 const setDetailMock = vi.fn();
@@ -38,7 +39,7 @@ vi.mock("lexical", () => {
 
     setMode(mode: string) {
       setModeMock(mode);
-      return { toggleDirectionless: vi.fn() };
+      return { toggleDirectionless: toggleDirectionlessMock };
     }
 
     setTextContent(text: string) {
@@ -68,6 +69,7 @@ vi.mock("lexical", () => {
 import { MentionNode, $createMentionNode } from "./MentionNode";
 
 beforeEach(() => {
+  toggleDirectionlessMock.mockClear();
   setModeMock.mockClear();
   setTextContentMock.mockClear();
   setFormatMock.mockClear();
@@ -147,7 +149,33 @@ describe("MentionNode", () => {
     expect(setTextContentMock).toHaveBeenCalledWith("@Reggie King");
     expect(setFormatMock).toHaveBeenCalledWith(1);
     expect(setDetailMock).toHaveBeenCalledWith(2);
+    expect(setModeMock).toHaveBeenCalledWith("segmented");
     expect(setStyleMock).toHaveBeenCalledWith("bold");
+  });
+
+  it("imports DOM conversion only for mention spans", () => {
+    const importMap = MentionNode.importDOM();
+    const spanImport = importMap?.span;
+    expect(spanImport).toBeTypeOf("function");
+
+    const regularSpan = document.createElement("span");
+    regularSpan.textContent = "@Nope";
+    expect(spanImport?.(regularSpan)).toBeNull();
+
+    const mentionSpan = document.createElement("span");
+    mentionSpan.setAttribute("data-lexical-mention", "true");
+    mentionSpan.textContent = "@Reggie King";
+    const mentionConverter = spanImport?.(mentionSpan);
+    expect(mentionConverter?.priority).toBe(1);
+
+    const convertedMention = mentionConverter?.conversion(mentionSpan).node as MentionNode;
+    expect(convertedMention.__mention).toBe("Reggie King");
+    expect(convertedMention.__text).toBe("@Reggie King");
+
+    mentionSpan.textContent = "Alex";
+    const convertedWithoutAt = mentionConverter?.conversion(mentionSpan).node as MentionNode;
+    expect(convertedWithoutAt.__mention).toBe("Alex");
+    expect(convertedWithoutAt.__text).toBe("Alex");
   });
 
   it("cannot insert text before", () => {
@@ -178,5 +206,6 @@ describe("$createMentionNode", () => {
     $createMentionNode("Reggie King");
 
     expect(setModeMock).toHaveBeenCalledWith("segmented");
+    expect(toggleDirectionlessMock).toHaveBeenCalledTimes(1);
   });
 });
