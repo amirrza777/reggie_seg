@@ -139,6 +139,19 @@ describe("ModuleGuidanceSection", () => {
     expect(screen.getByText("Custom forbidden message.")).toBeInTheDocument();
   });
 
+  it("shows default standalone permission message when API does not provide one", () => {
+    const selection = makeAccessSelection();
+    useEnterpriseModuleCreateFormStateMock.mockReturnValueOnce(
+      makeState({
+        isLoadingAccess: false,
+        canEditModule: false,
+        errorMessage: null,
+      })
+    );
+    render(<ModuleGuidanceSection moduleId={selection.module.id} initialAccessSelection={selection} />);
+    expect(screen.getByText("Only module owners/leaders can edit this module.")).toBeInTheDocument();
+  });
+
   it("renders staff-manage form, merges defaults with staff row, and wires actions", () => {
     const selection = makeAccessSelection({
       module: {
@@ -204,5 +217,16 @@ describe("ModuleGuidanceSection", () => {
 
     expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+  });
+
+  it("marks module name invalid and shows field error text", () => {
+    const state = makeState({
+      moduleName: "",
+      moduleNameError: "Module name is required",
+      isEditMode: false,
+    });
+    render(<ModuleGuidanceSection state={state} />);
+    expect(screen.getByLabelText("Module name")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("Module name is required")).toBeInTheDocument();
   });
 });
