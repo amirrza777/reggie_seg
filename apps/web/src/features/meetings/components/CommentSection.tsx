@@ -5,6 +5,7 @@ import { Card } from "@/shared/ui/Card";
 import { Button } from "@/shared/ui/Button";
 import { useUser } from "@/features/auth/useUser";
 import { addComment, deleteComment } from "../api/client";
+import { renderMeetingCommentContent } from "../lib/meetingCommentContent";
 import { CommentInput } from "./CommentInput";
 import type { MeetingCommentRecord } from "../types";
 
@@ -21,13 +22,6 @@ type CommentSectionProps = {
   initialComments?: MeetingCommentRecord[];
   allowComposer?: boolean;
 };
-
-function renderCommentContent(content: string) {
-  const parts = content.split(/(@\p{L}+(?:\s+\p{L}+)?)/gu);
-  return parts.map((part, i) =>
-    part.startsWith("@") ? <span key={i} className="mention-node">{part}</span> : part
-  );
-}
 
 function useCommentActions(meetingId: number, teamId: number | undefined, user: { id: number; firstName: string; lastName: string }, initialComments: MeetingCommentRecord[]) {
   const [comments, setComments] = useState(initialComments);
@@ -97,7 +91,7 @@ export function CommentSection({
                 </Button>
               )}
             </div>
-            <div className="comment__body">{renderCommentContent(comment.content)}</div>
+            <div className="comment__body">{renderMeetingCommentContent(comment.content)}</div>
           </div>
         ))}
         {allowComposer && user ? <CommentInput members={members} onPost={handlePost} /> : null}

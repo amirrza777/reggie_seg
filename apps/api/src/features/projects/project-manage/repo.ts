@@ -65,6 +65,8 @@ const MANAGE_SUMMARY_SELECT = {
 
 export type StaffProjectManageSummaryRow = Prisma.ProjectGetPayload<{ select: typeof MANAGE_SUMMARY_SELECT }>;
 
+export type StaffProjectManageScopeKind = "read" | "write";
+
 async function getScopedStaffUser(userId: number) {
   return prisma.user.findUnique({
     where: { id: userId },
@@ -72,63 +74,92 @@ async function getScopedStaffUser(userId: number) {
   });
 }
 
-export async function getStaffProjectManageScope(actorUserId: number, projectId: number) {
+/** Module leads and platform admins may PATCH manage settings; teaching assistants may only GET. */
+export async function canStaffMutateProjectManageSettings(actorUserId: number, moduleId: number): Promise<boolean> {
+  const actor = await getScopedStaffUser(actorUserId);
+  if (!actor) {
+    return false;
+  }
+  if (actor.role === "ADMIN" || actor.role === "ENTERPRISE_ADMIN") {
+    return true;
+  }
+  if (actor.role !== "STAFF") {
+    return false;
+  }
+  const lead = await prisma.moduleLead.findUnique({
+    where: { moduleId_userId: { moduleId, userId: actorUserId } },
+    select: { userId: true },
+  });
+  return Boolean(lead);
+}
+
+function moduleRoleFilterForManageScope(actorUserId: number, kind: StaffProjectManageScopeKind) {
+  if (kind === "read") {
+    return {
+      OR: [
+        { moduleLeads: { some: { userId: actorUserId } } },
+        { moduleTeachingAssistants: { some: { userId: actorUserId } } },
+      ],
+    };
+  }
+  return { moduleLeads: { some: { userId: actorUserId } } };
+}
+
+export async function getStaffProjectManageScope(
+  actorUserId: number,
+  projectId: number,
+  kind: StaffProjectManageScopeKind,
+) {
   const actor = await getScopedStaffUser(actorUserId);
   if (!actor) {
     throw { code: "FORBIDDEN" as const, message: "User not found" };
   }
 
   const roleCanAccessAll = actor.role === "ADMIN" || actor.role === "ENTERPRISE_ADMIN";
-  const isStaffLead = actor.role === "STAFF";
-  if (!roleCanAccessAll && !isStaffLead) {
+  const isStaff = actor.role === "STAFF";
+  if (!roleCanAccessAll && !isStaff) {
     throw {
       code: "FORBIDDEN" as const,
       message: "Only module leads and admins can manage project settings",
     };
   }
 
-  const projectInEnterprise = await prisma.project.findFirst({
+  const moduleWhere = roleCanAccessAll
+    ? { enterpriseId: actor.enterpriseId }
+    : {
+        enterpriseId: actor.enterpriseId,
+        ...moduleRoleFilterForManageScope(actorUserId, kind),
+      };
+
+  const projectRow = await prisma.project.findFirst({
     where: {
       id: projectId,
-      module: {
-        enterpriseId: actor.enterpriseId,
-      },
+      module: moduleWhere,
     },
     select: { id: true },
   });
 
-  if (!projectInEnterprise) {
-    throw { code: "PROJECT_NOT_FOUND" as const };
-  }
-
-  if (!roleCanAccessAll) {
-    const leadAccess = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        module: {
-          enterpriseId: actor.enterpriseId,
-          moduleLeads: { some: { userId: actorUserId } },
-        },
-      },
-      select: { id: true },
-    });
-
-    if (!leadAccess) {
-      throw {
-        code: "FORBIDDEN" as const,
-        message: "Only module leads and admins can manage project settings",
-      };
+  if (!projectRow) {
+    if (roleCanAccessAll) {
+      throw { code: "PROJECT_NOT_FOUND" as const };
     }
+    throw {
+      code: "FORBIDDEN" as const,
+      message:
+        kind === "read"
+          ? "Only module leads, teaching assistants, and admins can view project settings"
+          : "Only module leads and admins can manage project settings",
+    };
   }
 
-  return projectInEnterprise;
+  return projectRow;
 }
 
 export async function getStaffProjectManageSummary(
   actorUserId: number,
   projectId: number,
 ): Promise<StaffProjectManageSummaryRow | null> {
-  await getStaffProjectManageScope(actorUserId, projectId);
+  await getStaffProjectManageScope(actorUserId, projectId, "read");
   return prisma.project.findUnique({
     where: { id: projectId },
     select: MANAGE_SUMMARY_SELECT,
@@ -194,7 +225,7 @@ export async function patchStaffProjectManage(
   projectId: number,
   body: StaffProjectManagePatch,
 ): Promise<StaffProjectManageSummaryRow | null> {
-  const scope = await getStaffProjectManageScope(actorUserId, projectId);
+  const scope = await getStaffProjectManageScope(actorUserId, projectId, "write");
   const hasName = body.name !== undefined;
   const hasArchived = body.archived !== undefined;
   const hasTemplate = body.questionnaireTemplateId !== undefined;
@@ -344,7 +375,7 @@ export async function patchStaffProjectManage(
 }
 
 export async function deleteStaffProjectManage(actorUserId: number, projectId: number) {
-  const scope = await getStaffProjectManageScope(actorUserId, projectId);
+  const scope = await getStaffProjectManageScope(actorUserId, projectId, "write");
   const row = await prisma.project.findUnique({
     where: { id: scope.id },
     select: { moduleId: true },

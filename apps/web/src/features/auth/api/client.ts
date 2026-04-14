@@ -10,8 +10,40 @@ import type {
 import { setAccessToken, clearAccessToken } from "./session";
 import { ApiError } from "@/shared/api/errors";
 
-function isUnauthorizedApiError(error: unknown) {
+function isUnauthorizedApiError(error: unknown): error is ApiError {
   return error instanceof ApiError && error.status === 401;
+}
+
+type AuthRetryNoToken = "return-null" | "rethrow-first-unauthorized" | "unauthorized-api-error";
+
+async function fetchWithAuthRetry<T>(execute: () => Promise<T>, noToken: "return-null"): Promise<T | null>;
+async function fetchWithAuthRetry<T>(
+  execute: () => Promise<T>,
+  noToken: "rethrow-first-unauthorized" | "unauthorized-api-error",
+): Promise<T>;
+async function fetchWithAuthRetry<T>(execute: () => Promise<T>, noToken: AuthRetryNoToken): Promise<T | null> {
+  let firstUnauthorized: ApiError;
+  try {
+    return await execute();
+  } catch (err: unknown) {
+    if (!isUnauthorizedApiError(err)) {
+      throw err;
+    }
+    firstUnauthorized = err;
+  }
+
+  const token = await refreshAccessToken();
+  if (!token) {
+    if (noToken === "return-null") {
+      return null;
+    }
+    if (noToken === "rethrow-first-unauthorized") {
+      throw firstUnauthorized;
+    }
+    throw new ApiError("Unauthorized", { status: 401 });
+  }
+
+  return await execute();
 }
 
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
@@ -122,18 +154,7 @@ export async function refreshAccessToken(): Promise<string | null> {
 }
 
 export async function getCurrentUser(): Promise<UserProfile | null> {
-  try {
-    return await apiFetch<UserProfile>("/auth/me");
-  } catch (err: unknown) {
-    if (!isUnauthorizedApiError(err)) {
-      throw err;
-    }
-    const token = await refreshAccessToken();
-    if (!token) {
-      return null;
-    }
-    return await apiFetch<UserProfile>("/auth/me");
-  }
+  return fetchWithAuthRetry(() => apiFetch<UserProfile>("/auth/me"), "return-null");
 }
 
 export async function updateProfile(payload: {
@@ -142,24 +163,14 @@ export async function updateProfile(payload: {
   avatarBase64?: string | null;
   avatarMime?: string | null;
 }): Promise<UserProfile> {
-  try {
-    return await apiFetch<UserProfile>("/auth/profile", {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    });
-  } catch (err: unknown) {
-    if (!isUnauthorizedApiError(err)) {
-      throw err;
-    }
-    const token = await refreshAccessToken();
-    if (!token) {
-      throw err;
-    }
-    return await apiFetch<UserProfile>("/auth/profile", {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    });
-  }
+  return fetchWithAuthRetry(
+    () =>
+      apiFetch<UserProfile>("/auth/profile", {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      }),
+    "rethrow-first-unauthorized",
+  );
 }
 
 export async function requestEmailChange(newEmail: string): Promise<void> {
@@ -183,22 +194,7 @@ export async function deleteAccount(payload: { password: string }): Promise<void
       body: JSON.stringify(payload),
     });
 
-  try {
-    await executeDelete();
-    clearAccessToken();
-    return;
-  } catch (err: unknown) {
-    if (!isUnauthorizedApiError(err)) {
-      throw err;
-    }
-  }
-
-  const token = await refreshAccessToken();
-  if (!token) {
-    throw new ApiError("Unauthorized", { status: 401 });
-  }
-
-  await executeDelete();
+  await fetchWithAuthRetry(executeDelete, "unauthorized-api-error");
   clearAccessToken();
 }
 
@@ -209,21 +205,7 @@ export async function joinEnterpriseByCode(payload: { enterpriseCode: string }):
       body: JSON.stringify(payload),
     });
 
-  try {
-    await executeJoin();
-    return;
-  } catch (err: unknown) {
-    if (!isUnauthorizedApiError(err)) {
-      throw err;
-    }
-  }
-
-  const token = await refreshAccessToken();
-  if (!token) {
-    throw new ApiError("Unauthorized", { status: 401 });
-  }
-
-  await executeJoin();
+  await fetchWithAuthRetry(executeJoin, "unauthorized-api-error");
 }
 
 export async function leaveEnterprise(): Promise<void> {
@@ -232,21 +214,7 @@ export async function leaveEnterprise(): Promise<void> {
       method: "POST",
     });
 
-  try {
-    await executeLeave();
-    return;
-  } catch (err: unknown) {
-    if (!isUnauthorizedApiError(err)) {
-      throw err;
-    }
-  }
-
-  const token = await refreshAccessToken();
-  if (!token) {
-    throw new ApiError("Unauthorized", { status: 401 });
-  }
-
-  await executeLeave();
+  await fetchWithAuthRetry(executeLeave, "unauthorized-api-error");
 }
 
 export async function logout(): Promise<void> {

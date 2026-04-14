@@ -66,6 +66,11 @@
   grid-template-columns: 2fr 1fr 1fr 1fr;
 }
 
+.staff-single-meeting-attendance__table.table .table__head,
+.staff-single-meeting-attendance__table.table .table__row {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.6fr);
+}
+
 .attendance-table__name {
   display: flex;
   align-items: center;

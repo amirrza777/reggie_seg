@@ -1,7 +1,20 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../../../shared/db.js";
+import { ENTERPRISE_FEATURE_FLAG_DEFAULTS } from "../../featureFlags/defaults.js";
+import { ensureFeatureFlagsByEnterprise, listFeatureFlagsByEnterprise } from "../../featureFlags/repo.js";
 import { getScopedStaffUser, isAdminScopedRole } from "./repo.staff-scope.js";
 import type { ProjectDeadlineInput } from "./repo.types.js";
+
+const PROJECT_NAV_FLAG_KEYS_FOR_CREATE = [
+  "team",
+  "meetings",
+  "peer_assessment",
+  "peer_feedback",
+  "repos",
+  "trello",
+  "discussion",
+  "team_health",
+] as const;
 
 type CreateProjectArgs = {
   actorUserId: number;
@@ -122,6 +135,30 @@ function normalizeStudentIds(studentIds?: number[]): number[] {
   return normalizedStudentIds;
 }
 
+async function buildInitialProjectNavFlagsForEnterprise(enterpriseId: string): Promise<Prisma.InputJsonValue> {
+  await ensureFeatureFlagsByEnterprise(enterpriseId, ENTERPRISE_FEATURE_FLAG_DEFAULTS);
+  const rows = await listFeatureFlagsByEnterprise(enterpriseId);
+  const enabledByKey = new Map(rows.map((row) => [row.key, row.enabled]));
+
+  const active: Record<string, boolean> = {};
+  const completed: Record<string, boolean> = {};
+  for (const key of PROJECT_NAV_FLAG_KEYS_FOR_CREATE) {
+    const enabled = enabledByKey.get(key) !== false;
+    active[key] = enabled;
+    completed[key] = enabled;
+  }
+
+  return {
+    version: 1,
+    active,
+    completed,
+    peerModes: {
+      peer_assessment: "NATURAL",
+      peer_feedback: "NATURAL",
+    },
+  };
+}
+
 async function assertStudentsBelongToModule(studentIds: number[], enterpriseId: string, moduleId: number): Promise<void> {
   if (studentIds.length === 0) {
     return;
@@ -189,6 +226,7 @@ async function createProjectRecord(
   tx: Prisma.TransactionClient,
   args: CreateProjectArgs,
   validatedTeamAllocationTemplateId: number | null,
+  projectNavFlags: Prisma.InputJsonValue,
 ) {
   return tx.project.create({
     data: {
@@ -197,6 +235,7 @@ async function createProjectRecord(
       moduleId: args.moduleId,
       questionnaireTemplateId: args.questionnaireTemplateId,
       teamAllocationQuestionnaireTemplateId: validatedTeamAllocationTemplateId,
+      projectNavFlags,
       deadline: {
         create: projectDeadlineCreateInput(args.deadline),
       },
@@ -217,8 +256,14 @@ async function linkProjectStudents(tx: Prisma.TransactionClient, projectId: numb
 }
 
 async function runCreateProjectTransaction(args: CreateProjectArgs, context: CreateProjectValidatedContext) {
+  const projectNavFlags = await buildInitialProjectNavFlagsForEnterprise(context.actor.enterpriseId);
   return prisma.$transaction(async (tx) => {
-    const createdProject = await createProjectRecord(tx, args, context.validatedTeamAllocationTemplateId);
+    const createdProject = await createProjectRecord(
+      tx,
+      args,
+      context.validatedTeamAllocationTemplateId,
+      projectNavFlags,
+    );
     await linkProjectStudents(tx, createdProject.id, context.normalizedStudentIds);
     return createdProject;
   });
