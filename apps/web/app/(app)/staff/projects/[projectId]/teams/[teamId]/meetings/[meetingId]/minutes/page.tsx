@@ -6,6 +6,7 @@ import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffP
 import { getCurrentUser } from "@/shared/auth/session";
 import { Card } from "@/shared/ui/Card";
 import { RichTextViewer } from "@/shared/ui/rich-text/RichTextViewer";
+import "@/features/meetings/styles/meeting-text-link.css";
 import "@/features/staff/meetings/styles/staff-meetings.css";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -83,7 +84,7 @@ export default async function StaffMeetingMinutesPage({ params }: PageProps) {
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div>
-        <Link href={backHref} className="ui-link">
+        <Link href={backHref} className="meeting-text-link">
           ← Back to team meetings
         </Link>
       </div>

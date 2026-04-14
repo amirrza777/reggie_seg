@@ -6,6 +6,7 @@ import { Card } from "@/shared/ui/Card";
 import { Table, type SortConfig } from "@/shared/ui/Table";
 import { isPresent, getAttendanceRate } from "../lib/attendance";
 import type { StaffMeeting } from "../types";
+import "@/features/meetings/styles/meeting-text-link.css";
 
 type MeetingListProps = {
   meetings: StaffMeeting[];
@@ -61,7 +62,7 @@ function mapMeetingRow(meeting: StaffMeeting, projectId: number, teamId: number)
   const present = meeting.attendances.filter((attendance) => isPresent(attendance.status)).length;
   const total = meeting.attendances.length;
   return [
-    <Link key={`t-${meeting.id}`} href={meetingMinutesHref(projectId, teamId, meeting.id)} className="ui-link">
+    <Link key={`t-${meeting.id}`} href={meetingMinutesHref(projectId, teamId, meeting.id)} className="meeting-text-link">
       {meeting.title}
     </Link>,
     formatDate(meeting.date),

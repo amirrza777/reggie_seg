@@ -107,7 +107,7 @@ describe("StaffMeetingMinutesPage", () => {
 
     expect(screen.getByRole("heading", { name: "Comments" })).toBeInTheDocument();
     expect(
-      screen.getByText("Team comments are shown below. Staff cannot add or remove comments here."),
+      screen.getByText("Team comments are shown below. Staff cannot add or remove comments."),
     ).toBeInTheDocument();
     expect(screen.queryByText("No comments on this meeting.")).not.toBeInTheDocument();
     expect(screen.getByText("Ann Alpha")).toBeInTheDocument();
