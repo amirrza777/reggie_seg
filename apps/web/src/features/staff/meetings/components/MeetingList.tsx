@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Card } from "@/shared/ui/Card";
 import { Table, type SortConfig } from "@/shared/ui/Table";
@@ -8,6 +9,8 @@ import type { StaffMeeting } from "../types";
 
 type MeetingListProps = {
   meetings: StaffMeeting[];
+  projectId: number;
+  teamId: number;
 };
 type MeetingComparator = (a: StaffMeeting, b: StaffMeeting) => number;
 
@@ -47,11 +50,20 @@ function renderEmptyState() {
   );
 }
 
-function mapMeetingRow(meeting: StaffMeeting) {
+function meetingMinutesHref(projectId: number, teamId: number, meetingId: number) {
+  const encProject = encodeURIComponent(String(projectId));
+  const encTeam = encodeURIComponent(String(teamId));
+  const encMeeting = encodeURIComponent(String(meetingId));
+  return `/staff/projects/${encProject}/teams/${encTeam}/meetings/${encMeeting}/minutes`;
+}
+
+function mapMeetingRow(meeting: StaffMeeting, projectId: number, teamId: number) {
   const present = meeting.attendances.filter((attendance) => isPresent(attendance.status)).length;
   const total = meeting.attendances.length;
   return [
-    meeting.title,
+    <Link key={`t-${meeting.id}`} href={meetingMinutesHref(projectId, teamId, meeting.id)} className="ui-link">
+      {meeting.title}
+    </Link>,
     formatDate(meeting.date),
     `${meeting.organiser.firstName} ${meeting.organiser.lastName}`,
     total > 0 ? `${present} / ${total}` : <span className="muted">Not recorded</span>,
@@ -59,7 +71,7 @@ function mapMeetingRow(meeting: StaffMeeting) {
   ];
 }
 
-export function MeetingList({ meetings }: MeetingListProps) {
+export function MeetingList({ meetings, projectId, teamId }: MeetingListProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 1, direction: "desc" });
   const sorted = useMemo(() => {
     const dir = getSortDirection(sortConfig.direction);
@@ -78,7 +90,7 @@ export function MeetingList({ meetings }: MeetingListProps) {
     return renderEmptyState();
   }
 
-  const rows = sorted.map(mapMeetingRow);
+  const rows = sorted.map((m) => mapMeetingRow(m, projectId, teamId));
   return (
     <Card title="Meetings">
       <Table

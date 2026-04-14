@@ -22,7 +22,7 @@ vi.mock("./AttendanceTable", () => ({
 
 describe("StaffMeetingsView", () => {
   it("renders all four sub-components", () => {
-    render(<StaffMeetingsView meetings={[]} absenceThreshold={3} />);
+    render(<StaffMeetingsView meetings={[]} absenceThreshold={3} projectId={1} teamId={1} />);
 
     expect(screen.getByTestId("stats-panel")).toBeInTheDocument();
     expect(screen.getByTestId("low-attendance-alert")).toBeInTheDocument();
@@ -31,12 +31,12 @@ describe("StaffMeetingsView", () => {
   });
 
   it("passes computed stats to MeetingStatsPanel", () => {
-    render(<StaffMeetingsView meetings={[]} absenceThreshold={3} />);
+    render(<StaffMeetingsView meetings={[]} absenceThreshold={3} projectId={1} teamId={1} />);
     expect(screen.getByTestId("stats-panel")).toHaveAttribute("data-total", "0");
   });
 
   it("passes meetings to MeetingList", () => {
-    render(<StaffMeetingsView meetings={[]} absenceThreshold={3} />);
+    render(<StaffMeetingsView meetings={[]} absenceThreshold={3} projectId={1} teamId={1} />);
     expect(screen.getByTestId("meeting-list")).toHaveAttribute("data-count", "0");
   });
 });
