@@ -300,7 +300,14 @@ describe("projects service", () => {
         moduleId: 8,
         module: { name: "SEGP" },
         teams: [
-          { id: 3, teamName: "Team Alpha", projectId: 42, inactivityFlag: "NONE", _count: { allocations: 5 } },
+          {
+            id: 3,
+            teamName: "Team Alpha",
+            projectId: 42,
+            inactivityFlag: "NONE",
+            _count: { allocations: 5 },
+            staffTeamMarking: { mark: 72 },
+          },
         ],
       },
     ] as unknown as RepoAsyncResult<typeof repo.getStaffProjectsForMarking>);
@@ -311,8 +318,9 @@ describe("projects service", () => {
         name: "Capstone",
         moduleId: 8,
         moduleName: "SEGP",
+        markingProgress: { markedTeamCount: 1, totalTeamCount: 1 },
         teams: [
-          { id: 3, teamName: "Team Alpha", projectId: 42, inactivityFlag: "NONE", studentCount: 5 },
+          { id: 3, teamName: "Team Alpha", projectId: 42, inactivityFlag: "NONE", studentCount: 5, teamMark: 72 },
         ],
       },
     ]);
@@ -326,8 +334,22 @@ describe("projects service", () => {
         moduleId: 8,
         module: { name: "SEGP" },
         teams: [
-          { id: 3, teamName: "Team Alpha", projectId: 42, inactivityFlag: "NONE", _count: { allocations: 5 } },
-          { id: 4, teamName: "Delta Builders", projectId: 42, inactivityFlag: "YELLOW", _count: { allocations: 4 } },
+          {
+            id: 3,
+            teamName: "Team Alpha",
+            projectId: 42,
+            inactivityFlag: "NONE",
+            _count: { allocations: 5 },
+            staffTeamMarking: { mark: null },
+          },
+          {
+            id: 4,
+            teamName: "Delta Builders",
+            projectId: 42,
+            inactivityFlag: "YELLOW",
+            _count: { allocations: 4 },
+            staffTeamMarking: { mark: 61 },
+          },
         ],
       },
     ] as unknown as RepoAsyncResult<typeof repo.getStaffProjectsForMarking>);
@@ -338,8 +360,9 @@ describe("projects service", () => {
         name: "Capstone",
         moduleId: 8,
         moduleName: "SEGP",
+        markingProgress: { markedTeamCount: 1, totalTeamCount: 2 },
         teams: [
-          { id: 4, teamName: "Delta Builders", projectId: 42, inactivityFlag: "YELLOW", studentCount: 4 },
+          { id: 4, teamName: "Delta Builders", projectId: 42, inactivityFlag: "YELLOW", studentCount: 4, teamMark: 61 },
         ],
       },
     ]);

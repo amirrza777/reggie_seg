@@ -38,6 +38,16 @@
   gap: 4px;
 }
 
+.staff-projects__module-summary-heading-col {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+
+.staff-projects__module-summary-progress {
+  flex-shrink: 0;
+}
+
 .staff-projects__module-title {
   margin: 0;
   font-size: var(--fs-fixed-clamp-1-1rem-1-2vw-1-35rem);
@@ -157,8 +167,28 @@
 
 .staff-projects__marking-project-summary-right {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 8px 10px;
+}
+
+.staff-projects__marking-team-mark {
+  flex-shrink: 0;
+  font-size: var(--fs-fixed-0-8rem);
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.staff-projects__marking-team-mark--empty {
+  font-weight: 500;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
 }
 
 .staff-projects__marking-project-toggle {

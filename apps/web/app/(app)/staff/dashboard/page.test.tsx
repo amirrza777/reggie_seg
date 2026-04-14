@@ -174,10 +174,11 @@ describe("StaffDashboardPage", () => {
         name: "Project Atlas",
         moduleId: 1,
         moduleName: "Cloud",
+        markingProgress: { markedTeamCount: 0, totalTeamCount: 3 },
         teams: [
-          { id: 100, teamName: "Team Red", projectId: 11, inactivityFlag: "RED", studentCount: 3 },
-          { id: 101, teamName: "Team Yellow", projectId: 11, inactivityFlag: "YELLOW", studentCount: 2 },
-          { id: 102, teamName: "Team Green", projectId: 11, inactivityFlag: "NONE", studentCount: 4 },
+          { id: 100, teamName: "Team Red", projectId: 11, inactivityFlag: "RED", studentCount: 3, teamMark: null },
+          { id: 101, teamName: "Team Yellow", projectId: 11, inactivityFlag: "YELLOW", studentCount: 2, teamMark: null },
+          { id: 102, teamName: "Team Green", projectId: 11, inactivityFlag: "NONE", studentCount: 4, teamMark: null },
         ],
       },
       {
@@ -185,7 +186,8 @@ describe("StaffDashboardPage", () => {
         name: "Project Borealis",
         moduleId: 2,
         moduleName: "AI",
-        teams: [{ id: 103, teamName: "Team Blue", projectId: 12, inactivityFlag: "NONE", studentCount: 1 }],
+        markingProgress: { markedTeamCount: 0, totalTeamCount: 1 },
+        teams: [{ id: 103, teamName: "Team Blue", projectId: 12, inactivityFlag: "NONE", studentCount: 1, teamMark: null }],
       },
     ] as Awaited<ReturnType<typeof getStaffProjectsForMarking>>);
     getStaffProjectsMock.mockResolvedValue([
@@ -263,7 +265,8 @@ describe("StaffDashboardPage", () => {
         name: "Project Healthy",
         moduleId: 42,
         moduleName: "Testing",
-        teams: [{ id: 201, teamName: "Team Healthy", projectId: 55, inactivityFlag: "NONE", studentCount: 5 }],
+        markingProgress: { markedTeamCount: 0, totalTeamCount: 1 },
+        teams: [{ id: 201, teamName: "Team Healthy", projectId: 55, inactivityFlag: "NONE", studentCount: 5, teamMark: null }],
       },
     ] as Awaited<ReturnType<typeof getStaffProjectsForMarking>>);
 

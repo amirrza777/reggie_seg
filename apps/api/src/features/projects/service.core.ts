@@ -306,18 +306,32 @@ export async function fetchProjectsWithTeamsForStaffMarking(userId: number, opti
 
     if (matchingTeams.length === 0) return [];
 
+    const allTeams = project.teams;
+    const markedTeamCount = allTeams.filter(
+      (team) => team.staffTeamMarking?.mark != null && Number.isFinite(team.staffTeamMarking.mark),
+    ).length;
+    const totalTeamCount = allTeams.length;
+
     return [
       {
         id: project.id,
         name: project.name,
         moduleId: project.moduleId,
         moduleName: project.module?.name ?? "",
+        markingProgress: {
+          markedTeamCount,
+          totalTeamCount,
+        },
         teams: matchingTeams.map((team) => ({
           id: team.id,
           teamName: team.teamName,
           projectId: team.projectId,
           inactivityFlag: team.inactivityFlag as "NONE" | "YELLOW" | "RED",
           studentCount: team._count.allocations,
+          teamMark:
+            team.staffTeamMarking?.mark != null && Number.isFinite(team.staffTeamMarking.mark)
+              ? team.staffTeamMarking.mark
+              : null,
         })),
       },
     ];

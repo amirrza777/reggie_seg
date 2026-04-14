@@ -99,6 +99,7 @@ const MARKING_PROJECT_SELECT = {
       projectId: true,
       inactivityFlag: true,
       _count: { select: { allocations: true } },
+      staffTeamMarking: { select: { mark: true } },
     },
   },
 } satisfies Prisma.ProjectSelect;
