@@ -104,6 +104,7 @@ export function mapStaffProjectManageRowToJson(row: StaffProjectManageSummaryRow
           feedbackDueDateMcf: iso(dl.feedbackDueDateMcf),
           teamAllocationQuestionnaireOpenDate: iso(dl.teamAllocationQuestionnaireOpenDate),
           teamAllocationQuestionnaireDueDate: iso(dl.teamAllocationQuestionnaireDueDate),
+          teamAllocationInviteDueDate: iso(dl.teamAllocationInviteDueDate),
         }
       : null,
     hasSubmittedPeerAssessments: row._count.peerAssessments > 0,
