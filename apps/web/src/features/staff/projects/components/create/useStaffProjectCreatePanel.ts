@@ -91,6 +91,7 @@ export function useStaffProjectCreatePanel({ modules, initialModuleId = null }: 
         setTemplatesError,
         setTemplates,
         setSelectedTemplateOption,
+        setTemplateId,
       });
     }, SEARCH_DEBOUNCE_MS);
     return () => { isMounted = false; window.clearTimeout(timer); };
@@ -101,16 +102,21 @@ export function useStaffProjectCreatePanel({ modules, initialModuleId = null }: 
     const timer = window.setTimeout(() => {
       setIsLoadingAllocationTemplates(true);
       setAllocationTemplatesError(null);
-      getMyQuestionnaires({ query: undefined })
+      getMyQuestionnaires({ purpose: "CUSTOMISED_ALLOCATION" })
         .then((result) => {
           if (!isMounted) return;
           const sorted = [...result]
-            .filter((t) => t.purpose === "CUSTOMISED_ALLOCATION" || t.purpose === "GENERAL_PURPOSE")
+            .filter((t) => t.purpose === "CUSTOMISED_ALLOCATION")
             .sort((a, b) => a.templateName.localeCompare(b.templateName));
           setAllocationTemplates(sorted);
           if (allocationTemplateId.trim().length > 0) {
             const selected = sorted.find((t) => String(t.id) === allocationTemplateId) ?? null;
-            if (selected) setSelectedAllocationTemplateOption(selected);
+            if (selected) {
+              setSelectedAllocationTemplateOption(selected);
+            } else {
+              setSelectedAllocationTemplateOption(null);
+              setAllocationTemplateId("");
+            }
           }
         })
         .catch((error) => {

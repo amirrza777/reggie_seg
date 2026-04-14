@@ -10,9 +10,11 @@ import { AttendanceTable } from "./AttendanceTable";
 type StaffMeetingsViewProps = {
   meetings: StaffMeeting[];
   absenceThreshold: number;
+  projectId: number;
+  teamId: number;
 };
 
-export function StaffMeetingsView({ meetings, absenceThreshold }: StaffMeetingsViewProps) {
+export function StaffMeetingsView({ meetings, absenceThreshold, projectId, teamId }: StaffMeetingsViewProps) {
   const stats = computeMeetingStats(meetings);
   const flaggedMembers = getFlaggedMembers(meetings, absenceThreshold);
   const memberAttendance = getMemberAttendanceStats(meetings, absenceThreshold);
@@ -21,7 +23,7 @@ export function StaffMeetingsView({ meetings, absenceThreshold }: StaffMeetingsV
     <div className="stack">
       <MeetingStatsPanel stats={stats} />
       <LowAttendanceAlert flaggedMembers={flaggedMembers} absenceThreshold={absenceThreshold} />
-      <MeetingList meetings={meetings} />
+      <MeetingList meetings={meetings} projectId={projectId} teamId={teamId} />
       <AttendanceTable members={memberAttendance} />
     </div>
   );

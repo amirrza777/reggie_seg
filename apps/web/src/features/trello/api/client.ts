@@ -1,23 +1,5 @@
-import { refreshAccessToken } from "@/features/auth/api/client";
-import { ApiError } from "@/shared/api/errors";
 import { apiFetch } from "@/shared/api/http";
 import type { TrelloBoardAction, TrelloBoardDetail, TrelloCard, TrelloMember } from "../types";
-
-type ApiFetchInit = Parameters<typeof apiFetch>[1];
-
-async function trelloFetch<T>(path: string, init?: ApiFetchInit): Promise<T> {
-  try {
-    return await apiFetch<T>(path, init);
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 401) {
-      const token = await refreshAccessToken();
-      if (token) {
-        return await apiFetch<T>(path, init);
-      }
-    }
-    throw err;
-  }
-}
 
 function addMembersToCards(
   cards: TrelloCard[],
@@ -71,7 +53,7 @@ export function rawBoardToBoardView(board: TrelloBoardDetail): BoardView {
 }
 
 export async function getBoardById(boardId: string): Promise<BoardView> {
-  const board = await trelloFetch<TrelloBoardDetail>(
+  const board = await apiFetch<TrelloBoardDetail>(
     `/trello/boards/${encodeURIComponent(boardId)}`,
     { method: "GET" }
   );
@@ -84,7 +66,7 @@ export type TeamBoardResult =
 
 /** Fetches the board assigned to the team. Returns full board view + section config, or requireJoin + boardUrl if the user must join the board on Trello first. */
 export async function getTeamBoard(teamId: number): Promise<TeamBoardResult> {
-  const raw = await trelloFetch<
+  const raw = await apiFetch<
     | { requireJoin: true; boardUrl: string }
     | { board: TrelloBoardDetail; sectionConfig?: Record<string, string> }
   >(`/trello/team-board?teamId=${encodeURIComponent(String(teamId))}`, { method: "GET" });
@@ -135,7 +117,7 @@ export async function putTrelloSectionConfig(
   teamId: number,
   config: Record<string, string>
 ): Promise<{ ok: boolean }> {
-  return trelloFetch<{ ok: boolean }>("/trello/team-section-config", {
+  return apiFetch<{ ok: boolean }>("/trello/team-section-config", {
     method: "PUT",
     body: JSON.stringify({ teamId, config }),
     headers: { "Content-Type": "application/json" },
@@ -143,7 +125,7 @@ export async function putTrelloSectionConfig(
 }
 
 export async function getLinkToken(): Promise<{ linkToken: string }> {
-  return trelloFetch<{ linkToken: string }>("/trello/link-token", { method: "GET" });
+  return apiFetch<{ linkToken: string }>("/trello/link-token", { method: "GET" });
 }
 
 /** Get trello connect URL. Pass full callback URL (e.g. origin + /projects/:projectId/trello/callback) so redirects there after auth. */
@@ -151,7 +133,7 @@ export async function getConnectUrl(callbackUrl?: string): Promise<{ url: string
   const url = callbackUrl
     ? `/trello/connect-url?callbackUrl=${encodeURIComponent(callbackUrl)}`
     : "/trello/connect-url";
-  return trelloFetch<{ url: string }>(url, { method: "GET" });
+  return apiFetch<{ url: string }>(url, { method: "GET" });
 }
 
 export type OwnerBoard = { id: string; name: string };
@@ -163,12 +145,12 @@ export async function getMyBoards(options?: { query?: string }): Promise<OwnerBo
   }
   const query = searchParams.toString();
   const path = query ? `/trello/boards?${query}` : "/trello/boards";
-  const data = await trelloFetch<OwnerBoard[]>(path, { method: "GET" });
+  const data = await apiFetch<OwnerBoard[]>(path, { method: "GET" });
   return Array.isArray(data) ? data : [];
 }
 
 export async function assignBoardToTeam(teamId: number, boardId: string): Promise<{ message: string }> {
-  return trelloFetch<{ message: string }>("/trello/assign", {
+  return apiFetch<{ message: string }>("/trello/assign", {
     method: "POST",
     body: JSON.stringify({ teamId, boardId }),
     headers: { "Content-Type": "application/json" },
@@ -184,7 +166,7 @@ export async function completeTrelloLinkWithToken(linkToken: string, trelloToken
 }
 
 export async function getMyTrelloMemberId(): Promise<{ trelloMemberId: string | null }> {
-  return trelloFetch<{ trelloMemberId: string | null }>("/trello/me-member", { method: "GET" });
+  return apiFetch<{ trelloMemberId: string | null }>("/trello/me-member", { method: "GET" });
 }
 
 export type TrelloProfile = {
@@ -194,5 +176,5 @@ export type TrelloProfile = {
 };
 
 export async function getMyTrelloProfile(): Promise<TrelloProfile> {
-  return trelloFetch<TrelloProfile>("/trello/me-profile", { method: "GET" });
+  return apiFetch<TrelloProfile>("/trello/me-profile", { method: "GET" });
 }

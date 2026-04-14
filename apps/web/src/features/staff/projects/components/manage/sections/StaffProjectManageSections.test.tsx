@@ -71,6 +71,7 @@ const baseInitial: StaffProjectManageSummary = {
     moduleMemberDirectory: [],
     projectStudentIds: [],
   },
+  canMutateProjectSettings: true,
 };
 
 function withProvider(ui: React.ReactElement, initial: StaffProjectManageSummary = baseInitial) {

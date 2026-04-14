@@ -87,7 +87,10 @@ function registerAuthorizedJoinCodeLookupTest() {
       where: {
         id: 12,
         enterpriseId: "ent-1",
-        moduleLeads: { some: { userId: 2 } },
+        OR: [
+          { moduleLeads: { some: { userId: 2 } } },
+          { moduleTeachingAssistants: { some: { userId: 2 } } },
+        ],
       },
       select: { id: true, joinCode: true },
     });

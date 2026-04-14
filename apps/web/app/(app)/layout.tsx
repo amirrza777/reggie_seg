@@ -10,7 +10,6 @@ import { listModules } from "@/features/modules/api/client";
 import { getUserProjects } from "@/features/projects/api/client";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin, isModuleScopedStaff } from "@/shared/auth/session";
 import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
-import { getFeatureFlagMap } from "@/shared/featureFlags";
 import { logDevError } from "@/shared/lib/devLogger";
 import "../styles/global-app-shell.css";
 
@@ -19,14 +18,12 @@ export const dynamic = "force-dynamic";
 type NavChild = {
   href: string;
   label: string;
-  flag?: string;
 };
 
 type NavLink = {
   href: string;
   label: string;
   space: "workspace" | "staff" | "enterprise" | "admin";
-  flag?: string;
   children?: NavChild[];
   defaultExpanded?: boolean;
 };
@@ -44,7 +41,7 @@ const moduleScopedStaffLinks = new Set([
 const workspaceAliases = ["/dashboard", "/modules", "/projects", "/calendar"];
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const [user, flagMap] = await Promise.all([getCurrentUser(), getFeatureFlagMap()]);
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.suspended === true || user.active === false) return renderSuspendedAccountView();
   if (user.isUnassigned === true) return renderUnassignedAccountView(children);
@@ -53,7 +50,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   const navData = buildLayoutNavigationData({
     user,
-    flagMap,
     modules: navChildren.modules,
     projects: navChildren.projects,
   });
@@ -118,7 +114,6 @@ function renderUnassignedAccountView(children: ReactNode) {
 
 function buildLayoutNavigationData(params: {
   user: AuthenticatedUser;
-  flagMap: Record<string, boolean>;
   modules: Awaited<ReturnType<typeof listModules>> | null;
   projects: Awaited<ReturnType<typeof getUserProjects>> | null;
 }) {
@@ -126,7 +121,7 @@ function buildLayoutNavigationData(params: {
   const projectChildren = buildProjectChildren(params.projects);
   const projectsDefaultExpanded = shouldDefaultExpandProjects(params.projects);
   const navLinks = buildBaseNavLinks(moduleChildren, projectChildren, projectsDefaultExpanded);
-  const accessibleLinks = filterAccessibleNavLinks(navLinks, params.user, params.flagMap);
+  const accessibleLinks = filterAccessibleNavLinks(navLinks, params.user);
   const spaceLinks = buildSpaceLinks(params.user);
   const defaultSpaceHref = getDefaultSpaceOverviewPath(params.user);
 
@@ -225,25 +220,19 @@ function shouldDefaultExpandProjects(projects: Awaited<ReturnType<typeof getUser
   return projects.length <= 7;
 }
 
-function filterAccessibleNavLinks(navLinks: NavLink[], user: AuthenticatedUser, flagMap: Record<string, boolean>) {
+function filterAccessibleNavLinks(navLinks: NavLink[], user: AuthenticatedUser) {
   const limitedStaffUser = isModuleScopedStaff(user);
   const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
 
-  return navLinks
-    .filter((link) => {
-      if (link.flag && flagMap[link.flag] === false) return false;
-      if (link.space === "workspace" && isStaffOnlyAccount) return false;
-      if (link.space === "staff") {
-        if (!(user.isStaff || isAdmin(user))) return false;
-        if (limitedStaffUser && !moduleScopedStaffLinks.has(link.href)) return false;
-      }
-      if (link.space === "admin" && !isAdmin(user)) return false;
-      return true;
-    })
-    .map((link) => ({
-      ...link,
-      children: link.children?.filter((child) => !child.flag || flagMap[child.flag] !== false),
-    }));
+  return navLinks.filter((link) => {
+    if (link.space === "workspace" && isStaffOnlyAccount) return false;
+    if (link.space === "staff") {
+      if (!(user.isStaff || isAdmin(user))) return false;
+      if (limitedStaffUser && !moduleScopedStaffLinks.has(link.href)) return false;
+    }
+    if (link.space === "admin" && !isAdmin(user)) return false;
+    return true;
+  });
 }
 
 function buildSpaceLinks(user: AuthenticatedUser): SpaceLink[] {
