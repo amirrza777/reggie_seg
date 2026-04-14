@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { AuthField } from "@/features/auth/components/AuthField";
 import { Button } from "@/shared/ui/Button";
 import { joinEnterpriseByCode } from "@/features/auth/api/client";
@@ -11,7 +10,9 @@ import { ApiError } from "@/shared/api/errors";
 type EnterCodeStatus = "idle" | "loading" | "success" | "error";
 
 function StatusMessage({ status, message }: { status: EnterCodeStatus; message: string | null }) {
-  if (!message) return null;
+  if (!message) {
+    return null;
+  }
   const cls = status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success";
   return (
     <div className={`${cls} auth-alert`}>
@@ -21,8 +22,12 @@ function StatusMessage({ status, message }: { status: EnterCodeStatus; message: 
 }
 
 function resolveErrorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message || "Something went wrong. Please try again.";
-  if (err instanceof Error) return err.message;
+  if (err instanceof ApiError) {
+    return err.message || "Something went wrong. Please try again.";
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
   return "Something went wrong. Please try again.";
 }
 
@@ -31,7 +36,6 @@ export function GoogleEnterpriseCodeForm() {
   const [status, setStatus] = useState<EnterCodeStatus>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const { refresh } = useUser();
-  const router = useRouter();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -42,7 +46,10 @@ export function GoogleEnterpriseCodeForm() {
       await refresh();
       setStatus("success");
       setMessage("Enterprise joined. Redirecting...");
-      router.push("/dashboard");
+      if (typeof window !== "undefined") {
+        // Use a full navigation so server session checks run against the latest enterprise membership.
+        window.location.assign("/app-home");
+      }
     } catch (err) {
       setStatus("error");
       setMessage(resolveErrorMessage(err));
@@ -60,7 +67,7 @@ export function GoogleEnterpriseCodeForm() {
         type="text"
         value={code}
         required
-        placeholder="e.g. UNIV2024"
+        placeholder="e.g. UNI2026"
         onChange={(_name, value) => setCode(value)}
       />
       <div className="auth-actions">
