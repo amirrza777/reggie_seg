@@ -2,19 +2,22 @@
 
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { BoardListSection } from "@/features/trello/components/BoardListSection";
 import "@/features/trello/styles/board-view.css";
 import { CardMovementHistory } from "@/features/trello/components/CardMovementHistory";
 import { getMyTrelloMemberId } from "@/features/trello/api/client";
 import { formatDate } from "@/shared/lib/formatDate";
 import {
+  clampChangeDayKey,
+  earliestNavigableCalendarDay,
   getBoardStateAtDate,
   getDateKeysWithActions,
-  prevCalendarDay,
+  latestChangeDayJumpBackFromCurrent,
   nextCalendarDay,
-  prevChangeDay,
   nextChangeDay,
+  prevCalendarDay,
+  prevChangeDay,
 } from "@/features/trello/lib/boardStateAtDate";
 import type { ProjectDeadline } from "@/features/projects/types";
 import type { BoardView } from "@/features/trello/api/client";
@@ -121,7 +124,30 @@ export function TrelloBoardView({
     [effectiveMemberId, filteredActionsByDate, actionsByDate]
   );
   const firstChangeDate = dateKeysSorted[0] ?? "";
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const calendarFloor = earliestNavigableCalendarDay(firstChangeDate, todayKey);
+
   const [selectedDateInput, setSelectedDateInput] = useState<string | "current">("current");
+
+  const isNavigableCalendarDay = useCallback(
+    (key: string) =>
+      /^\d{4}-\d{2}-\d{2}$/.test(key) &&
+      key.localeCompare(calendarFloor) >= 0 &&
+      key.localeCompare(todayKey) <= 0,
+    [calendarFloor, todayKey],
+  );
+
+  useEffect(() => {
+    if (selectedDateInput === "current") return;
+    if (dateKeysSorted.length === 0) {
+      setSelectedDateInput("current");
+      return;
+    }
+    if (dateKeysSorted.includes(selectedDateInput)) return;
+    if (isNavigableCalendarDay(selectedDateInput)) return;
+    setSelectedDateInput(clampChangeDayKey(selectedDateInput, dateKeysSorted));
+  }, [dateKeysSorted, selectedDateInput, isNavigableCalendarDay]);
+
   const selectedDate = useMemo<string | "current">(() => {
     if (dateKeysSorted.length === 0) {
       return "current";
@@ -129,8 +155,14 @@ export function TrelloBoardView({
     if (selectedDateInput === "current") {
       return "current";
     }
-    return dateKeysSorted.includes(selectedDateInput) ? selectedDateInput : "current";
-  }, [dateKeysSorted, selectedDateInput]);
+    if (dateKeysSorted.includes(selectedDateInput)) {
+      return selectedDateInput;
+    }
+    if (isNavigableCalendarDay(selectedDateInput)) {
+      return selectedDateInput;
+    }
+    return clampChangeDayKey(selectedDateInput, dateKeysSorted);
+  }, [dateKeysSorted, selectedDateInput, isNavigableCalendarDay]);
 
   const cardsToShow = useMemo(() => {
     if (selectedDate === "current") {
@@ -149,18 +181,18 @@ export function TrelloBoardView({
   ]);
 
   const isCurrent = selectedDate === "current";
-  const todayKey = new Date().toISOString().slice(0, 10);
   const innerCanGoEarlier =
     selectedDate === "current"
-      ? prevCalendarDay(todayKey, firstChangeDate) !== null
-      : firstChangeDate &&
-        prevCalendarDay(selectedDate, firstChangeDate) !== null;
+      ? prevCalendarDay(todayKey, calendarFloor) !== null
+      : Boolean(firstChangeDate) && prevCalendarDay(selectedDate, calendarFloor) !== null;
   const innerCanGoLater =
     selectedDate !== "current" &&
     (nextCalendarDay(selectedDate) !== null || selectedDate === todayKey);
   const outerCanGoEarlier =
     dateKeysSorted.length > 0 &&
-    (selectedDate === "current" || prevChangeDay(selectedDate, dateKeysSorted) !== null);
+    (selectedDate === "current"
+      ? latestChangeDayJumpBackFromCurrent(todayKey, dateKeysSorted) !== null
+      : prevChangeDay(selectedDate, dateKeysSorted) !== null);
   const outerCanGoLater =
     selectedDate !== "current" &&
     (dateKeysSorted.length === 0 || nextChangeDay(selectedDate, dateKeysSorted) !== "current");
@@ -171,7 +203,7 @@ export function TrelloBoardView({
 
   const handleInnerEarlier = () => {
     const from = selectedDate === "current" ? todayKey : selectedDate;
-    const prev = prevCalendarDay(from, firstChangeDate);
+    const prev = prevCalendarDay(from, calendarFloor);
     if (prev !== null) setSelectedDateInput(prev);
   };
   const handleInnerLater = () => {
@@ -187,7 +219,8 @@ export function TrelloBoardView({
   };
   const handleOuterEarlier = () => {
     if (selectedDate === "current" && dateKeysSorted.length > 0) {
-      setSelectedDateInput(dateKeysSorted[dateKeysSorted.length - 1]!);
+      const anchor = latestChangeDayJumpBackFromCurrent(todayKey, dateKeysSorted);
+      if (anchor != null) setSelectedDateInput(anchor);
       return;
     }
     if (selectedDate !== "current") {
