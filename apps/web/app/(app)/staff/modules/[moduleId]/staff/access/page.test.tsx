@@ -91,4 +91,28 @@ describe("StaffModuleStaffAccessPage", () => {
     render(page);
     expect(screen.getByTestId("access-form")).toBeInTheDocument();
   });
+
+  it("redirects to staff list when caller cannot edit", async () => {
+    resolveAccessMock.mockReturnValueOnce({
+      staffModuleSetup: true,
+      canEdit: false,
+    } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>);
+
+    await expect(StaffModuleStaffAccessPage({ params: Promise.resolve({ moduleId: "11" }) })).rejects.toBeInstanceOf(
+      RedirectSentinel,
+    );
+    expect(redirectMock).toHaveBeenCalledWith("/staff/modules/11/staff");
+  });
+
+  it("redirects to staff list when module record is missing", async () => {
+    loadCtxMock.mockResolvedValueOnce({
+      ...ownerCtx,
+      moduleRecord: null,
+    } as any);
+
+    await expect(StaffModuleStaffAccessPage({ params: Promise.resolve({ moduleId: "11" }) })).rejects.toBeInstanceOf(
+      RedirectSentinel,
+    );
+    expect(redirectMock).toHaveBeenCalledWith("/staff/modules/11/staff");
+  });
 });
