@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const useMock = vi.fn();
 const strategyCtor = vi.fn();
 const signUpWithProviderMock = vi.fn();
-const needsEnterpriseCodeEntryMock = vi.fn();
+const hasAccountWithEmailMock = vi.fn();
 const GOOGLE_REDIRECT_URL = "http://localhost/callback";
 
 vi.mock("passport", () => ({ default: { use: useMock } }));
@@ -16,7 +16,7 @@ vi.mock("passport-google-oauth20", () => ({
 }));
 vi.mock("./service.js", () => ({
   signUpWithProvider: signUpWithProviderMock,
-  needsEnterpriseCodeEntry: needsEnterpriseCodeEntryMock,
+  hasAccountWithEmail: hasAccountWithEmailMock,
 }));
 vi.mock("../shared/db.js", () => ({ prisma: {} }));
 
@@ -75,8 +75,8 @@ describe("configureGoogle", () => {
 
   it("verify callback creates user via provider and calls done with user", async () => {
     setGoogleEnv();
+    hasAccountWithEmailMock.mockResolvedValueOnce(true);
     signUpWithProviderMock.mockResolvedValueOnce({ id: 5, email: "user@example.com" });
-    needsEnterpriseCodeEntryMock.mockResolvedValueOnce(false);
 
     const verify = await configureGoogleAndGetVerifyCallback();
     const done = vi.fn();
@@ -102,8 +102,8 @@ describe("configureGoogle", () => {
 
   it("verify callback passes needsEnterpriseCode: true for DEFAULT enterprise student", async () => {
     setGoogleEnv();
+    hasAccountWithEmailMock.mockResolvedValueOnce(false);
     signUpWithProviderMock.mockResolvedValueOnce({ id: 9, email: "student@example.com" });
-    needsEnterpriseCodeEntryMock.mockResolvedValueOnce(true);
 
     const verify = await configureGoogleAndGetVerifyCallback();
     const done = vi.fn();
@@ -115,7 +115,7 @@ describe("configureGoogle", () => {
       done,
     );
 
-    expect(needsEnterpriseCodeEntryMock).toHaveBeenCalledWith(9);
+    expect(hasAccountWithEmailMock).toHaveBeenCalledWith("student@example.com");
     expect(done).toHaveBeenCalledWith(null, { id: 9, email: "student@example.com", needsEnterpriseCode: true });
   });
 

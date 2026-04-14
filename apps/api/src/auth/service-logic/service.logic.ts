@@ -10,6 +10,7 @@ export {
   refreshTokens,
   logout,
   signUpWithProvider,
+  hasAccountWithEmail,
 } from "./service.logic.auth-flows.js";
 export {
   requestPasswordReset,

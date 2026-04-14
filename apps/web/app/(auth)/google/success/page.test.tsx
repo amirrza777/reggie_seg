@@ -18,9 +18,12 @@ const useSearchParamsMock = vi.mocked(useSearchParams);
 const setAccessTokenMock = vi.mocked(setAccessToken);
 
 beforeAll(() => {
-  const mockLocation: Pick<Location, "href" | "assign"> = {
+  const mockLocation: Pick<Location, "href" | "assign" | "replace"> = {
     href: "http://localhost:3001/",
     assign: vi.fn((url: string) => {
+      mockLocation.href = url;
+    }),
+    replace: vi.fn((url: string) => {
       mockLocation.href = url;
     }),
   };
@@ -50,6 +53,7 @@ describe("GoogleSuccessPage", () => {
 
     expect(screen.getByText("Signing you in…")).toBeInTheDocument();
     await waitFor(() => expect(setAccessTokenMock).toHaveBeenCalledWith("abc123"));
+    expect(window.location.replace).toHaveBeenCalledWith("/dashboard");
     expect(window.location.href).toBe("/dashboard");
   });
 
@@ -58,6 +62,7 @@ describe("GoogleSuccessPage", () => {
 
     render(<GoogleSuccessPage />);
 
+    await waitFor(() => expect(window.location.replace).toHaveBeenCalledWith("/app-home"));
     await waitFor(() => expect(window.location.href).toBe("/app-home"));
     expect(setAccessTokenMock).not.toHaveBeenCalled();
   });
@@ -68,6 +73,7 @@ describe("GoogleSuccessPage", () => {
     render(<GoogleSuccessPage />);
 
     await waitFor(() => expect(setAccessTokenMock).toHaveBeenCalledWith("fallback-token"));
+    expect(window.location.replace).toHaveBeenCalledWith("/app-home");
     expect(window.location.href).toBe("/app-home");
   });
 });

@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy, type Profile, type VerifyCallback } from "passport-google-oauth20";
-import { signUpWithProvider, needsEnterpriseCodeEntry } from "./service.js";
+import { hasAccountWithEmail, signUpWithProvider } from "./service.js";
 
 async function handleGoogleVerify(profile: Profile, done: VerifyCallback) {
   try {
@@ -8,10 +8,11 @@ async function handleGoogleVerify(profile: Profile, done: VerifyCallback) {
     if (!email) {
       return done(new Error("email missing"));
     }
+    const hasExistingAccount = await hasAccountWithEmail(email);
     const firstName = profile.name?.givenName ?? "";
     const lastName = profile.name?.familyName ?? "";
     const user = await signUpWithProvider({ email, firstName, lastName, provider: "google" });
-    const needsCode = await needsEnterpriseCodeEntry(user.id);
+    const needsCode = !hasExistingAccount;
     return done(null, { id: user.id, email: user.email, needsEnterpriseCode: needsCode });
   } catch (error) {
     return done(error);

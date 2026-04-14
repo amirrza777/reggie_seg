@@ -64,6 +64,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
 
     const user = await apiFetch<SessionUser>("/auth/me", {
       baseUrl: resolvedBase,
+      cache: "no-store",
       headers: {
         ...(cookieHeader ? { Cookie: cookieHeader } : {}),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),

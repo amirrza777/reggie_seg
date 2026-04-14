@@ -179,3 +179,8 @@ export async function signUpWithProvider(params: { email: string; firstName?: st
   }
   return user;
 }
+
+export async function hasAccountWithEmail(email: string): Promise<boolean> {
+  const existing = await prisma.user.findFirst({ where: { email: email.toLowerCase() }, select: { id: true } });
+  return Boolean(existing);
+}

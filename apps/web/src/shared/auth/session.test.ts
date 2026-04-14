@@ -58,6 +58,7 @@ describe("shared/auth/session", () => {
     expect(getApiBaseForRequestMock).toHaveBeenCalledWith("workspace.local", "https");
     expect(apiFetchMock).toHaveBeenCalledWith("/auth/me", {
       baseUrl: "https://api.request.local",
+      cache: "no-store",
       headers: {
         Authorization: "Bearer cookie-token",
         Cookie: "tf_access_token=cookie-token; theme=dark",
@@ -101,6 +102,7 @@ describe("shared/auth/session", () => {
     expect(getApiBaseForRequestMock).toHaveBeenCalledWith("localhost:3001", "http");
     expect(apiFetchMock).toHaveBeenCalledWith("/auth/me", {
       baseUrl: "https://api.default.test",
+      cache: "no-store",
       headers: {},
     });
     expect(user).toMatchObject({
