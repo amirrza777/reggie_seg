@@ -48,6 +48,16 @@ describe("StaffCustomisedAllocationPanelStep3", () => {
     expect(screen.getByLabelText("Customised maximum students per team")).toBeInTheDocument();
   });
 
+  it("calls input change handlers", () => {
+    const props = renderStep3();
+    fireEvent.change(screen.getByLabelText("Customised team count"), { target: { value: "4" } });
+    fireEvent.change(screen.getByLabelText("Customised minimum students per team"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("Customised maximum students per team"), { target: { value: "5" } });
+    expect(props.onTeamCountInputChange).toHaveBeenCalledWith("4");
+    expect(props.onMinTeamSizeInputChange).toHaveBeenCalledWith("2");
+    expect(props.onMaxTeamSizeInputChange).toHaveBeenCalledWith("5");
+  });
+
   it("calls runPreview when the preview button is clicked", () => {
     const props = renderStep3();
     fireEvent.click(screen.getByRole("button", { name: /preview customised teams/i }));
@@ -130,6 +140,66 @@ describe("StaffCustomisedAllocationPanelStep3", () => {
     expect(screen.getByText("Work style")).toBeInTheDocument();
   });
 
+  it("renders fallback labels and singular unassigned text", () => {
+    const preview = {
+      previewId: "pv-2",
+      respondentCount: 1,
+      nonRespondentCount: 0,
+      teamCount: 1,
+      overallScore: 0.88,
+      criteriaSummary: [{ questionId: 42, strategy: "balance", weight: 2, satisfactionScore: 0.75 }],
+      previewTeams: [{
+        index: 0,
+        suggestedName: "Team A",
+        members: [{ id: 22, firstName: "Sam", lastName: "Kai", email: "sam@example.com", responseStatus: "NO_RESPONSE" }],
+      }],
+      teamCriteriaSummary: [
+        {
+          teamIndex: 0,
+          criteria: [{
+            questionId: 7,
+            strategy: "balance",
+            weight: 2,
+            responseCount: 1,
+            summary: { kind: "categorical", categories: [{ value: "Morning", count: 1 }] },
+          }],
+        },
+      ],
+      unassignedStudents: [
+        { id: 99, firstName: "Una", lastName: "Signed", email: "una@example.com", responseStatus: "RESPONDED" },
+      ],
+    };
+
+    renderStep3({
+      preview,
+      isPreviewCurrent: true,
+      questionLabelById: new Map<number, string>(),
+      unassignedStudents: preview.unassignedStudents,
+    });
+
+    expect(screen.getByText(/1 student could not be assigned/i)).toBeInTheDocument();
+    expect(screen.getByText("Question 42")).toBeInTheDocument();
+    expect(screen.getByText("Question 7")).toBeInTheDocument();
+    expect(screen.getByText("Responded")).toBeInTheDocument();
+    expect(screen.getAllByText(/No questionnaire response/i).length).toBeGreaterThan(0);
+  });
+
+  it("handles previews without teamCriteriaSummary", () => {
+    const preview = {
+      previewId: "pv-3",
+      respondentCount: 1,
+      nonRespondentCount: 0,
+      teamCount: 1,
+      overallScore: 0.8,
+      criteriaSummary: [],
+      previewTeams: [previewTeam],
+      unassignedStudents: [],
+    };
+
+    renderStep3({ preview, isPreviewCurrent: true });
+    expect(screen.queryByText("Criteria breakdown")).not.toBeInTheDocument();
+  });
+
   it("calls onToggleTeamRename when Rename button is clicked", () => {
     const preview = {
       previewId: "pv-1",
@@ -180,5 +250,22 @@ describe("StaffCustomisedAllocationPanelStep3", () => {
     const props = renderStep3({ preview, isPreviewCurrent: true });
     fireEvent.click(screen.getByRole("button", { name: /confirm allocation/i }));
     expect(props.toggleConfirmAllocation).toHaveBeenCalled();
+  });
+
+  it("calls runApplyAllocation when apply button is enabled", () => {
+    const preview = {
+      previewId: "pv-4",
+      respondentCount: 1,
+      nonRespondentCount: 0,
+      teamCount: 1,
+      overallScore: 0.8,
+      criteriaSummary: [],
+      previewTeams: [previewTeam],
+      teamCriteriaSummary: [],
+      unassignedStudents: [],
+    };
+    const props = renderStep3({ preview, isPreviewCurrent: true, confirmApply: true });
+    fireEvent.click(screen.getByRole("button", { name: /Save draft allocation/i }));
+    expect(props.runApplyAllocation).toHaveBeenCalled();
   });
 });

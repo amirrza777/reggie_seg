@@ -33,11 +33,23 @@ vi.mock("@/features/trello/api/client", () => ({
 }));
 
 vi.mock("@/features/trello/views/TrelloLinkAccountView", () => ({
-  TrelloLinkAccountView: () => <div data-testid="link-account-view" />,
+  TrelloLinkAccountView: ({ onError }: { onError?: (message: string) => void }) => (
+    <div data-testid="link-account-view">
+      <button type="button" onClick={() => onError?.("Link account failed")}>
+        Trigger account error
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock("@/features/trello/views/TrelloLinkBoardView", () => ({
-  TrelloLinkBoardView: () => <div data-testid="link-board-view" />,
+  TrelloLinkBoardView: ({ onAssigned }: { onAssigned?: () => void }) => (
+    <div data-testid="link-board-view">
+      <button type="button" onClick={() => onAssigned?.()}>
+        Trigger board assigned
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock("@/features/trello/views/TrelloJoinBoardView", () => ({
@@ -152,6 +164,21 @@ describe("ProjectTrelloContent", () => {
       />,
     );
     expect(screen.getByText(/Team A did not link a Trello board/i)).toBeInTheDocument();
+  });
+
+  it("uses generic team label for archived no-team-board when team name is blank", () => {
+    useCanEditMock.mockReturnValue(false);
+    setSource({ state: { status: "no-team-board" } });
+    render(
+      <ProjectTrelloContent
+        projectId="1"
+        teamId={2}
+        teamName="   "
+        teamHasLinkedTrelloBoard
+        viewComponent={StubView}
+      />,
+    );
+    expect(screen.getByText(/Your team did not link a Trello board/i)).toBeInTheDocument();
   });
 
   it("shows archived copy for link-account when team had board vs not", () => {
@@ -298,6 +325,13 @@ describe("ProjectTrelloContent", () => {
       status: "error",
       message: "Failed to load your boards.",
     });
+
+    getMyBoardsMock.mockRejectedValueOnce(new Error("Boards API unavailable"));
+    await user.click(screen.getByRole("button", { name: /change team board/i }));
+    expect(setState).toHaveBeenCalledWith({
+      status: "error",
+      message: "Boards API unavailable",
+    });
   });
 
   it("change account sets link-account state", async () => {
@@ -312,5 +346,40 @@ describe("ProjectTrelloContent", () => {
     );
     await user.click(screen.getByRole("button", { name: /change your linked account/i }));
     expect(setState).toHaveBeenCalledWith({ status: "link-account" });
+  });
+
+  it("propagates account-link errors through setState", async () => {
+    const user = userEvent.setup();
+    const setState = vi.fn();
+    setSource({ state: { status: "no-team-board" }, setState });
+    render(
+      <ProjectTrelloContent projectId="1" teamId={2} teamHasLinkedTrelloBoard viewComponent={StubView} />,
+    );
+    await user.click(screen.getByRole("button", { name: /trigger account error/i }));
+    expect(setState).toHaveBeenCalledWith({ status: "error", message: "Link account failed" });
+  });
+
+  it("propagates account-link errors from link-account editable mode", async () => {
+    const user = userEvent.setup();
+    const setState = vi.fn();
+    useCanEditMock.mockReturnValue(true);
+    setSource({ state: { status: "link-account" }, setState });
+    render(
+      <ProjectTrelloContent projectId="1" teamId={2} teamHasLinkedTrelloBoard viewComponent={StubView} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /trigger account error/i }));
+    expect(setState).toHaveBeenCalledWith({ status: "error", message: "Link account failed" });
+  });
+
+  it("passes loadTeamBoard to link-board assignment handler", async () => {
+    const user = userEvent.setup();
+    const loadTeamBoard = vi.fn();
+    setSource({ state: { status: "link-board", boards: [] }, loadTeamBoard });
+    render(
+      <ProjectTrelloContent projectId="1" teamId={2} teamHasLinkedTrelloBoard viewComponent={StubView} />,
+    );
+    await user.click(screen.getByRole("button", { name: /trigger board assigned/i }));
+    expect(loadTeamBoard).toHaveBeenCalled();
   });
 });

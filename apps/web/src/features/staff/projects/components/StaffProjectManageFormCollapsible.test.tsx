@@ -34,4 +34,22 @@ describe("StaffProjectManageFormCollapsible", () => {
     );
     expect(details.open).toBe(true);
   });
+
+  it("updates internal state from details onToggle events", () => {
+    render(
+      <StaffProjectManageFormCollapsible title="Toggle state" defaultOpen>
+        <span>Body</span>
+      </StaffProjectManageFormCollapsible>,
+    );
+    const details = screen.getByText("Toggle state").closest("details") as HTMLDetailsElement;
+    expect(details.open).toBe(true);
+
+    details.open = false;
+    fireEvent(details, new Event("toggle"));
+    expect(details.open).toBe(false);
+
+    details.open = true;
+    fireEvent(details, new Event("toggle"));
+    expect(details.open).toBe(true);
+  });
 });

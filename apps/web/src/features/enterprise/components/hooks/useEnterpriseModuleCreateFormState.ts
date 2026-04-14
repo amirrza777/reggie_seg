@@ -173,10 +173,6 @@ export function useEnterpriseModuleCreateFormState({
       setModuleNameError(validation.moduleNameError);
       return;
     }
-    if (validation.formError) {
-      setErrorMessage(validation.formError);
-      return;
-    }
 
     setModuleNameError(null);
     setIsSubmitting(true);

@@ -11,7 +11,9 @@ vi.mock("recharts", () => ({
   PieChart: ({ children }: { children: ReactNode }) => <div data-testid="pie-chart">{children}</div>,
   Pie: () => <div data-testid="pie" />,
   Cell: () => null,
-  Tooltip: () => null,
+  Tooltip: ({ formatter }: { formatter?: (value: number, name: string) => [unknown, unknown] }) => (
+    <div data-testid="summary-tooltip">{formatter ? String(formatter(7, "Backlog")[0]) : ""}</div>
+  ),
 }));
 
 describe("SummaryCardsByStatusChart", () => {
@@ -50,6 +52,7 @@ describe("SummaryCardsByStatusChart", () => {
     };
     render(<SummaryCardsByStatusChart counts={counts} />);
     expect(screen.getByTestId("pie-chart")).toBeInTheDocument();
+    expect(screen.getByTestId("summary-tooltip")).toHaveTextContent("7");
     expect(screen.queryByText("No cards yet.")).not.toBeInTheDocument();
   });
 });
