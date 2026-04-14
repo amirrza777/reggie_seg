@@ -264,7 +264,7 @@ describe("StaffPeerAssessmentSectionPage", () => {
         items: [
           expect.objectContaining({
             deadline: {
-              dateLabel: formatDate("2026-05-20T12:00:00.000Z"),
+              dateLabel: formatDate("2026-05-27T12:00:00.000Z"),
               profile: "MCF",
             },
           }),

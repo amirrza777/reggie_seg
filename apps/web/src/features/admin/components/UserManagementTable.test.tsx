@@ -142,7 +142,9 @@ describe("UserManagementTable", () => {
     await renderTable();
     fireEvent.click(screen.getByText("Active"));
     await waitFor(() => expect(updateUserMock).toHaveBeenCalledWith(apiUser.id, { active: false }));
-    expect(screen.getByText(/Account suspended/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Account suspended/i)).toBeInTheDocument();
+    });
   });
 
   it("filters visible users with search", async () => {
@@ -213,9 +215,11 @@ describe("UserManagementTable", () => {
     await waitFor(() =>
       expect(searchUsersMock).toHaveBeenLastCalledWith({ q: undefined, page: 2, pageSize: 10 }),
     );
-    expect(screen.getByText("user11@example.com")).toBeInTheDocument();
-    expect(screen.getByText("user13@example.com")).toBeInTheDocument();
-    expect(screen.queryByText("user1@example.com")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("user11@example.com")).toBeInTheDocument();
+      expect(screen.getByText("user13@example.com")).toBeInTheDocument();
+      expect(screen.queryByText("user1@example.com")).not.toBeInTheDocument();
+    });
     expect(screen.getByText(/Showing 11-13 of 13 accounts\./i)).toBeInTheDocument();
   });
 
@@ -240,9 +244,11 @@ describe("UserManagementTable", () => {
     await waitFor(() =>
       expect(searchUsersMock).toHaveBeenLastCalledWith({ q: undefined, page: 2, pageSize: 10 }),
     );
-    expect(screen.getByText("user11@example.com")).toBeInTheDocument();
-    expect(screen.getByText("user13@example.com")).toBeInTheDocument();
-    expect(screen.queryByText("user1@example.com")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("user11@example.com")).toBeInTheDocument();
+      expect(screen.getByText("user13@example.com")).toBeInTheDocument();
+      expect(screen.queryByText("user1@example.com")).not.toBeInTheDocument();
+    });
   });
 
   it("supports previous-page navigation and submit-based page jump", async () => {
