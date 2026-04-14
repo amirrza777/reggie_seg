@@ -1,4 +1,5 @@
 import { prisma } from "../../shared/db.js";
+import { wherePeerAssessmentIsPeerReview } from "./peerAssessmentPurposeWhere.js";
 
 /** Returns the teammates. */
 export function getTeammates(userId: number, teamId: number) {
@@ -115,6 +116,7 @@ export function getTeammateAssessments(userId: number, projectId: number) {
     where: {
       reviewerUserId: userId,
       projectId: projectId,
+      ...wherePeerAssessmentIsPeerReview,
     },
     include: {
       reviewee: {
@@ -135,6 +137,7 @@ export function getAssessmentsForReviewee(userId: number, projectId: number) {
     where: {
       revieweeUserId: userId,
       projectId: projectId,
+      ...wherePeerAssessmentIsPeerReview,
     },
     include: {
       reviewer: {

@@ -34,4 +34,20 @@ describe("ProgressCard", () => {
     expect(link).toHaveAttribute("href", "/staff/modules/1");
     expect(screen.getByText("0%")).toBeInTheDocument();
   });
+
+  it("renders deadlineDetail instead of the plain deadline line", () => {
+    render(
+      <ProgressCard
+        title="Team A"
+        submitted={1}
+        expected={3}
+        deadline="ignored"
+        deadlineDetail={<span data-testid="rich-dl">Apr 1, 2026 · Standard</span>}
+      />,
+    );
+
+    expect(screen.getByTestId("rich-dl")).toBeInTheDocument();
+    expect(screen.queryByText("ignored")).not.toBeInTheDocument();
+    expect(screen.queryByText("Deadline not set")).not.toBeInTheDocument();
+  });
 });

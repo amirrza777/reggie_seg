@@ -2,11 +2,13 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { notFound, redirect } from "next/navigation";
+import { getEnterpriseModuleJoinCode } from "@/features/enterprise/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import {
   loadStaffModuleWorkspaceContext,
   resolveStaffModuleWorkspaceAccess,
 } from "@/features/modules/staffModuleWorkspaceLayoutData";
+import { ApiError } from "@/shared/api/errors";
 import StaffModuleManagePage from "./page";
 
 class RedirectSentinel extends Error {}
@@ -31,6 +33,10 @@ vi.mock("next/link", () => ({
 
 vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
+}));
+
+vi.mock("@/features/enterprise/api/client", () => ({
+  getEnterpriseModuleJoinCode: vi.fn(),
 }));
 
 vi.mock("@/features/modules/staffModuleWorkspaceLayoutData", () => ({
@@ -81,6 +87,7 @@ const notFoundMock = vi.mocked(notFound);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const loadStaffModuleWorkspaceContextMock = vi.mocked(loadStaffModuleWorkspaceContext);
 const resolveStaffModuleWorkspaceAccessMock = vi.mocked(resolveStaffModuleWorkspaceAccess);
+const getEnterpriseModuleJoinCodeMock = vi.mocked(getEnterpriseModuleJoinCode);
 
 const staffUser = { id: 7, isStaff: true, role: "STAFF" };
 
@@ -102,6 +109,7 @@ describe("StaffModuleManagePage", () => {
     resolveStaffModuleWorkspaceAccessMock.mockReturnValue(
       { enterpriseModuleEditor: false, isArchived: false } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>,
     );
+    getEnterpriseModuleJoinCodeMock.mockResolvedValue({ moduleId: 11, joinCode: "LOADED99" });
   });
 
   it("redirects unauthenticated users to login", async () => {
@@ -234,12 +242,27 @@ describe("StaffModuleManagePage", () => {
     expect(form).toHaveAttribute("data-join-code", "JOIN123");
     expect(form).toHaveAttribute("data-created", "true");
     expect(form).toHaveAttribute("data-success-redirect", "/staff/modules/11");
+    expect(getEnterpriseModuleJoinCodeMock).not.toHaveBeenCalled();
+  });
+
+  it("loads join code from the API when not provided on the create redirect", async () => {
+    const page = await StaffModuleManagePage({
+      params: Promise.resolve({ moduleId: "11" }),
+      searchParams: Promise.resolve({}),
+    });
+
+    render(page);
+
+    expect(getEnterpriseModuleJoinCodeMock).toHaveBeenCalledWith(11);
+    expect(screen.getByTestId("module-form")).toHaveAttribute("data-join-code", "LOADED99");
+    expect(screen.getByTestId("module-form")).toHaveAttribute("data-created", "false");
   });
 
   it("renders archived helper text and omits create action when module is archived", async () => {
     resolveStaffModuleWorkspaceAccessMock.mockReturnValueOnce(
       { enterpriseModuleEditor: false, isArchived: true } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>,
     );
+    getEnterpriseModuleJoinCodeMock.mockRejectedValueOnce(new ApiError("forbidden", { status: 403 }));
 
     const page = await StaffModuleManagePage({
       params: Promise.resolve({ moduleId: "11" }),

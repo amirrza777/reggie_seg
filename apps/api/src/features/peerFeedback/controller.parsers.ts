@@ -64,3 +64,15 @@ export function parseFeedbackStatusesBody(body: unknown): ParseResult<{ feedback
   if (!feedbackIds.ok) return fail("feedbackIds must contain only numeric IDs");
   return ok({ feedbackIds: feedbackIds.value });
 }
+
+export function parsePeerAssessmentReviewsBody(body: unknown): ParseResult<{ peerAssessmentIds: number[] }> {
+  const parsedBody = parseBodyRecord(body, "peerAssessmentIds must be an array");
+  if (!parsedBody.ok) return parsedBody;
+
+  if (!Array.isArray(parsedBody.value.peerAssessmentIds)) {
+    return fail("peerAssessmentIds must be an array");
+  }
+  const peerAssessmentIds = parsePositiveIntArray(parsedBody.value.peerAssessmentIds, "peerAssessmentIds");
+  if (!peerAssessmentIds.ok) return fail("peerAssessmentIds must contain only numeric IDs");
+  return ok({ peerAssessmentIds: peerAssessmentIds.value });
+}

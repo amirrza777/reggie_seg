@@ -10,11 +10,11 @@ const columns: { title: string; links: FooterLink[] }[] = [
   {
     title: "Product",
     links: [
-      { href: "/product/peer-assessment", label: "Peer assessment" },
+      { href: "/product/peer-assessment", label: "Peer Assessment" },
       { href: "/product/questionnaires", label: "Questionnaires" },
       { href: "/product/meetings", label: "Meetings" },
       { href: "/product/integrations", label: "Integrations" },
-      { href: "/product/roles-and-permissions", label: "Roles and permissions" },
+      { href: "/product/roles-and-permissions", label: "Roles and Permissions" },
       { href: "/product/analytics", label: "Analytics" },
     ],
   },

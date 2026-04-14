@@ -1,14 +1,17 @@
-import type { Request, Response } from "express"
+import type { Request, Response } from "express";
+import type { AuthRequest } from "../../auth/middleware.js";
 import {
   getFeedbackReview,
   getFeedbackReviewStatuses,
+  getFeedbackReviewsForViewer,
   saveFeedbackReview,
   getPeerAssessment,
-} from "./service.js"
+} from "./service.js";
 import {
   parseCreatePeerFeedbackBody,
   parseFeedbackIdParam,
   parseFeedbackStatusesBody,
+  parsePeerAssessmentReviewsBody,
 } from "./controller.parsers.js";
 
 /** Handles requests for create peer feedback. */
@@ -47,6 +50,26 @@ export async function getPeerFeedbackHandler(req: Request, res: Response) {
   } catch (error) {
     console.error("Error retrieving feedback review:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function getPeerFeedbackReviewsByAssessmentsHandler(req: AuthRequest, res: Response) {
+  const viewerId = Number(req.user?.sub);
+  if (!Number.isInteger(viewerId) || viewerId <= 0) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const parsedBody = parsePeerAssessmentReviewsBody(req.body);
+  if (!parsedBody.ok) {
+    return res.status(400).json({ error: parsedBody.error });
+  }
+
+  try {
+    const reviews = await getFeedbackReviewsForViewer(viewerId, parsedBody.value.peerAssessmentIds);
+    return res.json({ reviews });
+  } catch (error) {
+    console.error("Error retrieving peer feedback reviews by assessments:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 }
 

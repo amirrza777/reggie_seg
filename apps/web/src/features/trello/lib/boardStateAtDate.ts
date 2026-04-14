@@ -57,10 +57,43 @@ export function getDateKeysWithActions(
   return Object.keys(actionsByDate).sort((a, b) => a.localeCompare(b));
 }
 
-function addDays(dateKey: string, delta: number): string {
+export function addDays(dateKey: string, delta: number): string {
   const d = new Date(dateKey + "T12:00:00Z");
   d.setUTCDate(d.getUTCDate() + delta);
   return d.toISOString().slice(0, 10);
+}
+
+export function earliestNavigableCalendarDay(firstChangeDate: string, todayKey: string): string {
+  if (!firstChangeDate) return addDays(todayKey, -1);
+  if (firstChangeDate.localeCompare(todayKey) >= 0) {
+    return addDays(todayKey, -1);
+  }
+  return firstChangeDate;
+}
+
+/** Latest change-day key that is on or before `dateKey` (inclusive). */
+export function lastChangeDayOnOrBefore(dateKey: string, changeDays: string[]): string | null {
+  if (changeDays.length === 0) return null;
+  let best: string | null = null;
+  for (const d of changeDays) {
+    if (d <= dateKey) best = d;
+  }
+  return best;
+}
+
+export function latestChangeDayJumpBackFromCurrent(todayKey: string, changeDays: string[]): string | null {
+  if (changeDays.length === 0) return null;
+  const strictlyBefore = changeDays.filter((d) => d < todayKey);
+  if (strictlyBefore.length > 0) return strictlyBefore[strictlyBefore.length - 1]!;
+  return lastChangeDayOnOrBefore(todayKey, changeDays);
+}
+
+/** If `candidate` is not a known change day, pick the nearest still-valid key (prefer older). */
+export function clampChangeDayKey(candidate: string, changeDays: string[]): string {
+  if (changeDays.length === 0) return candidate;
+  if (changeDays.includes(candidate)) return candidate;
+  const onOrBefore = lastChangeDayOnOrBefore(candidate, changeDays);
+  return onOrBefore ?? changeDays[0]!;
 }
 
 export function getCalendarDaysInRange(firstChangeDate: string): string[] {

@@ -1,7 +1,10 @@
 "use client";
 
+import "../styles/peer-student-assessments.css";
 import { useLayoutEffect, useMemo, useState } from "react";
+import { AgreementTrafficLightPill } from "@/features/peerFeedback/components/AgreementTrafficLightPill";
 import { Card } from "@/shared/ui/Card";
+import { RichTextViewer } from "@/shared/ui/rich-text/RichTextViewer";
 
 export type StaffPeerSerialisedAssessment = {
   id: string;
@@ -25,6 +28,8 @@ export type StaffPeerAssessmentGroup = {
 type TabKey = "given" | "received";
 
 type StaffPeerStudentAssessmentsPanelProps = {
+  /** The student whose peer work is being inspected (shown muted on each card). */
+  focusStudentName: string;
   questionLabels: Record<string, string>;
   expectedPeerReviews: number;
   givenGroups: StaffPeerAssessmentGroup[];
@@ -32,45 +37,8 @@ type StaffPeerStudentAssessmentsPanelProps = {
   initialPeerFocus?: { tab: TabKey; counterpartId: number } | null;
 };
 
-function resolveQuestionLabel(questionId: string, questionLabels: Record<string, string>): string {
-  const fromMap = questionLabels[questionId];
-  if (typeof fromMap === "string" && fromMap.trim().length > 0) return fromMap;
-  return questionId;
-}
-
-function extractLexicalPlainText(content: string): string | null {
-  try {
-    const parsed = JSON.parse(content) as { root?: unknown };
-    if (!parsed || typeof parsed !== "object" || !("root" in parsed)) return null;
-
-    const walk = (node: unknown): string => {
-      if (!node || typeof node !== "object") return "";
-      const current = node as { type?: unknown; text?: unknown; children?: unknown };
-      const type = typeof current.type === "string" ? current.type : "";
-
-      if (type === "text") return typeof current.text === "string" ? current.text : "";
-      if (type === "linebreak") return "\n";
-
-      const children = Array.isArray(current.children) ? current.children.map((child) => walk(child)).join("") : "";
-      if (type === "paragraph" || type === "quote" || type === "heading" || type === "listitem") {
-        return `${children}\n`;
-      }
-      return children;
-    };
-
-    const text = walk(parsed.root).replace(/\n{3,}/g, "\n\n").trim();
-    return text.length > 0 ? text : "";
-  } catch {
-    return null;
-  }
-}
-
-function formatFeedbackReviewText(value: string | null): string | null {
-  if (!value || value.trim().length === 0) return null;
-  return extractLexicalPlainText(value) ?? value.trim();
-}
-
 export function StaffPeerStudentAssessmentsPanel({
+  focusStudentName,
   questionLabels,
   expectedPeerReviews,
   givenGroups,
@@ -104,9 +72,10 @@ export function StaffPeerStudentAssessmentsPanel({
     });
   }, [initialPeerFocus]);
 
-  return (
-    <div className="stack" style={{ gap: 16, marginTop: 10 }}>
+  const p = "staff-projects__peer-student-assessments";
 
+  return (
+    <div className={`stack ${p}`}>
       <div className="pill-nav" role="tablist">
         <button
           type="button"
@@ -128,9 +97,7 @@ export function StaffPeerStudentAssessmentsPanel({
 
       {sortedGroups.length === 0 ? (
         <section className="staff-projects__team-card">
-          <p className="muted" style={{ margin: 0 }}>
-            {emptyMessage}
-          </p>
+          <p className={`muted ${p}__empty`}>{emptyMessage}</p>
         </section>
       ) : (
         <section className="staff-projects__team-list">
@@ -139,63 +106,100 @@ export function StaffPeerStudentAssessmentsPanel({
               key={`${tab}-${group.counterpartId}`}
               id={`staff-peer-${tab}-group-${group.counterpartId}`}
             >
-            <Card title={group.counterpartName}>
-              <div className="stack" style={{ gap: 16 }}>
-                {group.assessments.map((assessment) => {
-                  const answers = Object.entries(assessment.answers ?? {});
-                  const answerLabels = Object.fromEntries(
-                    answers.map(([questionId]) => [questionId, resolveQuestionLabel(questionId, questionLabels)])
-                  );
-                  const reviewText = formatFeedbackReviewText(assessment.feedbackReview?.reviewText ?? null);
-                  return (
-                    <div
-                      key={assessment.id}
-                      className="staff-projects__team-card"
-                      style={{ margin: 0, padding: "12px 14px" }}
-                    >
-                      <p className="muted" style={{ margin: "0 0 10px" }}>
-                        Submitted: {new Date(assessment.submittedAt).toLocaleString()}
-                      </p>
-                      {answers.length === 0 ? (
-                        <p className="muted" style={{ margin: 0 }}>No answers stored for this submission.</p>
-                      ) : (
-                        <ul className="stack" style={{ gap: 10, margin: 0, paddingLeft: 18 }}>
-                          {answers.map(([questionId, answer]) => (
-                            <li key={`${assessment.id}-${questionId}`}>
-                              <strong>{resolveQuestionLabel(questionId, questionLabels)}:</strong>{" "}
-                              {answer == null || String(answer).length === 0 ? "No response" : String(answer)}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+              <Card
+                title={
+                  <span className={`${p}__card-title`}>
+                    {tab === "given" ? (
+                      <>
+                        <span className={`muted ${p}__title-meta`}>{focusStudentName} reviewing</span>{" "}
+                        <span className={`${p}__title-name`}>{group.counterpartName}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className={`${p}__title-name`}>{group.counterpartName}</span>{" "}
+                        <span className={`muted ${p}__title-meta`}>reviewing {focusStudentName}</span>
+                      </>
+                    )}
+                  </span>
+                }
+              >
+                <div className="stack">
+                  {group.assessments.map((assessment) => {
+                    const answers = Object.entries(assessment.answers ?? {});
+                    return (
+                      <div
+                        key={assessment.id}
+                        className={`staff-projects__team-card ${p}__assessment`}
+                      >
+                        <p className={`muted ${p}__submitted`}>
+                          Submitted: {new Date(assessment.submittedAt).toLocaleString()}
+                        </p>
+                        {answers.length === 0 ? (
+                          <p className={`muted ${p}__no-answers`}>No answers stored for this submission.</p>
+                        ) : (
+                          <ul className={`${p}__answers`}>
+                            {answers.map(([questionId, answer]) => {
+                              const agreement =
+                                tab === "received" && assessment.feedbackReview?.agreementsJson
+                                  ? assessment.feedbackReview.agreementsJson[questionId] ??
+                                    assessment.feedbackReview.agreementsJson[String(questionId)]
+                                  : undefined;
+                              const hasAnswer =
+                                answer != null && String(answer).trim().length > 0;
+                              return (
+                                <li key={`${assessment.id}-${questionId}`}>
+                                  <strong className={`${p}__question-label`}>
+                                    {questionLabels[questionId] ?? questionId}:
+                                  </strong>
+                                  <div className={`${p}__answer-row`}>
+                                    <div className={`${p}__answer-body`}>
+                                      {hasAnswer ? (
+                                        <RichTextViewer
+                                          content={String(answer)}
+                                          noPadding
+                                          instanceKey={`staff-peer-answer-${assessment.id}-${questionId}`}
+                                        />
+                                      ) : (
+                                        <span className="muted">No response</span>
+                                      )}
+                                    </div>
+                                    {agreement ? (
+                                      <AgreementTrafficLightPill
+                                        score={agreement.score}
+                                        selected={agreement.selected}
+                                      />
+                                    ) : null}
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
 
-                      {tab === "received" && assessment.feedbackReview ? (
-                        <div className="stack" style={{ gap: 8, marginTop: 12 }}>
-                          <h4 style={{ margin: 0, fontSize: "var(--fs-fixed-1rem)" }}>Student feedback response</h4>
-                          <p className="muted" style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-                            {reviewText ?? "No written response submitted yet."}
-                          </p>
-                          {assessment.feedbackReview.agreementsJson &&
-                          Object.keys(assessment.feedbackReview.agreementsJson).length > 0 ? (
-                            <div className="stack" style={{ gap: 6 }}>
-                              <strong style={{ fontSize: "var(--fs-fixed-0-95rem)" }}>Agreement selections</strong>
-                              <ul className="stack" style={{ gap: 6, margin: 0, paddingLeft: 18 }}>
-                                {Object.entries(assessment.feedbackReview.agreementsJson).map(([answerId, value]) => (
-                                  <li key={`${assessment.id}-agr-${answerId}`}>
-                                    <strong>{answerLabels[answerId] ?? resolveQuestionLabel(answerId, questionLabels)}:</strong>{" "}
-                                    {value.score} — {value.selected}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
+                        {tab === "received" && assessment.feedbackReview ? (
+                          <div className={`${p}__feedback-section`}>
+                            <h4 className={`${p}__feedback-heading`}>Student feedback response</h4>
+                            {assessment.feedbackReview.reviewText &&
+                            assessment.feedbackReview.reviewText.trim().length > 0 ? (
+                              <div className={`${p}__feedback-box`}>
+                                <RichTextViewer
+                                  content={assessment.feedbackReview.reviewText}
+                                  noPadding
+                                  instanceKey={`staff-peer-feedback-${assessment.id}`}
+                                />
+                              </div>
+                            ) : (
+                              <p className={`muted ${p}__feedback-empty`}>
+                                No written response submitted yet.
+                              </p>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
             </div>
           ))}
         </section>

@@ -9,14 +9,14 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("StaffProjectSectionNav", () => {
-  it("renders Team allocation, Meetings, Discussion Forum, and Peer assessments links", () => {
+  it("renders Team Allocation, Meetings, Discussion Forum, and Peer Assessments links", () => {
     usePathnameMock.mockReturnValue("/staff/projects/9");
     render(<StaffProjectSectionNav projectId="9" />);
 
-    expect(screen.getByRole("link", { name: "Team allocation" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Team Allocation" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Meetings" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Discussion Forum" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Peer assessments" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Peer Assessments" })).toHaveAttribute(
       "href",
       "/staff/projects/9/peer-assessments",
     );
@@ -35,7 +35,7 @@ describe("StaffProjectSectionNav", () => {
     usePathnameMock.mockReturnValue("/staff/projects/9");
     render(<StaffProjectSectionNav projectId="9" moduleId={12} />);
 
-    expect(screen.getByRole("link", { name: "Team allocation" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Team Allocation" })).toHaveAttribute(
       "href",
       "/staff/projects/9/team-allocation",
     );

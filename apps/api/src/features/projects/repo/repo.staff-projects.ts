@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { wherePeerAssessmentIsPeerReview } from "../../peerAssessment/peerAssessmentPurposeWhere.js";
 import { prisma } from "../../../shared/db.js";
 import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../../shared/fuzzySearch.js";
 import { applyFuzzyFallback } from "../../../shared/fuzzyFallback.js";
@@ -44,7 +45,7 @@ const STAFF_PROJECT_LIST_SELECT = {
       trelloBoardId: true,
       _count: {
         select: {
-          peerAssessments: true,
+          peerAssessments: { where: wherePeerAssessmentIsPeerReview },
         },
       },
       allocations: {
@@ -98,6 +99,7 @@ const MARKING_PROJECT_SELECT = {
       projectId: true,
       inactivityFlag: true,
       _count: { select: { allocations: true } },
+      staffTeamMarking: { select: { mark: true } },
     },
   },
 } satisfies Prisma.ProjectSelect;

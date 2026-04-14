@@ -3,8 +3,11 @@ import {
   getPeerFeedbackByAssessmentId,
   getPeerFeedbackByAssessmentIds,
   getPeerAssessmentById,
+  listPeerFeedbackReviewsByPeerAssessmentIds,
 } from "./repo.js";
 import { fetchProjectDeadline } from "../projects/service.js";
+import { prisma } from "../../shared/db.js";
+import { getModuleDetailsIfAuthorised } from "../peerAssessment/staff/repo.js";
 
 function asDate(value: unknown): Date | null {
   if (!value) return null;
@@ -87,4 +90,75 @@ export async function getFeedbackReviewStatuses(assessmentIds: number[]) {
 /** Returns the peer assessment. */
 export function getPeerAssessment(assessmentId: number) {
   return getPeerAssessmentById(assessmentId);
+}
+
+const MAX_PEER_ASSESSMENT_IDS_PER_BULK_REVIEWS = 100;
+
+/** Bulk-load feedback reviews for peer assessments the viewer may read (participant or staff on the module). */
+export async function getFeedbackReviewsForViewer(
+  viewerUserId: number,
+  peerAssessmentIds: number[],
+): Promise<Record<string, { reviewText: string | null; agreementsJson: unknown }>> {
+  const deduped = [...new Set(peerAssessmentIds)].slice(0, MAX_PEER_ASSESSMENT_IDS_PER_BULK_REVIEWS);
+  if (deduped.length === 0) {
+    return {};
+  }
+
+  const viewer = await prisma.user.findUnique({
+    where: { id: viewerUserId },
+    select: { id: true, role: true, enterpriseId: true, active: true },
+  });
+  if (!viewer?.active) {
+    return {};
+  }
+
+  const assessments = await prisma.peerAssessment.findMany({
+    where: { id: { in: deduped } },
+    select: {
+      id: true,
+      reviewerUserId: true,
+      revieweeUserId: true,
+      project: { select: { moduleId: true, module: { select: { enterpriseId: true } } } },
+    },
+  });
+
+  const moduleAccessCache = new Map<number, boolean>();
+  const canAccessModule = async (moduleId: number) => {
+    if (moduleAccessCache.has(moduleId)) {
+      return moduleAccessCache.get(moduleId)!;
+    }
+    const row = await getModuleDetailsIfAuthorised(moduleId, viewerUserId);
+    const allowed = row != null;
+    moduleAccessCache.set(moduleId, allowed);
+    return allowed;
+  };
+
+  const allowedAssessmentIds: number[] = [];
+  for (const a of assessments) {
+    if (a.reviewerUserId === viewerUserId || a.revieweeUserId === viewerUserId) {
+      allowedAssessmentIds.push(a.id);
+      continue;
+    }
+    if (viewer.role === "ADMIN" || viewer.role === "ENTERPRISE_ADMIN") {
+      if (a.project.module.enterpriseId === viewer.enterpriseId) {
+        allowedAssessmentIds.push(a.id);
+      }
+      continue;
+    }
+    if (await canAccessModule(a.project.moduleId)) {
+      allowedAssessmentIds.push(a.id);
+    }
+  }
+
+  if (allowedAssessmentIds.length === 0) {
+    return {};
+  }
+
+  const rows = await listPeerFeedbackReviewsByPeerAssessmentIds(allowedAssessmentIds);
+  return Object.fromEntries(
+    rows.map((r) => [
+      String(r.peerAssessmentId),
+      { reviewText: r.reviewText ?? null, agreementsJson: r.agreementsJson },
+    ]),
+  );
 }

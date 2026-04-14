@@ -3,7 +3,12 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
-import type { EditableQuestion, MultipleChoiceConfigs, SliderConfigs } from "@/features/questionnaires/types";
+import {
+  QUESTION_LABEL_MAX_LENGTH,
+  type EditableQuestion,
+  type MultipleChoiceConfigs,
+  type SliderConfigs,
+} from "@/features/questionnaires/types";
 
 type Props = {
   questions: EditableQuestion[];
@@ -116,7 +121,16 @@ export function NewQuestionnaireQuestionList({
                 subtle
                 placeholder="Question label"
                 value={q.label}
-                onChange={(e) => setQuestions((qs) => qs.map((x) => (x.uiId === q.uiId ? { ...x, label: e.target.value } : x)))}
+                maxLength={QUESTION_LABEL_MAX_LENGTH}
+                onChange={(e) =>
+                  setQuestions((qs) =>
+                    qs.map((x) =>
+                      x.uiId === q.uiId
+                        ? { ...x, label: e.target.value.slice(0, QUESTION_LABEL_MAX_LENGTH) }
+                        : x,
+                    ),
+                  )
+                }
               />
 
               {q.type === "slider" && (

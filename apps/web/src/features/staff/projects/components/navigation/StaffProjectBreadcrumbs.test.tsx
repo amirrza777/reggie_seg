@@ -48,7 +48,7 @@ describe("StaffProjectBreadcrumbs", () => {
       "href",
       "/staff/projects/9/teams/4"
     );
-    expect(screen.getByRole("link", { name: "Peer assessment" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Peer Assessment" })).toHaveAttribute(
       "href",
       "/staff/projects/9/teams/4/peer-assessment"
     );
@@ -128,7 +128,7 @@ describe("StaffProjectBreadcrumbs", () => {
         teamNamesById={{}}
       />
     );
-    expect(screen.getByRole("link", { name: "Peer feedback" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Peer Feedback" })).toHaveAttribute(
       "href",
       "/staff/projects/9/teams/8/peer-feedback",
     );

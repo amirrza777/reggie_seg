@@ -8,6 +8,7 @@ export type ProgressCardData = {
   submitted: number;
   expected: number;
   deadline?: string;
+  deadlineDetail?: ReactNode;  // Rich deadline content (e.g. date + profile chip); takes precedence over `deadline`. 
   flagged?: boolean;
 };
 
@@ -18,7 +19,16 @@ type ProgressCardProps = ProgressCardData & {
 
 const clamp = (value: number) => Math.min(100, Math.max(0, value));
 
-export function ProgressCard({ title, submitted, expected, deadline, flagged, href, action }: ProgressCardProps) {
+export function ProgressCard({
+  title,
+  submitted,
+  expected,
+  deadline,
+  deadlineDetail,
+  flagged,
+  href,
+  action,
+}: ProgressCardProps) {
   const progress = expected > 0 ? (submitted / expected) * 100 : 0;
   const pct = clamp(progress);
   const content = (
@@ -44,9 +54,15 @@ export function ProgressCard({ title, submitted, expected, deadline, flagged, hr
             )}
           </div>
           <h3 style={{ margin: 0 }}>{title}</h3>
-          <p className="muted" style={{ margin: "6px 0 0" }}>
-            {deadline ?? "Deadline not set"}
-          </p>
+          {deadlineDetail != null ? (
+            <div className="muted" style={{ margin: "6px 0 0" }}>
+              {deadlineDetail}
+            </div>
+          ) : (
+            <p className="muted" style={{ margin: "6px 0 0" }}>
+              {deadline ?? "Deadline not set"}
+            </p>
+          )}
           <p> {submitted}/{expected} assessments submitted </p>
         </div>
       </div>

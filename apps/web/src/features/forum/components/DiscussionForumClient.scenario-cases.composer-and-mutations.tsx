@@ -158,9 +158,11 @@ describe("DiscussionForumClient", () => {
         body: "Edited body",
       });
     });
-    expect(screen.getByText("Edited body")).toBeInTheDocument();
-    expect(screen.getByText("Module Lead")).toBeInTheDocument();
-    expect(screen.getByText(/Edited:/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Edited body")).toBeInTheDocument();
+      expect(screen.getByText("Module Lead")).toBeInTheDocument();
+      expect(screen.getByText(/Edited:/)).toBeInTheDocument();
+    });
   });
 
   it("deletes an owned post from the menu", async () => {

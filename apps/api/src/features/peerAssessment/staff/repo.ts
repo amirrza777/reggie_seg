@@ -1,4 +1,5 @@
 import { prisma } from "../../../shared/db.js";
+import { wherePeerAssessmentIsPeerReview } from "../peerAssessmentPurposeWhere.js";
 
 async function findStaffScope(staffId: number) {
   const user = await prisma.user.findUnique({
@@ -68,7 +69,7 @@ export function countStudentsInModule(moduleId: number) {
 /** Executes the count submitted p as for module. */
 export function countSubmittedPAsForModule(moduleId: number) {
   return prisma.peerAssessment.count({
-    where: { project: { moduleId } },
+    where: { project: { moduleId }, ...wherePeerAssessmentIsPeerReview },
   });
 }
 
@@ -90,7 +91,7 @@ export function countStudentsInTeam(teamId: number) {
 /** Executes count Submitted P As for team. */
 export function countSubmittedPAsForTeam(teamId: number) {
   return prisma.peerAssessment.count({
-    where: { teamId },
+    where: { teamId, ...wherePeerAssessmentIsPeerReview },
   });
 }
 
@@ -121,7 +122,7 @@ export async function getTeamWithAssessments(teamId: number) {
   const [members, assessments] = await Promise.all([
     findStudentsInTeam(teamId),
     prisma.peerAssessment.findMany({
-      where: { teamId },
+      where: { teamId, ...wherePeerAssessmentIsPeerReview },
       select: { reviewerUserId: true, revieweeUserId: true },
     }),
   ]);
@@ -131,7 +132,7 @@ export async function getTeamWithAssessments(teamId: number) {
 /** Returns the assessments for reviewee in team. */
 export function findAssessmentsForRevieweeInTeam(teamId: number, revieweeUserId: number) {
   return prisma.peerAssessment.findMany({
-    where: { teamId, revieweeUserId },
+    where: { teamId, revieweeUserId, ...wherePeerAssessmentIsPeerReview },
     select: {
       id: true,
       reviewerUserId: true,

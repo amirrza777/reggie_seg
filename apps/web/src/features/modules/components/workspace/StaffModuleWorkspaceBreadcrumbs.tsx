@@ -12,8 +12,8 @@ type StaffModuleWorkspaceBreadcrumbsProps = {
 const SECTION_LABELS: Record<string, string> = {
   marks: "Marks",
   projects: "Projects",
-  staff: "Staff members",
-  students: "Student members",
+  staff: "Staff Members",
+  students: "Student Members",
   manage: "Settings",
 };
 

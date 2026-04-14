@@ -5,6 +5,7 @@ import {
   getUserProjectMarking,
 } from "./repo.js";
 import { prisma } from "../../shared/db.js";
+import { wherePeerAssessmentIsPeerReview } from "../peerAssessment/peerAssessmentPurposeWhere.js";
 import { countSubmittedPAsForTeam, countStudentsInTeam } from "../peerAssessment/staff/repo.js";
 
 type StaffProjectListTeam = {
@@ -195,7 +196,7 @@ export async function fetchStaffProjectPeerAssessmentOverview(
   const [projectRow, teamProgress, submittedPeerAssessmentCount] = await Promise.all([
     prisma.project.findFirst({ where: { id: projectId }, select: { questionnaireTemplate: { select: { id: true, templateName: true } } } }),
     calculateTeamPeerAssessmentProgress(base.teams),
-    prisma.peerAssessment.count({ where: { projectId } }),
+    prisma.peerAssessment.count({ where: { projectId, ...wherePeerAssessmentIsPeerReview } }),
   ]);
 
   return {

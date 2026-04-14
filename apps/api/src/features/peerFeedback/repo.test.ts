@@ -19,6 +19,7 @@ import {
   getPeerAssessmentById,
   getPeerFeedbackByAssessmentId,
   getPeerFeedbackByAssessmentIds,
+  listPeerFeedbackReviewsByPeerAssessmentIds,
   upsertPeerFeedback,
 } from "./repo.js";
 
@@ -187,6 +188,24 @@ describe("peerFeedback repo", () => {
       },
     });
     expect(result).toBe(expected);
+  });
+
+  it("listPeerFeedbackReviewsByPeerAssessmentIds short-circuits empty input", async () => {
+    await expect(listPeerFeedbackReviewsByPeerAssessmentIds([])).resolves.toEqual([]);
+    expect(prismaMock.peerFeedback.findMany).not.toHaveBeenCalled();
+  });
+
+  it("listPeerFeedbackReviewsByPeerAssessmentIds loads review fields", async () => {
+    const rows = [{ peerAssessmentId: 3, reviewText: "x", agreementsJson: {} }];
+    prismaMock.peerFeedback.findMany.mockResolvedValue(rows);
+
+    const result = await listPeerFeedbackReviewsByPeerAssessmentIds([3]);
+
+    expect(prismaMock.peerFeedback.findMany).toHaveBeenCalledWith({
+      where: { peerAssessmentId: { in: [3] } },
+      select: { peerAssessmentId: true, reviewText: true, agreementsJson: true },
+    });
+    expect(result).toBe(rows);
   });
 
   it("getPeerAssessmentById includes reviewee and ordered template questions", async () => {

@@ -1,7 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getStaffProjectPeerAssessmentOverview, getStaffTeamDeadline } from "@/features/projects/api/client";
+import { StaffPeerAssessmentDeadlineRow } from "@/features/staff/projects/components/StaffPeerAssessmentDeadlineRow";
+import { buildStaffPeerAssessmentDeadlineDisplay } from "@/features/staff/projects/lib/staffPeerAssessmentDeadlineDisplay";
+import { getCurrentUser } from "@/shared/auth/session";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { ProgressCardGrid } from "@/shared/ui/progress/ProgressCardGrid";
-import { getStaffProjectPeerAssessmentOverview } from "@/features/projects/api/client";
+import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
   params: Promise<{ projectId: string }>;
@@ -12,7 +17,31 @@ export default async function StaffProjectPeerAssessmentsPage({ params }: PagePr
   const numericProjectId = Number(projectId);
   const enc = encodeURIComponent(projectId);
 
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect("/login");
+  }
+
   const overview = await getStaffProjectPeerAssessmentOverview(numericProjectId);
+
+  const teamsWithDeadlines =
+    overview.teams.length === 0
+      ? []
+      : await Promise.all(
+          overview.teams.map(async (team) => {
+            let display = null;
+            try {
+              const teamDeadline = await getStaffTeamDeadline(user.id, numericProjectId, team.id);
+              display = buildStaffPeerAssessmentDeadlineDisplay(teamDeadline.effectiveDeadline);
+            } catch {
+              display = null;
+            }
+            return {
+              ...team,
+              deadlineDetail: <StaffPeerAssessmentDeadlineRow display={display} />,
+            };
+          }),
+        );
 
   const template = overview.questionnaireTemplate;
   const templateLabel = template?.templateName ?? "No questionnaire selected";
@@ -77,13 +106,15 @@ export default async function StaffProjectPeerAssessmentsPage({ params }: PagePr
         </div>
       </section>
 
-      {overview.teams.length === 0 ? (
+      {teamsWithDeadlines.length === 0 ? (
         <p className="muted">No active teams are currently set up for this project.</p>
       ) : (
         <ProgressCardGrid
-          items={overview.teams}
+          items={teamsWithDeadlines}
           getHref={(item) =>
-            item.id == null ? undefined : `/staff/projects/${enc}/teams/${item.id}/peer-assessment`
+            item.id == null
+              ? undefined
+              : `/staff/projects/${enc}/teams/${encodeURIComponent(String(item.id))}/peer-assessment`
           }
         />
       )}

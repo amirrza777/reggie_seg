@@ -3,6 +3,7 @@ import {
   parseCreatePeerFeedbackBody,
   parseFeedbackIdParam,
   parseFeedbackStatusesBody,
+  parsePeerAssessmentReviewsBody,
 } from "./controller.parsers.js";
 
 describe("peerFeedback controller parsers", () => {
@@ -11,6 +12,10 @@ describe("peerFeedback controller parsers", () => {
     expect(parseFeedbackStatusesBody({ feedbackIds: [1, "2"] })).toEqual({
       ok: true,
       value: { feedbackIds: [1, 2] },
+    });
+    expect(parsePeerAssessmentReviewsBody({ peerAssessmentIds: [10, "11"] })).toEqual({
+      ok: true,
+      value: { peerAssessmentIds: [10, 11] },
     });
   });
 
@@ -39,6 +44,11 @@ describe("peerFeedback controller parsers", () => {
     expect(parseFeedbackStatusesBody({ feedbackIds: [1, "x"] })).toEqual({
       ok: false,
       error: "feedbackIds must contain only numeric IDs",
+    });
+    expect(parsePeerAssessmentReviewsBody(null)).toEqual({ ok: false, error: "peerAssessmentIds must be an array" });
+    expect(parsePeerAssessmentReviewsBody({ peerAssessmentIds: [1, "x"] })).toEqual({
+      ok: false,
+      error: "peerAssessmentIds must contain only numeric IDs",
     });
   });
 

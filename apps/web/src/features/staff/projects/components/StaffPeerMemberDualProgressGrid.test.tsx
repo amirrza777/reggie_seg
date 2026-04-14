@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { formatDate } from "@/shared/lib/formatDate";
 import {
   StaffPeerMemberDualProgressGrid,
   type StaffPeerMemberDualProgressItem,
@@ -30,7 +31,9 @@ describe("StaffPeerMemberDualProgressGrid", () => {
     expect(screen.getByText("75%")).toBeInTheDocument();
   });
 
-  it("wraps card in a link when href is set", () => {
+  it("links the title and body to the student href and shows Standard badge with formatted date", () => {
+    const dueIso = "2026-05-01T12:00:00.000Z";
+    const studentHref = "/staff/projects/1/teams/9/peer-assessment/2";
     const items: StaffPeerMemberDualProgressItem[] = [
       {
         id: 2,
@@ -39,15 +42,33 @@ describe("StaffPeerMemberDualProgressGrid", () => {
         givenExpected: 5,
         receivedSubmitted: 2,
         receivedExpected: 4,
-        deadline: "2026-05-01",
-        href: "/staff/projects/1/peer/2",
+        deadline: { dateLabel: formatDate(dueIso), profile: "STANDARD" },
+        href: studentHref,
       },
     ];
     render(<StaffPeerMemberDualProgressGrid items={items} />);
-    const link = screen.getByRole("link", { name: /Linked round/i });
-    expect(link).toHaveAttribute("href", "/staff/projects/1/peer/2");
-    expect(screen.getByText("2026-05-01")).toBeInTheDocument();
+    const studentLinks = screen.getAllByRole("link").filter((el) => el.getAttribute("href") === studentHref);
+    expect(studentLinks).toHaveLength(2);
+    expect(screen.getByText(formatDate(dueIso))).toBeInTheDocument();
+    expect(screen.getByText("Standard")).toBeInTheDocument();
     expect(screen.getByText("100%")).toBeInTheDocument();
     expect(screen.getByText("50%")).toBeInTheDocument();
+  });
+
+  it("shows MCF badge next to the date", () => {
+    const items: StaffPeerMemberDualProgressItem[] = [
+      {
+        id: 3,
+        title: "MCF student",
+        givenSubmitted: 0,
+        givenExpected: 1,
+        receivedSubmitted: 0,
+        receivedExpected: 1,
+        deadline: { dateLabel: formatDate("2026-06-01T12:00:00.000Z"), profile: "MCF" },
+      },
+    ];
+    render(<StaffPeerMemberDualProgressGrid items={items} />);
+    expect(screen.getByText("MCF")).toBeInTheDocument();
+    expect(screen.getByText(formatDate("2026-06-01T12:00:00.000Z"))).toBeInTheDocument();
   });
 });

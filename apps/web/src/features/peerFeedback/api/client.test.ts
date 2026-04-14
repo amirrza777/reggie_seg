@@ -20,6 +20,7 @@ vi.mock("./mapper", () => ({
 
 import {
   getFeedbackReview,
+  getFeedbackReviewsForAssessments,
   getFeedbackReviewStatuses,
   getPeerAssessmentsForUser,
   getPeerAssessmentsReceivedForUser,
@@ -145,6 +146,30 @@ describe("peer feedback api client wrappers", () => {
 
     const result = await getFeedbackReview("102");
     expect(result.agreementsJson).toBeNull();
+  });
+
+  it("getFeedbackReviewsForAssessments posts deduped ids and normalizes each review", async () => {
+    apiFetchMock.mockResolvedValue({
+      reviews: {
+        "10": { reviewText: "A", agreementsJson: { "1": { selected: "Agree", score: 4 } } },
+        "11": { reviewText: null, agreementsJson: [] },
+      },
+    });
+
+    const result = await getFeedbackReviewsForAssessments(["10", "10", "11", "x", "0"]);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/peer-feedback/feedback/reviews/by-assessments", {
+      method: "POST",
+      body: JSON.stringify({ peerAssessmentIds: [10, 11] }),
+    });
+    expect(result["10"]?.agreementsJson).toEqual({ "1": { selected: "Agree", score: 4 } });
+    expect(result["11"]?.agreementsJson).toBeNull();
+  });
+
+  it("getFeedbackReviewsForAssessments returns empty map without calling API when no valid ids", async () => {
+    const result = await getFeedbackReviewsForAssessments([]);
+    expect(result).toEqual({});
+    expect(apiFetchMock).not.toHaveBeenCalled();
   });
 
   it("getFeedbackReviewStatuses posts bulk ids and returns status map", async () => {

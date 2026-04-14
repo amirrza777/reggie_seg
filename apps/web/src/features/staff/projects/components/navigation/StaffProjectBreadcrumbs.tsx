@@ -27,21 +27,21 @@ type BreadcrumbContext = {
 
 const TEAM_SECTION_LABELS: Record<string, string> = {
   deadlines: "Deadlines",
-  team: "Health",
-  "team-meetings": "Team meetings",
-  "meeting-scheduler": "Meeting scheduler",
-  "peer-assessment": "Peer assessment",
+  team: "Team Health",
+  "team-meetings": "Team Meetings",
+  "meeting-scheduler": "Meeting Scheduler",
+  "peer-assessment": "Peer Assessment",
   grading: "Marking",
-  "peer-feedback": "Peer feedback",
+  "peer-feedback": "Peer Feedback",
   repositories: "Repositories",
   trello: "Trello",
-  teamhealth: "Team health",
+  teamhealth: "Team Health",
 };
 
 const PROJECT_SECTION_LABELS: Record<string, string> = {
   discussion: "Discussion Forum",
   meetings: "Meetings",
-  "team-allocation": "Team allocation",
+  "team-allocation": "Team Allocation",
 };
 
 function toTitleCase(value: string): string {

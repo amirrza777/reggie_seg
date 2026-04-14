@@ -5,6 +5,16 @@ const repoMocks = vi.hoisted(() => ({
   getPeerFeedbackByAssessmentId: vi.fn(),
   getPeerFeedbackByAssessmentIds: vi.fn(),
   getPeerAssessmentById: vi.fn(),
+  listPeerFeedbackReviewsByPeerAssessmentIds: vi.fn(),
+}));
+
+const prismaMocks = vi.hoisted(() => ({
+  userFindUnique: vi.fn(),
+  peerAssessmentFindMany: vi.fn(),
+}));
+
+const staffRepoMocks = vi.hoisted(() => ({
+  getModuleDetailsIfAuthorised: vi.fn(),
 }));
 
 const projectServiceMocks = vi.hoisted(() => ({
@@ -16,6 +26,18 @@ vi.mock("./repo.js", () => ({
   getPeerFeedbackByAssessmentId: repoMocks.getPeerFeedbackByAssessmentId,
   getPeerFeedbackByAssessmentIds: repoMocks.getPeerFeedbackByAssessmentIds,
   getPeerAssessmentById: repoMocks.getPeerAssessmentById,
+  listPeerFeedbackReviewsByPeerAssessmentIds: repoMocks.listPeerFeedbackReviewsByPeerAssessmentIds,
+}));
+
+vi.mock("../../shared/db.js", () => ({
+  prisma: {
+    user: { findUnique: prismaMocks.userFindUnique },
+    peerAssessment: { findMany: prismaMocks.peerAssessmentFindMany },
+  },
+}));
+
+vi.mock("../peerAssessment/staff/repo.js", () => ({
+  getModuleDetailsIfAuthorised: staffRepoMocks.getModuleDetailsIfAuthorised,
 }));
 
 vi.mock("../projects/service.js", () => ({
@@ -25,6 +47,7 @@ vi.mock("../projects/service.js", () => ({
 import {
   getFeedbackReview,
   getFeedbackReviewStatuses,
+  getFeedbackReviewsForViewer,
   getPeerAssessment,
   saveFeedbackReview,
 } from "./service.js";
@@ -32,6 +55,10 @@ import {
 describe("peerFeedback service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prismaMocks.userFindUnique.mockReset();
+    prismaMocks.peerAssessmentFindMany.mockReset();
+    staffRepoMocks.getModuleDetailsIfAuthorised.mockReset();
+    repoMocks.listPeerFeedbackReviewsByPeerAssessmentIds.mockReset();
     repoMocks.getPeerAssessmentById.mockResolvedValue({ id: 4, projectId: 11 });
     projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
       feedbackOpenDate: new Date("2026-03-01T09:00:00.000Z"),
@@ -134,5 +161,65 @@ describe("peerFeedback service", () => {
 
     expect(repoMocks.getPeerAssessmentById).toHaveBeenCalledWith(22);
     expect(result).toBe(expected);
+  });
+
+  it("getFeedbackReviewsForViewer returns empty map for inactive user", async () => {
+    prismaMocks.userFindUnique.mockResolvedValue(null);
+    await expect(getFeedbackReviewsForViewer(5, [1, 2])).resolves.toEqual({});
+    expect(prismaMocks.peerAssessmentFindMany).not.toHaveBeenCalled();
+  });
+
+  it("getFeedbackReviewsForViewer returns reviews when viewer is reviewee", async () => {
+    prismaMocks.userFindUnique.mockResolvedValue({
+      id: 9,
+      role: "STUDENT",
+      enterpriseId: "e1",
+      active: true,
+    });
+    prismaMocks.peerAssessmentFindMany.mockResolvedValue([
+      {
+        id: 40,
+        reviewerUserId: 8,
+        revieweeUserId: 9,
+        project: { moduleId: 3, module: { enterpriseId: "e1" } },
+      },
+    ]);
+    repoMocks.listPeerFeedbackReviewsByPeerAssessmentIds.mockResolvedValue([
+      { peerAssessmentId: 40, reviewText: "Thanks", agreementsJson: { "1": { selected: "Agree", score: 4 } } },
+    ]);
+
+    const result = await getFeedbackReviewsForViewer(9, [40]);
+
+    expect(repoMocks.listPeerFeedbackReviewsByPeerAssessmentIds).toHaveBeenCalledWith([40]);
+    expect(result["40"]).toEqual({
+      reviewText: "Thanks",
+      agreementsJson: { "1": { selected: "Agree", score: 4 } },
+    });
+  });
+
+  it("getFeedbackReviewsForViewer uses module access for staff viewers", async () => {
+    prismaMocks.userFindUnique.mockResolvedValue({
+      id: 50,
+      role: "STAFF",
+      enterpriseId: "e1",
+      active: true,
+    });
+    prismaMocks.peerAssessmentFindMany.mockResolvedValue([
+      {
+        id: 41,
+        reviewerUserId: 8,
+        revieweeUserId: 9,
+        project: { moduleId: 7, module: { enterpriseId: "e1" } },
+      },
+    ]);
+    staffRepoMocks.getModuleDetailsIfAuthorised.mockResolvedValue({ id: 7, name: "Mod", archivedAt: null });
+    repoMocks.listPeerFeedbackReviewsByPeerAssessmentIds.mockResolvedValue([
+      { peerAssessmentId: 41, reviewText: null, agreementsJson: {} },
+    ]);
+
+    const result = await getFeedbackReviewsForViewer(50, [41]);
+
+    expect(staffRepoMocks.getModuleDetailsIfAuthorised).toHaveBeenCalledWith(7, 50);
+    expect(result["41"]).toEqual({ reviewText: null, agreementsJson: {} });
   });
 });

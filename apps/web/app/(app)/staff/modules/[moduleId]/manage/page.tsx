@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getEnterpriseModuleJoinCode } from "@/features/enterprise/api/client";
 import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/module-create/EnterpriseModuleCreateForm";
 import {
   loadStaffModuleWorkspaceContext,
@@ -7,6 +8,7 @@ import {
 } from "@/features/modules/staffModuleWorkspaceLayoutData";
 import { Card } from "@/shared/ui/Card";
 import { getCurrentUser } from "@/shared/auth/session";
+import { ApiError } from "@/shared/api/errors";
 
 type StaffModuleManagePageProps = {
   params: Promise<{ moduleId: string }>;
@@ -38,6 +40,23 @@ export default async function StaffModuleManagePage({ params, searchParams }: St
 
   const parsedModuleId = ctx.parsedModuleId;
 
+  let joinCode: string | null = null;
+  const joinCodeFromCreateRedirect =
+    resolvedSearchParams.created === "1" && typeof resolvedSearchParams.joinCode === "string"
+      ? resolvedSearchParams.joinCode.trim() || null
+      : null;
+  if (joinCodeFromCreateRedirect) {
+    joinCode = joinCodeFromCreateRedirect;
+  } else {
+    try {
+      joinCode = (await getEnterpriseModuleJoinCode(parsedModuleId)).joinCode;
+    } catch (e) {
+      if (!(e instanceof ApiError && (e.status === 403 || e.status === 404))) {
+        throw e;
+      }
+    }
+  }
+
   return (
     <div className="ui-page enterprise-module-create-page enterprise-module-create-page--embedded">
       <header className="ui-page__header">
@@ -65,7 +84,7 @@ export default async function StaffModuleManagePage({ params, searchParams }: St
           mode="edit"
           moduleId={parsedModuleId}
           workspace="staff"
-          joinCode={resolvedSearchParams.created === "1" ? resolvedSearchParams.joinCode ?? null : null}
+          joinCode={joinCode}
           created={resolvedSearchParams.created === "1"}
           successRedirectAfterUpdateHref={`/staff/modules/${encodeURIComponent(moduleId)}`}
         />

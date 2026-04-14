@@ -23,7 +23,7 @@ describe("Footer", () => {
     expect(screen.getByText("Legal")).toBeInTheDocument();
     expect(screen.getByText("Admin")).toBeInTheDocument();
 
-    expect(screen.getByRole("link", { name: "Peer assessment" })).toHaveAttribute("href", "/product/peer-assessment");
+    expect(screen.getByRole("link", { name: "Peer Assessment" })).toHaveAttribute("href", "/product/peer-assessment");
     const privacyLinks = screen.getAllByRole("link", { name: "Privacy" });
     expect(privacyLinks.length).toBeGreaterThan(0);
     privacyLinks.forEach((link) => {
