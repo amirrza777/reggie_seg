@@ -204,6 +204,7 @@ export type StaffProjectTeamsResponse = {
     viewerAccessLabel?: string;
     canManageProjectSettings?: boolean;
     informationText?: string | null;
+    teamAllocationQuestionnaireTemplateId?: number | null;
   };
   /** Students explicitly on this project (project access), used for allocation scope. */
   projectStudentCount: number;
