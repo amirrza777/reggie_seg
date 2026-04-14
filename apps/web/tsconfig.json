@@ -40,7 +40,9 @@
   "include": [
     "**/*.{ts,tsx}",
     ".next/types/**/*.ts",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    ".next-dev-turbo/types/**/*.ts",
+    ".next-dev-webpack/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -321,3 +321,37 @@ export function deleteEnterpriseWithDependencies(enterpriseId: string, auditLogC
     await tx.enterprise.delete({ where: { id: enterpriseId } });
   });
 }
+
+export function deleteUserAccount(userId: number, holdingEnterpriseId: string, anonymizedEmail: string, scrambledPasswordHash: string) {
+  return prisma.$transaction(async (tx) => {
+    await tx.moduleLead.deleteMany({ where: { userId } });
+    await tx.moduleTeachingAssistant.deleteMany({ where: { userId } });
+    await tx.userModule.deleteMany({ where: { userId } });
+    await tx.teamAllocation.deleteMany({ where: { userId } });
+    await tx.refreshToken.updateMany({ where: { userId, revoked: false }, data: { revoked: true } });
+    await tx.passwordResetToken.updateMany({ where: { userId, revoked: false }, data: { revoked: true } });
+    await tx.emailChangeToken.updateMany({ where: { userId, revoked: false }, data: { revoked: true } });
+    await tx.githubAccount.deleteMany({ where: { userId } });
+    await tx.enterpriseAdminInviteToken.updateMany({ where: { acceptedByUserId: userId }, data: { acceptedByUserId: null } });
+    await tx.globalAdminInviteToken.updateMany({ where: { acceptedByUserId: userId }, data: { acceptedByUserId: null } });
+    await tx.enterpriseAdminInviteToken.deleteMany({ where: { invitedByUserId: userId } });
+    await tx.globalAdminInviteToken.deleteMany({ where: { invitedByUserId: userId } });
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        enterpriseId: holdingEnterpriseId,
+        blockedEnterpriseId: null,
+        email: anonymizedEmail,
+        firstName: "Deleted",
+        lastName: "Account",
+        passwordHash: scrambledPasswordHash,
+        role: "STUDENT",
+        active: false,
+        avatarData: null,
+        avatarMime: null,
+        trelloToken: null,
+        trelloMemberId: null,
+      },
+    });
+  });
+}

@@ -10,6 +10,7 @@ export {
   searchEnterpriseUsers,
   searchUsers,
   updateEnterpriseUser,
+  deleteUser,
   updateOwnEnterpriseUser,
   updateOwnEnterpriseUserRole,
 } from "./service.operations.users.js";

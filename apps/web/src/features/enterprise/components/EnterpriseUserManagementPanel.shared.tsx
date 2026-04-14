@@ -1,15 +1,30 @@
 "use client";
 
-import type { FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { ApiError } from "@/shared/api/errors";
 import { Button } from "@/shared/ui/Button";
 import type { EnterpriseManagedUser, EnterpriseManagedUserRecord } from "../types";
 
 export type RequestState = "idle" | "loading" | "success" | "error";
 export type EnterpriseUserSortValue = "default" | "joinDateDesc" | "joinDateAsc" | "nameAsc" | "nameDesc";
+export type EnterpriseUserCreateRole = "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN";
 
 export const USERS_PER_PAGE = 10;
 export const DEFAULT_ENTERPRISE_USER_SORT_VALUE: EnterpriseUserSortValue = "default";
+export const ENTERPRISE_USER_SORT_OPTIONS: ReadonlyArray<{ value: EnterpriseUserSortValue; label: string }> = [
+  { value: "default", label: "Default order" },
+  { value: "joinDateDesc", label: "Join date (newest first)" },
+  { value: "joinDateAsc", label: "Join date (oldest first)" },
+  { value: "nameAsc", label: "Name (A-Z)" },
+  { value: "nameDesc", label: "Name (Z-A)" },
+];
+const CREATE_ROLE_OPTIONS: ReadonlyArray<{ value: EnterpriseUserCreateRole; label: string }> = [
+  { value: "STUDENT", label: "Student" },
+  { value: "STAFF", label: "Staff" },
+  { value: "ENTERPRISE_ADMIN", label: "Enterprise admin" },
+];
+const ENTERPRISE_ADMIN_EMAIL_BEST_PRACTICE =
+  "Best practice: use a separate email that is not already attached to this or any other enterprise account, and consult the intended user first.";
 
 export function resolveEnterpriseUserSortParams(sortValue: EnterpriseUserSortValue) {
   if (sortValue === "joinDateDesc") {
@@ -135,18 +150,104 @@ export function RoleControl({
   );
 }
 
+type EnterpriseOptionSelectProps<TValue extends string> = {
+  value: TValue;
+  options: ReadonlyArray<{ value: TValue; label: string }>;
+  ariaLabel: string;
+  onChange: (value: TValue) => void;
+  className?: string;
+  triggerClassName?: string;
+};
+
+export function EnterpriseOptionSelect<TValue extends string>({
+  value,
+  options,
+  ariaLabel,
+  onChange,
+  className,
+  triggerClassName,
+}: EnterpriseOptionSelectProps<TValue>) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuId = useId();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selected = options.find((option) => option.value === value) ?? options[0];
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div ref={containerRef} className={`enterprise-management__selector ${className ?? ""}`.trim()}>
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? menuId : undefined}
+        className={`enterprise-management__selector-trigger ${triggerClassName ?? ""}`.trim()}
+        onClick={() => setIsOpen((previous) => !previous)}
+      >
+        <span className="enterprise-management__selector-trigger-text">{selected?.label ?? ""}</span>
+        <span className={`enterprise-management__selector-caret${isOpen ? " is-open" : ""}`} aria-hidden="true">
+          <svg viewBox="0 0 24 24" className="enterprise-management__selector-caret-icon" focusable="false">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </span>
+      </button>
+      {isOpen ? (
+        <div id={menuId} role="listbox" aria-label={ariaLabel} className="enterprise-management__selector-menu">
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                className={`enterprise-management__selector-option${isSelected ? " is-selected" : ""}`}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 type EnterpriseUserCreateFormProps = {
   createEmail: string;
   createFirstName: string;
   createLastName: string;
-  createRole: "STUDENT" | "STAFF";
+  createRole: EnterpriseUserCreateRole;
   createStatus: RequestState;
   createMessage: string | null;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onCreateEmailChange: (value: string) => void;
   onCreateFirstNameChange: (value: string) => void;
   onCreateLastNameChange: (value: string) => void;
-  onCreateRoleChange: (value: "STUDENT" | "STAFF") => void;
+  onCreateRoleChange: (value: EnterpriseUserCreateRole) => void;
 };
 
 export function EnterpriseUserCreateForm({
@@ -164,7 +265,7 @@ export function EnterpriseUserCreateForm({
 }: EnterpriseUserCreateFormProps) {
   return (
     <>
-      <form className="enterprise-users__create-form ui-toolbar" onSubmit={onSubmit}>
+      <form className="enterprise-users__create-form ui-toolbar" onSubmit={onSubmit} noValidate>
         <input
           className="input enterprise-users__create-input"
           type="email"
@@ -172,6 +273,7 @@ export function EnterpriseUserCreateForm({
           onChange={(event) => onCreateEmailChange(event.target.value)}
           placeholder="new.user@enterprise.com"
           aria-label="New account email"
+          autoComplete="off"
           required
         />
         <input
@@ -190,23 +292,35 @@ export function EnterpriseUserCreateForm({
           placeholder="Last name"
           aria-label="New account last name"
         />
-        <select
-          className="enterprise-management__modal-sort"
+        <EnterpriseOptionSelect
           value={createRole}
-          onChange={(event) => onCreateRoleChange(event.target.value as "STUDENT" | "STAFF")}
-          aria-label="New account role"
-        >
-          <option value="STUDENT">Student</option>
-          <option value="STAFF">Staff</option>
-        </select>
+          options={CREATE_ROLE_OPTIONS}
+          ariaLabel="New account role"
+          onChange={onCreateRoleChange}
+          className="enterprise-management__modal-sort"
+        />
         <Button type="submit" disabled={createStatus === "loading"}>
           {createStatus === "loading" ? "Creating..." : "Create account"}
         </Button>
       </form>
       <p className="ui-note ui-note--muted">
-        Student and staff accounts can be created here. New accounts receive a password setup email. Enterprise admin
-        access is managed through the invite flow.
+        Student, staff, and enterprise admin accounts can be created here. New accounts receive a password setup email.
       </p>
+      <div className="enterprise-users__create-guidance">
+        <span className="ui-note ui-note--muted">Enterprise admin email guidance</span>
+        <details className="enterprise-management__info-popover">
+          <summary
+            className="enterprise-management__info-popover-trigger"
+            aria-label="Enterprise admin email best-practice guidance"
+            title="View enterprise admin email best-practice guidance"
+          >
+            i
+          </summary>
+          <p className="enterprise-management__info-popover-content ui-note ui-note--muted">
+            {ENTERPRISE_ADMIN_EMAIL_BEST_PRACTICE}
+          </p>
+        </details>
+      </div>
       {createMessage ? (
         <div className={createStatus === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}>
           <span>{createMessage}</span>

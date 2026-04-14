@@ -5,6 +5,11 @@
   max-width: 760px;
 }
 
+.footer-link-page .footer-link-page__hero {
+  justify-items: center;
+  text-align: center;
+}
+
 .footer-link-page__title {
   margin: 0;
   font-size: var(--fs-fixed-clamp-2-1rem-4-6vw-3-4rem);
@@ -16,9 +21,17 @@
   max-width: 70ch;
 }
 
+.footer-link-page .footer-link-page__lede {
+  margin-inline: auto;
+}
+
 .footer-link-page__actions {
   justify-content: flex-start;
   margin-top: 8px;
+}
+
+.footer-link-page .footer-link-page__actions {
+  justify-content: center;
 }
 
 .footer-link-page__details {
@@ -55,6 +68,32 @@
   font-size: var(--fs-body-sm);
 }
 
+.footer-link-page__card .link-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  margin-top: auto;
+  border-color: var(--glass-ui-border);
+  background: var(--glass-ui-bg-soft);
+  color: var(--ink-strong);
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  backdrop-filter: blur(var(--glass-ui-blur));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 72%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--ink) 10%, transparent);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.footer-link-page__card .link-ghost:hover,
+.footer-link-page__card .link-ghost:focus-visible {
+  background: var(--glass-ui-hover);
+  border-color: color-mix(in srgb, var(--glass-ui-border) 72%, var(--accent-border) 28%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--surface) 78%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
 .footer-link-page__cta-band {
   margin-top: 8px;
   margin-bottom: clamp(18px, 2.5vw, 36px);
@@ -73,6 +112,10 @@
   max-width: min(980px, 100%);
 }
 
+.footer-link-page__cta-band .footer-link-page__cta-content {
+  justify-items: center;
+}
+
 .footer-link-page__cta-title {
   margin: 0;
   font-size: var(--fs-fixed-clamp-2rem-5-1vw-4-5rem);
@@ -85,6 +128,10 @@
   max-width: 68ch;
   line-height: 1.45;
   font-size: var(--fs-fixed-clamp-1-02rem-2-1vw-1-35rem);
+}
+
+.footer-link-page__cta-band .footer-link-page__cta-copy {
+  margin-inline: auto;
 }
 
 .footer-link-page__cta-actions {

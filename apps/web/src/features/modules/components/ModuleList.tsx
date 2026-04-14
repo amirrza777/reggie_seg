@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import type { Module } from "../types";
 import { formatDate } from "@/shared/lib/formatDate";
 import { MODULE_SORT_OPTIONS, type ModuleSortKey } from "./moduleSortOptions";
-import "@/features/modules/styles/module-list.css";
 
 type ModuleListProps = {
   modules?: Module[];

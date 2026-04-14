@@ -1,4 +1,6 @@
 import {
+  type DOMConversionMap,
+  type DOMConversionOutput,
   type DOMExportOutput,
   type EditorConfig,
   type NodeKey,
@@ -34,6 +36,25 @@ export class MentionNode extends TextNode {
     el.className = "mention-node";
     el.spellcheck = false;
     return el;
+  }
+
+  static importDOM(): DOMConversionMap | null {
+    return {
+      span: (domNode: HTMLElement) => {
+        if (!domNode.hasAttribute("data-lexical-mention")) {
+          return null;
+        }
+
+        return {
+          conversion: (node: HTMLElement): DOMConversionOutput => {
+            const text = node.textContent ?? "";
+            const mentionName = text.startsWith("@") ? text.slice(1) : text;
+            return { node: new MentionNode(mentionName, text) };
+          },
+          priority: 1,
+        };
+      },
+    };
   }
 
   exportDOM(): DOMExportOutput {

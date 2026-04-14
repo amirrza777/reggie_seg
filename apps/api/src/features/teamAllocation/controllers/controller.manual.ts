@@ -66,7 +66,7 @@ export async function applyManualAllocationHandler(req: AuthRequest, res: Respon
       return res.status(409).json({ error: "One or more selected students are already in a team for this project" });
     }
     if (error?.code === "TEAM_NAME_ALREADY_EXISTS") {
-      return res.status(409).json({ error: "Team name already exists in this enterprise" });
+      return res.status(409).json({ error: "Team name already exists in this project" });
     }
     if (error?.code === "STUDENTS_NO_LONGER_AVAILABLE") {
       return res.status(409).json({ error: "Some selected students are no longer available. Refresh and try again." });

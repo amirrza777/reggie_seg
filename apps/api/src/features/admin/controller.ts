@@ -15,6 +15,7 @@ import type { AdminRequest } from "./types.js";
 import {
   createEnterprise,
   deleteEnterprise,
+  deleteUser,
   getAuditLogs,
   getSummary,
   inviteEnterpriseAdmin,
@@ -166,6 +167,14 @@ export async function updateEnterpriseUserHandler(req: AdminRequest, res: Respon
   const updates = parseUpdateUserBody(req.body);
   if (!updates.ok) return res.status(400).json({ error: updates.error });
   const result = await updateEnterpriseUser(enterpriseId.value, id.value, updates.value, req.adminUser?.id);
+  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  return res.json(result.value);
+}
+
+export async function deleteUserHandler(req: AdminRequest, res: Response) {
+  const id = parseAdminUserIdParam(req.params.id);
+  if (!id.ok) return res.status(400).json({ error: id.error });
+  const result = await deleteUser(id.value, req.adminUser);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 }

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { listModules } from "@/features/modules/api/client";
-import { getStaffProjectsForMarking, getStaffProjects } from "@/features/projects/api/client";
+import { getStaffProjectsForMarking, getStaffProjects, getStaffTeamWarnings } from "@/features/projects/api/client";
 import { getModulesSummary } from "@/features/staff/peerAssessments/api/client";
 import StaffDashboardPage from "./page";
 
@@ -39,6 +39,7 @@ vi.mock("@/features/modules/api/client", () => ({
 vi.mock("@/features/projects/api/client", () => ({
   getStaffProjectsForMarking: vi.fn(),
   getStaffProjects: vi.fn(),
+  getStaffTeamWarnings: vi.fn(),
 }));
 
 vi.mock("@/features/staff/peerAssessments/api/client", () => ({
@@ -102,6 +103,7 @@ const getCurrentUserMock = vi.mocked(getCurrentUser);
 const listModulesMock = vi.mocked(listModules);
 const getStaffProjectsForMarkingMock = vi.mocked(getStaffProjectsForMarking);
 const getStaffProjectsMock = vi.mocked(getStaffProjects);
+const getStaffTeamWarningsMock = vi.mocked(getStaffTeamWarnings);
 const getModulesSummaryMock = vi.mocked(getModulesSummary);
 
 describe("StaffDashboardPage", () => {
@@ -109,6 +111,7 @@ describe("StaffDashboardPage", () => {
     vi.clearAllMocks();
     getStaffProjectsForMarkingMock.mockResolvedValue([]);
     getStaffProjectsMock.mockResolvedValue([]);
+    getStaffTeamWarningsMock.mockResolvedValue([]);
     getModulesSummaryMock.mockResolvedValue([]);
   });
 
@@ -196,6 +199,7 @@ describe("StaffDashboardPage", () => {
         name: "Project Atlas",
         moduleId: 1,
         moduleName: "Cloud",
+        archivedAt: null,
         teamCount: 3,
         hasGithubRepo: true,
         daysOld: 10,
@@ -215,6 +219,7 @@ describe("StaffDashboardPage", () => {
         name: "Project Borealis",
         moduleId: 2,
         moduleName: "AI",
+        archivedAt: null,
         teamCount: 1,
         hasGithubRepo: false,
         daysOld: 12,
@@ -229,7 +234,33 @@ describe("StaffDashboardPage", () => {
         peerAssessmentsSubmittedCount: 0,
         peerAssessmentsExpectedCount: 0,
       },
+      {
+        id: 13,
+        name: "Project Archived",
+        moduleId: 2,
+        moduleName: "AI",
+        archivedAt: "2026-04-01T12:00:00.000Z",
+        teamCount: 99,
+        hasGithubRepo: true,
+        daysOld: 5,
+        membersTotal: 99,
+        membersConnected: 99,
+        dateRangeStart: null,
+        dateRangeEnd: null,
+        githubIntegrationPercent: 100,
+        trelloBoardsLinkedPercent: 100,
+        trelloBoardsLinkedCount: 99,
+        peerAssessmentsSubmittedPercent: 0,
+        peerAssessmentsSubmittedCount: 0,
+        peerAssessmentsExpectedCount: 0,
+      },
     ] as Awaited<ReturnType<typeof getStaffProjects>>);
+    getStaffTeamWarningsMock.mockImplementation(async (_userId, projectId, teamId) => {
+      if (projectId === 11 && teamId === 101) {
+        return [{ id: 9, active: true } as any];
+      }
+      return [];
+    });
     getModulesSummaryMock.mockResolvedValue([
       { title: "Cloud", submitted: 10, expected: 12 },
       { title: "AI", submitted: 6, expected: 8 },
@@ -239,19 +270,21 @@ describe("StaffDashboardPage", () => {
     render(page);
 
     expect(screen.getByText("Staff Overview")).toBeInTheDocument();
-    expect(screen.getByText("2 modules")).toBeInTheDocument();
-    expect(screen.getByText("3 projects")).toBeInTheDocument();
-    expect(screen.getByText("3 teams")).toBeInTheDocument();
-    expect(screen.getByText("10 students")).toBeInTheDocument();
+    expect(screen.getAllByText("2 modules").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("2 projects").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("4 teams").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("10 students").length).toBeGreaterThan(0);
     expect(screen.getByText("50%")).toBeInTheDocument();
     expect(screen.getByText("67%")).toBeInTheDocument();
+    expect(screen.getByText("0%")).toBeInTheDocument();
 
     expect(screen.getByTestId("students-bar-chart")).toHaveTextContent("Project Atlas:9,Project Borealis:1");
     expect(screen.getByTestId("activity-donut")).toHaveTextContent("2/1/1");
     expect(screen.getByText("Peer assessment completion")).toBeInTheDocument();
     expect(screen.getByText("10/12")).toBeInTheDocument();
     expect(screen.getByText("6/8")).toBeInTheDocument();
-    expect(screen.getByText("Teams needing attention")).toBeInTheDocument();
+    expect(screen.getByText("Active team warnings")).toBeInTheDocument();
+    expect(screen.getByText("Inactive teams")).toBeInTheDocument();
     expect(screen.getByText("Low activity teams")).toBeInTheDocument();
     expect(screen.queryByText(/no inactivity flags raised/i)).not.toBeInTheDocument();
   });
@@ -273,9 +306,9 @@ describe("StaffDashboardPage", () => {
     const page = await StaffDashboardPage();
     render(page);
 
-    expect(screen.getByText("Team health")).toBeInTheDocument();
+    expect(screen.getByText("Inactivity status")).toBeInTheDocument();
     expect(screen.getByText("All 1 teams are active — no inactivity flags raised.")).toBeInTheDocument();
-    expect(screen.queryByText("Teams needing attention")).not.toBeInTheDocument();
+    expect(screen.queryByText("Inactive teams")).not.toBeInTheDocument();
     expect(screen.queryByText("Low activity teams")).not.toBeInTheDocument();
   });
 
@@ -292,6 +325,6 @@ describe("StaffDashboardPage", () => {
     expect(screen.getByRole("heading", { name: "My Modules" })).toBeInTheDocument();
     expect(screen.queryByTestId("activity-donut")).not.toBeInTheDocument();
     expect(screen.queryByText("Peer assessment completion")).not.toBeInTheDocument();
-    expect(screen.queryByText("Teams needing attention")).not.toBeInTheDocument();
+    expect(screen.queryByText("Inactive teams")).not.toBeInTheDocument();
   });
 });

@@ -89,7 +89,7 @@ export function parseEnterpriseUserUpdateBody(
 // eslint-disable-next-line max-lines-per-function, max-statements, complexity
 export function parseEnterpriseUserCreateBody(
   body: unknown,
-): ParseResult<{ email: string; firstName?: string; lastName?: string; role?: "STUDENT" | "STAFF" }> {
+): ParseResult<{ email: string; firstName?: string; lastName?: string; role?: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" }> {
   const raw = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
   const email = typeof raw.email === "string" ? raw.email.trim().toLowerCase() : "";
   if (!email) {
@@ -119,14 +119,14 @@ export function parseEnterpriseUserCreateBody(
     return { ok: false, error: "lastName must be a string" };
   }
 
-  let role: "STUDENT" | "STAFF" | undefined;
+  let role: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | undefined;
   if (raw.role !== undefined) {
     if (typeof raw.role !== "string") {
-      return { ok: false, error: "role must be STUDENT or STAFF" };
+      return { ok: false, error: "role must be STUDENT, STAFF, or ENTERPRISE_ADMIN" };
     }
     const normalizedRole = raw.role.trim().toUpperCase();
-    if (normalizedRole !== "STUDENT" && normalizedRole !== "STAFF") {
-      return { ok: false, error: "role must be STUDENT or STAFF" };
+    if (normalizedRole !== "STUDENT" && normalizedRole !== "STAFF" && normalizedRole !== "ENTERPRISE_ADMIN") {
+      return { ok: false, error: "role must be STUDENT, STAFF, or ENTERPRISE_ADMIN" };
     }
     role = normalizedRole;
   }

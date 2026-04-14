@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect } from "react";
+import { usePathname } from "next/navigation";
 
 type ScrollRevealProps = {
   selector?: string;
@@ -268,7 +269,12 @@ export function ScrollReveal({
   threshold = 0.1,
   once = true,
 }: ScrollRevealProps) {
-  useLayoutEffect(() => setupScrollReveal({ selector, rootMargin, threshold, once }), [once, rootMargin, selector, threshold]);
+  const pathname = usePathname();
+
+  useLayoutEffect(
+    () => setupScrollReveal({ selector, rootMargin, threshold, once }),
+    [once, pathname, rootMargin, selector, threshold]
+  );
 
   return null;
 }

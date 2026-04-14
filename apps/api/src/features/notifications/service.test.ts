@@ -107,6 +107,20 @@ describe("addNotification email alerts", () => {
     expect(email.sendEmail).not.toHaveBeenCalled();
   });
 
+  it("suppresses generic email for team invites", async () => {
+    (repo.createNotification as any).mockResolvedValue({ id: 1 });
+
+    await addNotification({
+      userId: 5,
+      type: "TEAM_INVITE",
+      message: "You were invited to join Team Reggie",
+      link: "/projects/1/team",
+    });
+
+    expect(repo.getUserEmail).not.toHaveBeenCalled();
+    expect(email.sendEmail).not.toHaveBeenCalled();
+  });
+
   it("does not throw when email fails", async () => {
     (repo.createNotification as any).mockResolvedValue({ id: 1 });
     (repo.getUserEmail as any).mockResolvedValue("reggie@test.com");

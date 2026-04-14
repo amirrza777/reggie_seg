@@ -7,18 +7,21 @@ import {
   searchEnterpriseUsers,
   updateEnterpriseUser,
 } from "../api/client";
-import type { EnterpriseManagedUser, EnterpriseManagedUserRecord } from "../types";
+import type { EnterpriseManagedUser } from "../types";
 import { getEffectiveTotalPages, getPaginationEnd, getPaginationStart, parsePageInput } from "@/shared/lib/pagination";
 import { normalizeSearchQuery } from "@/shared/lib/search";
-import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { ConfirmationModal } from "@/shared/ui/modal/ConfirmationModal";
 import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationControls";
+import { RowActionMenu } from "@/shared/ui/RowActionMenu";
 import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 import {
   DEFAULT_ENTERPRISE_USER_SORT_VALUE,
+  ENTERPRISE_USER_SORT_OPTIONS,
   EnterpriseUserCreateForm,
+  EnterpriseOptionSelect,
+  type EnterpriseUserCreateRole,
   type EnterpriseUserSortValue,
   normalizeEnterpriseManagedUser,
   resolveEnterpriseMembershipStatusLabel,
@@ -50,7 +53,7 @@ export function EnterpriseUserManagementPanel({ currentUserId, currentUserRole }
   const [createEmail, setCreateEmail] = useState("");
   const [createFirstName, setCreateFirstName] = useState("");
   const [createLastName, setCreateLastName] = useState("");
-  const [createRole, setCreateRole] = useState<"STUDENT" | "STAFF">("STUDENT");
+  const [createRole, setCreateRole] = useState<EnterpriseUserCreateRole>("STUDENT");
   const [createStatus, setCreateStatus] = useState<RequestState>("idle");
   const [createMessage, setCreateMessage] = useState<string | null>(null);
   const latestRequestId = useRef(0);
@@ -263,14 +266,15 @@ export function EnterpriseUserManagementPanel({ currentUserId, currentUserRole }
           <span className="ui-note ui-note--muted">Platform admin</span>
         ) : user.role === "ENTERPRISE_ADMIN" && !canManageEnterpriseAdminAccount ? (
           <span className="ui-note ui-note--muted">Invite-managed role</span>
-        ) : user.active ? (
-          <Button type="button" variant="danger" size="sm" onClick={() => requestRemoveUser(user.id)} disabled={isBusy}>
-            Remove
-          </Button>
         ) : (
-          <Button type="button" variant="ghost" size="sm" onClick={() => void handleStatusChange(user.id, true)} disabled={isBusy}>
-            Reinstate
-          </Button>
+          <RowActionMenu
+            userId={user.id}
+            userEmail={user.email}
+            busy={isBusy}
+            active={user.active}
+            onRemove={requestRemoveUser}
+            onReinstate={(id) => void handleStatusChange(id, true)}
+          />
         )}
       </div>,
     ];
@@ -304,21 +308,16 @@ export function EnterpriseUserManagementPanel({ currentUserId, currentUserRole }
           aria-label="Search enterprise users"
         />
         <div className="ui-toolbar enterprise-users__meta">
-          <label className="enterprise-users__sort-inline" htmlFor="enterprise-admin-user-sort">
+          <label className="enterprise-users__sort-inline">
             <span className="ui-note ui-note--muted">Sort</span>
-            <select
-              id="enterprise-admin-user-sort"
+            <EnterpriseOptionSelect
               className="enterprise-management__modal-sort"
+              triggerClassName="enterprise-management__selector-trigger--compact"
               value={userSortValue}
-              onChange={(event) => setUserSortValue(event.target.value as EnterpriseUserSortValue)}
-              aria-label="Sort enterprise users"
-            >
-              <option value="default">Default order</option>
-              <option value="joinDateDesc">Join date (newest first)</option>
-              <option value="joinDateAsc">Join date (oldest first)</option>
-              <option value="nameAsc">Name (A-Z)</option>
-              <option value="nameDesc">Name (Z-A)</option>
-            </select>
+              options={ENTERPRISE_USER_SORT_OPTIONS}
+              onChange={setUserSortValue}
+              ariaLabel="Sort enterprise users"
+            />
           </label>
           <span className="ui-note ui-note--muted enterprise-users__toolbar-summary">
             <UsersSummaryLabel

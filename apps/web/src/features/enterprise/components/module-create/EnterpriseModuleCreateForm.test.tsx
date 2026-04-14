@@ -278,10 +278,8 @@ describe("EnterpriseModuleCreateForm", () => {
 
     expect(unarchiveButton).toBeDisabled();
     fireEvent.click(confirmation);
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /^unarchive module$/i, hidden: true })).toBeEnabled(),
-    );
-    fireEvent.click(screen.getByRole("button", { name: /^unarchive module$/i, hidden: true }));
+    await waitFor(() => expect(unarchiveButton).toBeEnabled());
+    fireEvent.click(unarchiveButton);
 
     await waitFor(() => expect(unarchiveItemMock).toHaveBeenCalledWith("modules", 77));
     expect(refresh).toHaveBeenCalled();

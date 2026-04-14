@@ -1,6 +1,11 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { usePathname } from "next/navigation";
 import { ScrollReveal } from "./ScrollReveal";
+
+vi.mock("next/navigation", () => ({
+  usePathname: vi.fn(),
+}));
 
 type ObserverRecord = {
   callback: IntersectionObserverCallback;
@@ -10,6 +15,7 @@ type ObserverRecord = {
 };
 
 const observerRecords: ObserverRecord[] = [];
+const usePathnameMock = vi.mocked(usePathname);
 
 function setRect(element: Element, top: number, left = 0) {
   Object.defineProperty(element, "getBoundingClientRect", {
@@ -32,6 +38,7 @@ describe("ScrollReveal", () => {
   beforeEach(() => {
     observerRecords.length = 0;
     vi.useFakeTimers();
+    usePathnameMock.mockReturnValue("/");
 
     vi.stubGlobal(
       "IntersectionObserver",
@@ -236,5 +243,38 @@ describe("ScrollReveal", () => {
 
     expect(target.classList.contains("is-visible")).toBe(true);
     expect(observerRecords[0].unobserve).not.toHaveBeenCalledWith(target);
+  });
+
+  it("reinitializes reveal observers when pathname changes", () => {
+    const { rerender } = render(
+      <>
+        <div data-testid="route-a" data-reveal />
+        <ScrollReveal />
+      </>,
+    );
+
+    const routeA = screen.getByTestId("route-a");
+    setRect(routeA, 120, 0);
+
+    act(() => {
+      vi.runAllTimers();
+    });
+    expect(routeA.classList.contains("is-visible")).toBe(true);
+
+    usePathnameMock.mockReturnValue("/features");
+    rerender(
+      <>
+        <div data-testid="route-b" data-reveal />
+        <ScrollReveal />
+      </>,
+    );
+
+    const routeB = screen.getByTestId("route-b");
+    setRect(routeB, 120, 0);
+
+    act(() => {
+      vi.runAllTimers();
+    });
+    expect(routeB.classList.contains("is-visible")).toBe(true);
   });
 });

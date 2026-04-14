@@ -148,9 +148,11 @@ describe("NewQuestionnaireClient", () => {
       );
     });
 
-    expect(push).toHaveBeenCalledWith("/staff/questionnaires");
-    expect(screen.getByPlaceholderText("Questionnaire name")).toHaveValue("");
-    expect(screen.queryByPlaceholderText("Question label")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(push).toHaveBeenCalledWith("/staff/questionnaires");
+      expect(screen.getByPlaceholderText("Questionnaire name")).toHaveValue("");
+      expect(screen.queryByPlaceholderText("Question label")).not.toBeInTheDocument();
+    });
   });
 
   it("shows save failure message and leaves editor usable", async () => {

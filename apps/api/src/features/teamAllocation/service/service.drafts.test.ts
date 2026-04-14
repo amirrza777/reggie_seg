@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   findProjectDraftTeams: vi.fn(),
   findDraftTeamInProject: vi.fn(),
   findDraftTeamById: vi.fn(),
-  findTeamNameConflictInEnterprise: vi.fn(),
+  findTeamNameConflictInProject: vi.fn(),
   findModuleStudentsByIdsInModule: vi.fn(),
   findStudentAllocationConflictsInProject: vi.fn(),
   updateDraftTeam: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock("../repo/repo.js", () => ({
   findProjectDraftTeams: mocks.findProjectDraftTeams,
   findDraftTeamInProject: mocks.findDraftTeamInProject,
   findDraftTeamById: mocks.findDraftTeamById,
-  findTeamNameConflictInEnterprise: mocks.findTeamNameConflictInEnterprise,
+  findTeamNameConflictInProject: mocks.findTeamNameConflictInProject,
   findModuleStudentsByIdsInModule: mocks.findModuleStudentsByIdsInModule,
   findStudentAllocationConflictsInProject: mocks.findStudentAllocationConflictsInProject,
   updateDraftTeam: mocks.updateDraftTeam,
@@ -75,7 +75,7 @@ describe("service allocation drafts", () => {
     mocks.findProjectDraftTeams.mockResolvedValue([baseDraft]);
     mocks.findDraftTeamInProject.mockResolvedValue({ id: 7 });
     mocks.findDraftTeamById.mockResolvedValue(baseDraft);
-    mocks.findTeamNameConflictInEnterprise.mockResolvedValue(false);
+    mocks.findTeamNameConflictInProject.mockResolvedValue(false);
     mocks.findModuleStudentsByIdsInModule.mockResolvedValue([{ id: 21 }, { id: 22 }]);
     mocks.findStudentAllocationConflictsInProject.mockResolvedValue([]);
     mocks.updateDraftTeam.mockResolvedValue({ id: 7, teamName: "Blue", memberCount: 2 });
@@ -164,7 +164,7 @@ describe("service allocation drafts", () => {
   });
 
   it("updateAllocationDraftForProject rejects duplicate team names", async () => {
-    mocks.findTeamNameConflictInEnterprise.mockResolvedValue(true);
+    mocks.findTeamNameConflictInProject.mockResolvedValue(true);
     await expect(updateAllocationDraftForProject(1, 9, 7, { teamName: "Blue" })).rejects.toEqual({
       code: "TEAM_NAME_ALREADY_EXISTS",
     });

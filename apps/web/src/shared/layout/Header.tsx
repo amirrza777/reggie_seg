@@ -7,11 +7,11 @@ import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent } fr
 import { BrandWordmark } from "./BrandWordmark";
 
 const navLinks = [
-  { href: "/?section=product", label: "Product" },
-  { href: "/?section=toolkit", label: "Features" },
-  { href: "/?section=resources", label: "Resources" },
-  { href: "/?section=about", label: "About" },
-  { href: "/?section=faq", label: "FAQ" },
+  { href: "/product", label: "Product" },
+  { href: "/features", label: "Features" },
+  { href: "/resources", label: "Resources" },
+  { href: "/about", label: "About" },
+  { href: "/faq", label: "FAQ" },
 ];
 
 const subscribe = () => () => {};

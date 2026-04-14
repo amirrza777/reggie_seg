@@ -3,6 +3,7 @@ import {
   auditLogsStreamHandler,
   createEnterpriseHandler,
   deleteEnterpriseHandler,
+  deleteUserHandler,
   getSummaryHandler,
   inviteCurrentEnterpriseAdminHandler,
   inviteEnterpriseAdminHandler,
@@ -35,6 +36,7 @@ router.get("/users", listUsersHandler);
 router.get("/users/search", searchUsersHandler);
 router.patch("/users/:id/role", updateUserRoleHandler);
 router.patch("/users/:id", updateUserHandler);
+router.delete("/users/:id", ensureSuperAdmin, deleteUserHandler);
 router.get("/enterprises", listEnterprisesHandler);
 router.get("/enterprises/search", searchEnterprisesHandler);
 router.post("/enterprises", createEnterpriseHandler);

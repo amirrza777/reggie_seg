@@ -48,6 +48,12 @@ export async function updateUser(userId: number, payload: AdminUserUpdate) {
   });
 }
 
+export async function deleteUser(userId: number) {
+  return apiFetch<{ success: boolean }>(`/admin/users/${userId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function listAuditLogs(params: { from?: string; to?: string; limit?: number; cursor?: number } = {}) {
   const search = new URLSearchParams();
   if (params.from) {search.set("from", params.from);}

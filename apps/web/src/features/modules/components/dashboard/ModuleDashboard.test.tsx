@@ -91,7 +91,7 @@ describe("ModuleDashboardPageView", () => {
   it("shows empty-state copy when dashboard sections have no data", () => {
     render(<ModuleDashboardPageView dashboard={makeDashboard()} />);
     expect(screen.getByText("No module brief has been added yet.")).toBeInTheDocument();
-    expect(screen.getByText("Module timeline has not been entered yet.")).toBeInTheDocument();
+    expect(screen.getByText("No project deadlines are scheduled yet.")).toBeInTheDocument();
     expect(screen.getByText("Module expectations have not been added yet.")).toBeInTheDocument();
     expect(screen.getByText("No readiness notes have been added yet.")).toBeInTheDocument();
     expect(screen.getByText("No module marking scheme summary is available here yet.")).toBeInTheDocument();

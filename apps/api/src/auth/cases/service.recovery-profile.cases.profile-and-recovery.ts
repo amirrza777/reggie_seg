@@ -71,6 +71,66 @@ describe("auth service", () => {
     expect(prismaMock.user.findFirst).toHaveBeenCalledWith({ where: { email: "user@example.com" } });
   });
 
+  it("requestPasswordReset sends reset-specific copy with real newlines", async () => {
+    const svc = await loadService({ FRONTEND_URL: "https://app.example.com" });
+
+    prismaMock.user.count.mockResolvedValue(1);
+    prismaMock.user.findFirst.mockResolvedValue({ id: 12, email: "user@example.com", firstName: "User" });
+    await svc.requestPasswordReset("user@example.com");
+
+    expect(emailMock.sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "user@example.com",
+        subject: "Reset your password",
+        text: expect.stringContaining("We received a request to reset your Team Feedback password."),
+      }),
+    );
+
+    const sent = emailMock.sendEmail.mock.calls[0][0];
+    expect(sent.text).toContain("https://app.example.com/reset-password?token=");
+    expect(sent.text).not.toContain("\\n");
+  });
+
+  it("sendPasswordSetupEmail sends setup-specific copy", async () => {
+    const svc = await loadService({
+      FRONTEND_URL: "https://app.example.com",
+      PASSWORD_SETUP_TTL: "7d",
+    });
+
+    prismaMock.user.count.mockResolvedValue(1);
+    prismaMock.user.findFirst.mockResolvedValue({ id: 13, email: "new@example.com", firstName: "New" });
+    await svc.sendPasswordSetupEmail("new@example.com");
+
+    expect(emailMock.sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "new@example.com",
+        subject: "Set up your password",
+        text: expect.stringContaining("An account has been created for you in Team Feedback."),
+      }),
+    );
+
+    const sent = emailMock.sendEmail.mock.calls[0][0];
+    expect(sent.text).toContain("https://app.example.com/reset-password?token=");
+    expect(sent.text).not.toContain("We received a request to reset");
+    expect(sent.text).toContain("expires in 7d");
+  });
+
+  it("requestPasswordReset continues using PASSWORD_RESET_TTL independently", async () => {
+    const svc = await loadService({
+      FRONTEND_URL: "https://app.example.com",
+      PASSWORD_RESET_TTL: "45m",
+      PASSWORD_SETUP_TTL: "7d",
+    });
+
+    prismaMock.user.count.mockResolvedValue(1);
+    prismaMock.user.findFirst.mockResolvedValue({ id: 12, email: "user@example.com", firstName: "User" });
+    await svc.requestPasswordReset("user@example.com");
+
+    const sent = emailMock.sendEmail.mock.calls[0][0];
+    expect(sent.text).toContain("expires in 45m");
+    expect(sent.text).not.toContain("expires in 7d");
+  });
+
   it("requestPasswordReset and resetPassword emit debug logs when enabled", async () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     const svc = await loadService({ PASSWORD_RESET_DEBUG: "true" });

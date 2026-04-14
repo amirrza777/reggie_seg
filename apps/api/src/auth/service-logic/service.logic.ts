@@ -13,6 +13,8 @@ export {
 } from "./service.logic.auth-flows.js";
 export {
   requestPasswordReset,
+  sendPasswordSetupEmail,
+  sendEnterpriseAdminPromotionEmail,
   resetPassword,
   getProfile,
   updateProfile,

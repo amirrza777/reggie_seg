@@ -89,14 +89,75 @@ function getCurrentBuildId() {
     return nextData.buildId;
   }
 
+  const scriptBuildId = getBuildIdFromNextStaticScripts();
+  if (scriptBuildId) return scriptBuildId;
+
+  const staticAssetFingerprint = getNextStaticAssetFingerprint();
+  if (staticAssetFingerprint) return `assets-${staticAssetFingerprint}`;
+
+  return "unknown-build";
+}
+
+function getBuildIdFromNextStaticScripts() {
+  const ignoredStaticSegments = new Set(["chunks", "development", "media", "css"]);
   for (const script of Array.from(document.scripts)) {
     const scriptSrc = script.getAttribute("src");
     if (!scriptSrc) continue;
-    const match = scriptSrc.match(/\/_next\/static\/([^/]+)\//);
-    if (match?.[1]) return match[1];
+
+    const manifestMatch = scriptSrc.match(/\/_next\/static\/([^/]+)\/(?:_buildManifest|_ssgManifest)\.js(?:\?.*)?$/);
+    if (manifestMatch?.[1]) {
+      return manifestMatch[1];
+    }
+
+    const genericMatch = scriptSrc.match(/\/_next\/static\/([^/]+)\//);
+    const candidate = genericMatch?.[1];
+    if (!candidate || ignoredStaticSegments.has(candidate)) continue;
+    return candidate;
+  }
+  return null;
+}
+
+function getNextStaticAssetFingerprint() {
+  const staticAssets = new Set<string>();
+
+  for (const script of Array.from(document.scripts)) {
+    const normalizedPath = normalizeNextStaticAssetPath(script.getAttribute("src"));
+    if (normalizedPath) {
+      staticAssets.add(normalizedPath);
+    }
   }
 
-  return "unknown-build";
+  for (const stylesheet of Array.from(document.querySelectorAll("link[rel='stylesheet']"))) {
+    const normalizedPath = normalizeNextStaticAssetPath(stylesheet.getAttribute("href"));
+    if (normalizedPath) {
+      staticAssets.add(normalizedPath);
+    }
+  }
+
+  if (staticAssets.size === 0) return null;
+  const serialized = Array.from(staticAssets).sort().join("|");
+  return hashStable(serialized);
+}
+
+function normalizeNextStaticAssetPath(rawPath: string | null) {
+  if (!rawPath) return null;
+  try {
+    const baseHref = window.location.href || "http://localhost/";
+    const url = new URL(rawPath, baseHref);
+    if (!url.pathname.startsWith("/_next/static/")) return null;
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return null;
+  }
+}
+
+function hashStable(value: string) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
 }
 
 async function clearCachesAndReload() {

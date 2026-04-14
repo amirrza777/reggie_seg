@@ -66,7 +66,7 @@ function ModuleTimelineCard({ timelineRows }: { timelineRows: ModuleTimelineItem
   return (
     <Card title="Timeline" className="module-dashboard__panel module-dashboard__panel--timeline">
       {timelineRows.length === 0 ? (
-        <p className="muted">Module timeline has not been entered yet.</p>
+        <p className="muted">No project deadlines are scheduled yet.</p>
       ) : (
         <Table
           headers={["When?", "Date & time", "Details"]}

@@ -195,6 +195,45 @@ export function registerServiceUserManagementExtraTests(ctx: ServiceUserManageme
     expect(updated).toEqual(
       expect.objectContaining({ ok: true, value: expect.objectContaining({ id: 77, role: "STAFF", membershipStatus: "active" }) }),
     );
+    expect(ctx.authServiceMock.sendEnterpriseAdminPromotionEmail).not.toHaveBeenCalled();
+  });
+
+  it("sends promotion confirmation when converting an existing enterprise account to enterprise admin", async () => {
+    ctx.prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: 78,
+      email: "member@example.com",
+      firstName: "Mem",
+      lastName: "Ber",
+      role: "STUDENT",
+      active: true,
+      enterpriseId: "ent-1",
+      blockedEnterpriseId: null,
+      enterprise: { code: "ENT1" },
+    });
+    ctx.prismaMock.user.update.mockResolvedValueOnce({
+      id: 78,
+      email: "member@example.com",
+      firstName: "Mem",
+      lastName: "Ber",
+      role: "ENTERPRISE_ADMIN",
+      active: true,
+    });
+
+    const promoted = await ctx.createEnterpriseUser(ctx.enterpriseAdminUser as any, {
+      email: "member@example.com",
+      role: "ENTERPRISE_ADMIN",
+    });
+
+    expect(promoted).toEqual(
+      expect.objectContaining({
+        ok: true,
+        value: expect.objectContaining({ id: 78, role: "ENTERPRISE_ADMIN", membershipStatus: "active" }),
+      }),
+    );
+    expect(ctx.authServiceMock.sendEnterpriseAdminPromotionEmail).toHaveBeenCalledWith({
+      email: "member@example.com",
+      firstName: "Mem",
+    });
   });
 
   it("handles conflicting and restricted account create paths", async () => {
@@ -306,7 +345,7 @@ export function registerServiceUserManagementExtraTests(ctx: ServiceUserManageme
       expect.objectContaining({ ok: true, value: expect.objectContaining({ id: 99, email: "new@example.com" }) }),
     );
     expect(ctx.argon2Mock.hash).toHaveBeenCalled();
-    expect(ctx.authServiceMock.requestPasswordReset).toHaveBeenCalledWith("new@example.com");
+    expect(ctx.authServiceMock.sendPasswordSetupEmail).toHaveBeenCalledWith("new@example.com");
   });
 
   it("forbids non-admin removes and handles not-found plus success removal", async () => {

@@ -208,6 +208,30 @@ describe("forum service", () => {
     );
   });
 
+  it("does not notify module leads again when post already has a pending student report", async () => {
+    (repo.createStudentReport as any).mockResolvedValue({ status: "ok", shouldNotifyStaff: false });
+
+    await createStudentForumReport(1, 2, 3);
+
+    expect(repo.getModuleLeadsForProject).not.toHaveBeenCalled();
+    expect(notificationsService.addNotification).not.toHaveBeenCalled();
+  });
+
+  it("deduplicates module lead ids before sending report notifications", async () => {
+    (repo.createStudentReport as any).mockResolvedValue({ status: "ok" });
+    (repo.getModuleLeadsForProject as any).mockResolvedValue([{ userId: 10 }, { userId: 10 }, { userId: 11 }]);
+
+    await createStudentForumReport(1, 2, 3);
+
+    expect(notificationsService.addNotification).toHaveBeenCalledTimes(2);
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 10, type: "FORUM_REPORTED" })
+    );
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 11, type: "FORUM_REPORTED" })
+    );
+  });
+
   it("does not notify module leads when report is not created successfully", async () => {
     (repo.createStudentReport as any).mockResolvedValue({ status: "duplicate" });
 

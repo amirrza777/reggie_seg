@@ -46,7 +46,8 @@ describe("EnterpriseUserManagementPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create account" }));
     expect(await screen.findByText("Platform admin accounts cannot be managed from enterprise users.")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    fireEvent.click(screen.getByRole("button", { name: "Actions for person@example.com" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Remove from enterprise" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove user" }));
     expect(await screen.findByText("This account is no longer available for this enterprise.")).toBeInTheDocument();
   });
@@ -105,7 +106,8 @@ describe("EnterpriseUserManagementPanel", () => {
 
     render(<EnterpriseUserManagementPanel currentUserId={99} currentUserRole="ENTERPRISE_ADMIN" />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Reinstate" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Actions for inactive@example.com" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Reinstate" }));
     expect(await screen.findByText("Reinstate failed upstream")).toBeInTheDocument();
   });
 
@@ -127,7 +129,8 @@ describe("EnterpriseUserManagementPanel", () => {
 
     render(<EnterpriseUserManagementPanel currentUserId={99} currentUserRole="ADMIN" />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Remove" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Actions for cancel@example.com" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Remove from enterprise" }));
     expect(screen.getByRole("button", { name: "Remove user" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("button", { name: "Remove user" })).not.toBeInTheDocument());

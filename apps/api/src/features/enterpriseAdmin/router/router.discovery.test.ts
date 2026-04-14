@@ -125,6 +125,34 @@ describe("enterpriseAdmin router discovery", () => {
     await resolveEnterpriseUser(studentReq, studentRes, next);
     expect((studentRes.status as any)).toHaveBeenCalledWith(403);
   });
+
+  it("applies updated role access on subsequent middleware checks", async () => {
+    const next = vi.fn() as NextFunction;
+    (prisma.user.findUnique as any)
+      .mockResolvedValueOnce({
+        id: 5,
+        enterpriseId: "ent-1",
+        role: "STAFF",
+        active: true,
+      })
+      .mockResolvedValueOnce({
+        id: 5,
+        enterpriseId: "ent-1",
+        role: "STUDENT",
+        active: true,
+      });
+
+    const elevatedReq: any = { user: { sub: 5 } };
+    const elevatedRes = mockRes();
+    await resolveEnterpriseUser(elevatedReq, elevatedRes, next);
+    expect(elevatedReq.enterpriseUser).toEqual({ id: 5, enterpriseId: "ent-1", role: "STAFF" });
+    expect(next).toHaveBeenCalledTimes(1);
+
+    const downgradedReq: any = { user: { sub: 5 } };
+    const downgradedRes = mockRes();
+    await resolveEnterpriseUser(downgradedReq, downgradedRes, next);
+    expect((downgradedRes.status as any)).toHaveBeenCalledWith(403);
+  });
   it("lists enterprise feature flags with label mappings", async () => {
     (prisma.featureFlag.findMany as any).mockResolvedValueOnce([
       { key: "repos", label: "Repos", enabled: true },

@@ -87,6 +87,16 @@ describe("Header", () => {
     expect(pushMock).toHaveBeenCalledWith("/");
   });
 
+  it("renders top navigation links to dedicated overview pages", () => {
+    render(<Header />);
+
+    expect(screen.getByRole("link", { name: "Product" })).toHaveAttribute("href", "/product");
+    expect(screen.getByRole("link", { name: "Features" })).toHaveAttribute("href", "/features");
+    expect(screen.getByRole("link", { name: "Resources" })).toHaveAttribute("href", "/resources");
+    expect(screen.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
+    expect(screen.getByRole("link", { name: "FAQ" })).toHaveAttribute("href", "/faq");
+  });
+
   it("opens mobile menu and closes it with escape and desktop resize", () => {
     render(<Header />);
 

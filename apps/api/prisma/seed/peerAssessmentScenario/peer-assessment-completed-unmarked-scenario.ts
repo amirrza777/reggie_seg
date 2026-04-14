@@ -76,8 +76,8 @@ async function ensureScenarioProject(
 async function ensureScenarioTeam(enterpriseId: string, projectId: number) {
   const existing = await prisma.team.findUnique({
     where: {
-      enterpriseId_teamName: {
-        enterpriseId,
+      projectId_teamName: {
+        projectId,
         teamName: COMPLETED_UNMARKED_TEAM_NAME,
       },
     },
@@ -88,7 +88,6 @@ async function ensureScenarioTeam(enterpriseId: string, projectId: number) {
     return prisma.team.update({
       where: { id: existing.id },
       data: {
-        projectId,
         allocationLifecycle: "ACTIVE",
         archivedAt: null,
         deadlineProfile: "STANDARD",
