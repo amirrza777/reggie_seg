@@ -166,6 +166,7 @@ function buildInitial(overrides: Partial<StaffProjectManageSummary> = {}): Staff
       ],
       projectStudentIds: [10],
     },
+    canMutateProjectSettings: true,
     ...overrides,
   };
 }

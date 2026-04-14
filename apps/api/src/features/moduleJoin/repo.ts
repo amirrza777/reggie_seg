@@ -40,6 +40,18 @@ export async function insertModuleEnrollment(enterpriseId: string, userId: numbe
   return inserted.count > 0;
 }
 
+function staffModuleJoinCodeViewWhere(input: { userId: number; roleCanManageAll: boolean }) {
+  if (input.roleCanManageAll) {
+    return {};
+  }
+  return {
+    OR: [
+      { moduleLeads: { some: { userId: input.userId } } },
+      { moduleTeachingAssistants: { some: { userId: input.userId } } },
+    ],
+  };
+}
+
 export async function getAuthorizedModuleJoinCode(input: {
   enterpriseId: string;
   moduleId: number;
@@ -52,7 +64,7 @@ export async function getAuthorizedModuleJoinCode(input: {
     where: {
       id: input.moduleId,
       enterpriseId: input.enterpriseId,
-      ...(roleCanManageAll ? {} : { moduleLeads: { some: { userId: input.userId } } }),
+      ...staffModuleJoinCodeViewWhere({ userId: input.userId, roleCanManageAll }),
     },
     select: { id: true, joinCode: true },
   });
