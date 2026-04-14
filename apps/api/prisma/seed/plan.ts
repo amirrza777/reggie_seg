@@ -1,13 +1,13 @@
 import {
   buildUsersByRole,
   seedAdminTeamAllocation,
-  seedAssessmentStudentModuleCoverage,
   seedGithubE2EUsers,
   seedModuleTeachingAssistants,
   seedModuleLeads,
   seedStudentEnrollments,
   seedTeamAllocations,
 } from "./allocation";
+import { seedAssessmentStudentScenario } from "./assessmentStudentScenario";
 import { seedCompletedProjectScenario } from "./completed-project";
 import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedUsers } from "./catalog";
 import type { SeedProfileConfig } from "./config";
@@ -73,7 +73,6 @@ function buildMembershipSeedPlan(context: SeedContext, config: SeedProfileConfig
     buildStudentEnrollmentsStep(context),
     ...buildAdminTeamAllocationStep(context, config),
     buildTeamAllocationsStep(context),
-    buildAssessmentStudentModuleCoverageStep(context),
   ];
   return steps;
 }
@@ -83,6 +82,7 @@ function buildScenarioSeedPlan(context: SeedContext, config: SeedProfileConfig):
     ...buildStaffStudentMarksStep(context, config),
     buildTeamInvitesStep(context),
     buildGithubE2EUsersStep(context),
+    buildAssessmentStudentScenarioStep(context),
     ...buildCompletedProjectStep(context, config),
     buildProjectDeadlinesStep(context),
     buildPeerAssessmentsStep(context),
@@ -137,12 +137,6 @@ function buildTeamAllocationsStep(context: SeedContext) {
   return buildMembershipStep("seedTeamAllocations", () => seedTeamAllocations(context.usersByRole.students, context.teams));
 }
 
-function buildAssessmentStudentModuleCoverageStep(context: SeedContext) {
-  return buildMembershipStep("seedAssessmentStudentModuleCoverage", () =>
-    seedAssessmentStudentModuleCoverage(context.enterprise.id, context.modules, context.projects, context.teams)
-  );
-}
-
 function buildStaffStudentMarksStep(context: SeedContext, config: SeedProfileConfig) {
   if (!config.scenarios.has("staffStudentMarks")) return [];
   return [buildScenarioStep("seedStaffStudentMarks", () => seedStaffStudentMarks(context))];
@@ -154,6 +148,10 @@ function buildTeamInvitesStep(context: SeedContext) {
 
 function buildGithubE2EUsersStep(context: SeedContext) {
   return buildScenarioStep("seedGithubE2EUsers", () => seedGithubE2EUsers(context.enterprise.id, context.projects, context.teams));
+}
+
+function buildAssessmentStudentScenarioStep(context: SeedContext) {
+  return buildScenarioStep("seedAssessmentStudentScenario", () => seedAssessmentStudentScenario(context));
 }
 
 function buildCompletedProjectStep(context: SeedContext, config: SeedProfileConfig) {
