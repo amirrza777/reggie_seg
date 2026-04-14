@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
-import { RichTextEditor } from "@/shared/ui/RichTextEditor";
-import { RichTextViewer } from "@/shared/ui/RichTextViewer";
+import { RichTextEditor } from "@/shared/ui/rich-text/RichTextEditor";
+import { RichTextViewer } from "@/shared/ui/rich-text/RichTextViewer";
+import { AgreementTrafficLightPill } from "./AgreementTrafficLightPill";
 import type { PeerFeedback, Answer, AgreementOption, AgreementsMap, PeerAssessmentReviewPayload } from "../types";
 import { AGREEMENT_OPTIONS } from "../types";
 import { submitPeerFeedback } from "../api/client";
@@ -296,7 +297,7 @@ export function FeedbackReviewForm({
         <div style={{ display: "grid", gap: 4 }}>
           <h3 style={{ margin: 0 }}>{editingMode && !isEditing ? "View Review" : "Respond to Feedback"}</h3>
           <p className="muted" style={{ margin: 0 }}>
-            Share your thoughts about this feedback from {feedback.firstName} {feedback.lastName}
+            Share your thoughts about this feedback from Teammate.
           </p>
           {deadlineStatusMessage ? (
             <p className={canSubmit ? "muted" : "error"} style={{ margin: 0 }}>
@@ -336,37 +337,41 @@ export function FeedbackReviewForm({
         </div>
 
         <div className="agreementSection">
-          <h4 className="agreementTitle">Agree with each answer?</h4>
-          <p className="muted">Select how much you agree or disagree with each provided answer.</p>
           <ul className="answersList">
             {(feedback.answers || []).map((a: Answer) => (
               <li key={a.id} className="answerItem">
                 <strong className="answerQuestion">{a.question}</strong>
-                {renderAnswerPreview(a)}
-                <label className="labelBlock">
-                  {isEditing ? (
-                    <select
-                      value={agreements[getAnswerKey(a)]?.selected ?? "Reasonable"}
-                      onChange={(e) => {
-                        const selected = e.target.value as AgreementOption;
-                        const score = AGREEMENT_OPTIONS.find((option) => option.label === selected)?.score ?? 3;
-                        setAgreements((prev) => ({ ...prev, [getAnswerKey(a)]: { selected, score } }));
-                      }}
-                      disabled={isLoading}
-                      className="select agreementSelect"
-                    >
-                      {AGREEMENT_OPTIONS.map((option) => (
-                        <option key={option.label} value={option.label}>
-                          {option.score} — {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className="agreementBadge">
-                      {agreements[getAnswerKey(a)]?.score} — {agreements[getAnswerKey(a)]?.selected ?? "Not selected"}
-                    </span>
-                  )}
-                </label>
+                <div className="answerWithAgreement">
+                  <div className="answerPreviewSlot">{renderAnswerPreview(a)}</div>
+                  <div className="answerAgreementSlot">
+                    {isEditing ? (
+                      <label className="answerAgreementControl">
+                        <select
+                          value={agreements[getAnswerKey(a)]?.selected ?? "Reasonable"}
+                          onChange={(e) => {
+                            const selected = e.target.value as AgreementOption;
+                            const score = AGREEMENT_OPTIONS.find((option) => option.label === selected)?.score ?? 3;
+                            setAgreements((prev) => ({ ...prev, [getAnswerKey(a)]: { selected, score } }));
+                          }}
+                          disabled={isLoading}
+                          className="select agreementSelect agreementSelect--inline"
+                          aria-label={`Agreement with: ${a.question}`}
+                        >
+                          {AGREEMENT_OPTIONS.map((option) => (
+                            <option key={option.label} value={option.label}>
+                              {option.score} — {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : (
+                      <AgreementTrafficLightPill
+                        score={agreements[getAnswerKey(a)]?.score ?? 3}
+                        selected={agreements[getAnswerKey(a)]?.selected ?? "Not selected"}
+                      />
+                    )}
+                  </div>
+                </div>
               </li>
             ))}
           </ul>

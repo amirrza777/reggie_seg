@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   findUserRoleById,
-  listAllModules,
-  listAllProjects,
+  findArchiveActor,
+  listModulesForArchiveActor,
+  listProjectsForArchiveActor,
+  findModuleIdForArchiveActorIfScoped,
+  findProjectIdForArchiveActorIfScoped,
   setModuleArchived,
   setProjectArchived,
 } from "./repo.js";
@@ -10,12 +13,19 @@ import {
 vi.mock("../../shared/db.js", () => ({
   prisma: {
     user: { findUnique: vi.fn() },
-    module: { findMany: vi.fn(), update: vi.fn() },
-    project: { findMany: vi.fn(), update: vi.fn() },
+    module: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+    project: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
   },
 }));
 
+vi.mock("../projects/repo/repo.modules.js", () => ({
+  buildModuleMembershipFilterForUser: vi.fn(() => ({ enterpriseId: "ent-1" })),
+}));
+
 import { prisma } from "../../shared/db.js";
+import { buildModuleMembershipFilterForUser } from "../projects/repo/repo.modules.js";
+
+const actor = { id: 9, role: "STAFF", enterpriseId: "ent-1", active: true };
 
 describe("archive repo", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -30,10 +40,25 @@ describe("archive repo", () => {
     expect(result).toEqual({ role: "STAFF" });
   });
 
-  it("listAllModules calls prisma.module.findMany with correct args", async () => {
+  it("findArchiveActor selects id, role, enterpriseId, active", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue(actor);
+    const result = await findArchiveActor(9);
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { id: 9 },
+      select: { id: true, role: true, enterpriseId: true, active: true },
+    });
+    expect(result).toEqual(actor);
+  });
+
+  it("listModulesForArchiveActor uses membership filter and list select", async () => {
     (prisma.module.findMany as any).mockResolvedValue([]);
-    await listAllModules();
+    await listModulesForArchiveActor(actor);
+    expect(buildModuleMembershipFilterForUser).toHaveBeenCalledWith(
+      { id: 9, role: "STAFF", enterpriseId: "ent-1" },
+      false,
+    );
     expect(prisma.module.findMany).toHaveBeenCalledWith({
+      where: { enterpriseId: "ent-1" },
       select: {
         id: true,
         name: true,
@@ -44,10 +69,15 @@ describe("archive repo", () => {
     });
   });
 
-  it("listAllProjects calls prisma.project.findMany with correct args", async () => {
+  it("listProjectsForArchiveActor scopes projects by module membership filter", async () => {
     (prisma.project.findMany as any).mockResolvedValue([]);
-    await listAllProjects();
+    await listProjectsForArchiveActor(actor);
+    expect(buildModuleMembershipFilterForUser).toHaveBeenCalledWith(
+      { id: 9, role: "STAFF", enterpriseId: "ent-1" },
+      false,
+    );
     expect(prisma.project.findMany).toHaveBeenCalledWith({
+      where: { module: { enterpriseId: "ent-1" } },
       select: {
         id: true,
         name: true,
@@ -95,5 +125,33 @@ describe("archive repo", () => {
       where: { id: 2 },
       data: { archivedAt: null },
     });
+  });
+
+  it("findModuleIdForArchiveActorIfScoped applies membership filter plus module id", async () => {
+    (prisma.module.findFirst as any).mockResolvedValue({ id: 77 });
+    const result = await findModuleIdForArchiveActorIfScoped(actor, 77);
+    expect(buildModuleMembershipFilterForUser).toHaveBeenCalledWith(
+      { id: 9, role: "STAFF", enterpriseId: "ent-1" },
+      false,
+    );
+    expect(prisma.module.findFirst).toHaveBeenCalledWith({
+      where: { enterpriseId: "ent-1", id: 77 },
+      select: { id: true },
+    });
+    expect(result).toEqual({ id: 77 });
+  });
+
+  it("findProjectIdForArchiveActorIfScoped applies scoped module filter plus project id", async () => {
+    (prisma.project.findFirst as any).mockResolvedValue({ id: 88 });
+    const result = await findProjectIdForArchiveActorIfScoped(actor, 88);
+    expect(buildModuleMembershipFilterForUser).toHaveBeenCalledWith(
+      { id: 9, role: "STAFF", enterpriseId: "ent-1" },
+      false,
+    );
+    expect(prisma.project.findFirst).toHaveBeenCalledWith({
+      where: { id: 88, module: { enterpriseId: "ent-1" } },
+      select: { id: true },
+    });
+    expect(result).toEqual({ id: 88 });
   });
 });

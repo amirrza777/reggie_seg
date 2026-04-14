@@ -1,1 +1,1 @@
-export { AppSectionLoading as default } from "@/shared/ui/SectionLoading";
+export { AppSectionLoading as default } from "@/shared/ui/skeletons/SectionLoading";

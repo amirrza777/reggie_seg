@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from "@/shared/ui/Button";
-import { GoogleIcon } from "@/shared/ui/GoogleIcon";
+import { GoogleIcon } from "@/shared/ui/icons/GoogleIcon";
 
 type GoogleAuthButtonProps = {
   onClick: () => void;

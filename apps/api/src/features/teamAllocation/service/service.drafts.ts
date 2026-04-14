@@ -9,7 +9,7 @@ import {
   findProjectDraftTeams,
   findStaffScopedProjectAccess,
   findStudentAllocationConflictsInProject,
-  findTeamNameConflictInEnterprise,
+  findTeamNameConflictInProject,
   updateDraftTeam,
 } from "../repo/repo.js";
 import type {
@@ -116,11 +116,9 @@ export async function updateAllocationDraftForProject(
   }
 
   if (normalizedTeamName !== undefined) {
-    const teamNameAlreadyExists = await findTeamNameConflictInEnterprise(
-      project.enterpriseId,
-      normalizedTeamName,
-      { excludeTeamId: teamId },
-    );
+    const teamNameAlreadyExists = await findTeamNameConflictInProject(project.id, normalizedTeamName, {
+      excludeTeamId: teamId,
+    });
     if (teamNameAlreadyExists) {
       throw { code: "TEAM_NAME_ALREADY_EXISTS" };
     }

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { EnterpriseRecord } from "../types";
 import { EnterpriseAccountsModal } from "./EnterpriseAccountsModal";
 
-vi.mock("@/shared/ui/ModalPortal", () => ({
+vi.mock("@/shared/ui/modal/ModalPortal", () => ({
   ModalPortal: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 

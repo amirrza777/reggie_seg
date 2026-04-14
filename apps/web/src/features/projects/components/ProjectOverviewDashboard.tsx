@@ -6,7 +6,7 @@ import type {
   ProjectOverviewDashboardProps,
 } from "../types";
 import { Card } from "@/shared/ui/Card";
-import { RichTextViewer } from "@/shared/ui/RichTextViewer";
+import { RichTextViewer } from "@/shared/ui/rich-text/RichTextViewer";
 import { formatDateTime } from "@/shared/lib/dateFormatter";
 import {
   resolveProjectMarkValue,

@@ -124,6 +124,12 @@ describe("StaffModuleAccessForm", () => {
     expect(screen.getByText("Not allowed")).toBeInTheDocument();
   });
 
+  it("shows default permission error copy when no custom message is provided", () => {
+    useStateMock.mockReturnValue(makeHookState({ canEditModule: false, errorMessage: null }));
+    render(<StaffModuleAccessForm moduleId={42} currentUserId={1} initialAccessSelection={initialAccess} />);
+    expect(screen.getByText("Only module owners/leaders can edit staff access.")).toBeInTheDocument();
+  });
+
   it("moves between edit and review and invokes performSubmit on confirm", () => {
     const performSubmit = vi.fn().mockResolvedValue(undefined);
     useStateMock.mockReturnValue(makeHookState({ performSubmit }));
@@ -142,5 +148,40 @@ describe("StaffModuleAccessForm", () => {
     render(<StaffModuleAccessForm moduleId={42} currentUserId={1} initialAccessSelection={initialAccess} />);
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(pushMock).toHaveBeenCalledWith("/staff/modules/42/staff");
+  });
+
+  it("shows edit and review error banners when the state has an error message", () => {
+    useStateMock.mockReturnValue(makeHookState({ errorMessage: "Validation failed" }));
+    render(<StaffModuleAccessForm moduleId={42} currentUserId={1} initialAccessSelection={initialAccess} />);
+    expect(screen.getByText("Validation failed")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
+    expect(screen.getByText("Validation failed")).toBeInTheDocument();
+  });
+
+  it("uses fallback labels in review when names are missing and ids are unknown", () => {
+    useStateMock.mockReturnValue(
+      makeHookState({
+        leaderIds: [1, 4],
+        leaderSet: new Set([1, 4]),
+        taIds: [3, 99],
+        taSet: new Set([3, 99]),
+        staffUsers: [user(1, "A"), { id: 4, firstName: "", lastName: "", email: "lead-fallback@test", active: true }],
+        taUsers: [user(3, "C"), { id: 99, firstName: "", lastName: "", email: "", active: true }],
+      })
+    );
+    render(<StaffModuleAccessForm moduleId={42} currentUserId={1} initialAccessSelection={initialAccess} />);
+    fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
+    expect(screen.getByText("lead-fallback@test")).toBeInTheDocument();
+    expect(screen.getByText("User ID 99")).toBeInTheDocument();
+  });
+
+  it("shows saving label in review when submission state flips to loading", () => {
+    useStateMock
+      .mockReturnValueOnce(makeHookState({ isSubmitting: false }))
+      .mockReturnValue(makeHookState({ isSubmitting: true }));
+    render(<StaffModuleAccessForm moduleId={42} currentUserId={1} initialAccessSelection={initialAccess} />);
+    fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
+    expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
   });
 });

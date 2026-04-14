@@ -201,3 +201,10 @@ async function tryRefreshAccessToken(baseUrl?: string, cookieHeader?: string | n
 
   return refreshInFlight;
 }
+
+export const __httpInternals = {
+  hasHeader,
+  readHeader,
+  mergeHeaders,
+  getServerAuthHeaders,
+};

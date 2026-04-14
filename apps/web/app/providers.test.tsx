@@ -327,6 +327,55 @@ describe("AppProviders", () => {
     script.remove();
   });
 
+  it("falls back to a static asset fingerprint when only chunk urls are present", async () => {
+    process.env.NODE_ENV = "production";
+    localStorage.setItem("tf_last_build_id", "build-a");
+    delete (window as Window & { __NEXT_DATA__?: { buildId?: string } }).__NEXT_DATA__;
+
+    const script = document.createElement("script");
+    script.setAttribute("src", "/_next/static/chunks/app_layout_tsx_123abc._.js");
+    document.head.appendChild(script);
+
+    const stylesheet = document.createElement("link");
+    stylesheet.setAttribute("rel", "stylesheet");
+    stylesheet.setAttribute("href", "/_next/static/chunks/app_styles_456def._.css");
+    document.head.appendChild(stylesheet);
+    expect(Array.from(document.scripts).map((entry) => entry.getAttribute("src"))).toContain(
+      "/_next/static/chunks/app_layout_tsx_123abc._.js",
+    );
+    expect(Array.from(document.querySelectorAll("link[rel='stylesheet']")).map((entry) => entry.getAttribute("href"))).toContain(
+      "/_next/static/chunks/app_styles_456def._.css",
+    );
+
+    const unregister = vi.fn().mockResolvedValue(true);
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: { getRegistrations: vi.fn().mockResolvedValue([{ unregister }]) },
+    });
+    Object.defineProperty(window, "caches", {
+      configurable: true,
+      value: { keys: vi.fn().mockResolvedValue(["cache-a"]), delete: vi.fn().mockResolvedValue(true) },
+    });
+
+    render(
+      <AppProviders>
+        <div>child</div>
+      </AppProviders>,
+    );
+
+    await waitFor(() => {
+      expect(mockLocation.reload).toHaveBeenCalledTimes(1);
+    });
+
+    const storedBuildId = localStorage.getItem("tf_last_build_id");
+    expect(storedBuildId).toMatch(/^assets-[0-9a-z]+$/);
+    expect(storedBuildId).not.toBe("build-a");
+    expect(sessionStorage.getItem(`tf_cache_reset_for_build_${storedBuildId}`)).toBe("done");
+
+    stylesheet.remove();
+    script.remove();
+  });
+
   it("handles cache-clearing api errors without reloading", async () => {
     process.env.NODE_ENV = "development";
     localStorage.setItem("tf_last_build_id", "build-a");

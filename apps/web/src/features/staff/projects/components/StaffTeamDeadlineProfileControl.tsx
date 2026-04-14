@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateStaffTeamDeadlineProfile } from "@/features/projects/api/client";
-import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
+import { ConfirmationModal } from "@/shared/ui/modal/ConfirmationModal";
 
 type StaffTeamDeadlineProfileControlProps = {
   teamId: number;

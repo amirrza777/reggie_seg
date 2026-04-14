@@ -6,7 +6,7 @@ import {
   upsertStaffStudentDeadlineOverride,
 } from "./repo.staff-deadlines.js";
 import { assertProjectMutableForWritesByProjectId } from "../../../shared/projectWriteGuard.js";
-import { getScopedStaffUser, isAdminScopedRole } from "../repo.staff-scope.js";
+import { getScopedStaffUser, isAdminScopedRole } from "../repo/repo.staff-scope.js";
 
 vi.mock("../../../shared/db.js", () => ({
   prisma: {
@@ -28,7 +28,7 @@ vi.mock("../../../shared/projectWriteGuard.js", () => ({
   assertProjectMutableForWritesByProjectId: vi.fn(),
 }));
 
-vi.mock("../repo.staff-scope.js", () => ({
+vi.mock("../repo/repo.staff-scope.js", () => ({
   getScopedStaffUser: vi.fn(),
   isAdminScopedRole: vi.fn(),
 }));

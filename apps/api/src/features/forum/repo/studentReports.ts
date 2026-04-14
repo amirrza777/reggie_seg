@@ -2,7 +2,7 @@ import { prisma } from "../../../shared/db.js";
 import { canManageForumSettings, getUserRole, isUserInProject } from "./access.js";
 
 type StudentReportResult =
-  | { status: "ok" }
+  | { status: "ok"; shouldNotifyStaff?: boolean }
   | { status: "forbidden" }
   | { status: "not_found" }
   | { status: "duplicate" }
@@ -25,16 +25,26 @@ async function checkExistingReports(postId: number, projectId: number, userId: n
   return { post, staffReport, studentReport };
 }
 
-async function upsertStudentReport(postId: number, projectId: number, userId: number, reason: string | null, existingStudentReport: any) {
+async function upsertStudentReport(
+  postId: number,
+  projectId: number,
+  userId: number,
+  reason: string | null,
+  existingStudentReport: any
+) {
   if (existingStudentReport?.status === "IGNORED") {
-    await prisma.forumStudentReport.update({
+    const updated = await prisma.forumStudentReport.update({
       where: { id: existingStudentReport.id },
       data: { status: "PENDING", reason: reason?.trim() || null, reviewedAt: null, reviewedById: null, createdAt: new Date() },
+      select: { id: true },
     });
+    return updated.id;
   } else {
-    await prisma.forumStudentReport.create({
+    const created = await prisma.forumStudentReport.create({
       data: { projectId, postId, reporterId: userId, reason: reason?.trim() || null },
+      select: { id: true },
     });
+    return created.id;
   }
 }
 
@@ -47,13 +57,22 @@ export async function createStudentReport(
   const accessCheck = await validateStudentReportCreationAccess(userId, projectId);
   if (!accessCheck.valid) return { status: "forbidden" };
 
-  const { post, staffReport, studentReport } = await checkExistingReports(postId, projectId, userId);
+  const { post, staffReport, studentReport } = await checkExistingReports(
+    postId,
+    projectId,
+    userId
+  );
   if (!post) return { status: "not_found" };
   if (staffReport) return { status: "already_reported" };
   if (studentReport && studentReport.status !== "IGNORED") return { status: "duplicate" };
 
-  await upsertStudentReport(postId, projectId, userId, reason, studentReport);
-  return { status: "ok" };
+  const reportId = await upsertStudentReport(postId, projectId, userId, reason, studentReport);
+  const firstPendingReport = await prisma.forumStudentReport.findFirst({
+    where: { postId, projectId, status: "PENDING" },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { id: true },
+  });
+  return { status: "ok", shouldNotifyStaff: firstPendingReport?.id === reportId };
 }
 
 type StudentReportEntry = {

@@ -2,13 +2,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { logDevError } from "@/shared/lib/devLogger";
-import type { Member } from "@/shared/ui/MentionPlugin";
-import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
+import type { Member } from "@/shared/ui/rich-text/MentionPlugin";
+import { ConfirmationModal } from "@/shared/ui/modal/ConfirmationModal";
 import {
   createDiscussionPost,
   createStudentForumReport,
   deleteDiscussionPost,
   getDiscussionPosts,
+  getForumSettings,
   reactToDiscussionPost,
   reportDiscussionPost,
   updateDiscussionPost,
@@ -33,6 +34,13 @@ type DiscussionForumClientProps = {
   showHeader?: boolean;
   members?: Member[];
 };
+
+type ForumStudentNameSettingState =
+  | { status: "unavailable" }
+  | { status: "loading" }
+  | { status: "error" }
+  | { status: "ready"; forumIsAnonymous: boolean };
+
 const ROOT_POSTS_PER_PAGE = 8;
 export function DiscussionForumClient({ projectId, showHeader = true, members }: DiscussionForumClientProps) {
   const { user, loading: userLoading } = useUser();
@@ -62,6 +70,9 @@ export function DiscussionForumClient({ projectId, showHeader = true, members }:
   const [editingBodyEmpty, setEditingBodyEmpty] = useState(true);
   const [replyEmptyByPostId, setReplyEmptyByPostId] = useState<Record<number, boolean>>({});
   const [replyKeyByPostId, setReplyKeyByPostId] = useState<Record<number, number>>({});
+  const [forumStudentNameSetting, setForumStudentNameSetting] = useState<ForumStudentNameSettingState>({
+    status: "unavailable",
+  });
   useEffect(() => {
     if (menuOpenPostId === null) return;
     const handleDocumentPointerDown = (event: PointerEvent) => {
@@ -106,8 +117,20 @@ export function DiscussionForumClient({ projectId, showHeader = true, members }:
       setLoadingPosts(false);
       setPosts([]);
       postsRef.current = [];
+      setForumStudentNameSetting({ status: "unavailable" });
       return;
     }
+    setForumStudentNameSetting({ status: "loading" });
+    let forumSettingsCancelled = false;
+    void getForumSettings(user.id, Number(projectId))
+      .then((settings) => {
+        if (forumSettingsCancelled) return;
+        setForumStudentNameSetting({ status: "ready", forumIsAnonymous: settings.forumIsAnonymous });
+      })
+      .catch(() => {
+        if (forumSettingsCancelled) return;
+        setForumStudentNameSetting({ status: "error" });
+      });
     setLoadingPosts(true);
     setError(null);
     setCurrentPage(1);
@@ -122,6 +145,9 @@ export function DiscussionForumClient({ projectId, showHeader = true, members }:
         setError("Failed to load discussion posts.");
       })
       .finally(() => setLoadingPosts(false));
+    return () => {
+      forumSettingsCancelled = true;
+    };
   }, [user, userLoading, projectId]);
   const setPostsWithRef = (updater: (prev: DiscussionPost[]) => DiscussionPost[]) => {
     setPosts((prev) => {
@@ -311,12 +337,34 @@ export function DiscussionForumClient({ projectId, showHeader = true, members }:
     }
     await handleStudentReport(postId);
   };
+  const forumSubtitleNameNote = (() => {
+    if (userLoading || forumStudentNameSetting.status === "unavailable") {
+      return null;
+    }
+    if (forumStudentNameSetting.status === "loading") {
+      return <span className="muted"> Loading how student names are shown…</span>;
+    }
+    if (forumStudentNameSetting.status === "error") {
+      return <span className="muted"> Could not load forum name visibility.</span>;
+    }
+    return forumStudentNameSetting.forumIsAnonymous ? (
+      <span>
+        {" "}
+        Posts are anonymous (note that this can change).
+      </span>
+    ) : (
+      <span> Student names are visible on posts.</span>
+    );
+  })();
   return (
     <div className="discussion-forum stack projects-panel">
       {showHeader ? (
         <header className="projects-panel__header discussion-forum__header">
           <h1 className="projects-panel__title">Discussion Forum</h1>
-          <p className="projects-panel__subtitle">Share updates, ask questions, and keep the team aligned.</p>
+          <p className="projects-panel__subtitle">
+            Project-wide forum: every team in the project can ask questions here.<br />
+            {forumSubtitleNameNote}
+          </p>
         </header>
       ) : null}
       <DiscussionForumComposer

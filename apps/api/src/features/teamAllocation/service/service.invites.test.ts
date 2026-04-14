@@ -155,6 +155,23 @@ describe("service.invites", () => {
     );
   });
 
+  it("createTeamInvite sends dedicated invite email and creates team invite notification", async () => {
+    await createTeamInvite({ teamId: 2, inviterId: 4, inviteeEmail: "x@y.com", baseUrl: "http://localhost:3000" });
+
+    expect(mocks.sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "x@y.com",
+        subject: "Team invitation",
+      }),
+    );
+    expect(mocks.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 77,
+        type: "TEAM_INVITE",
+      }),
+    );
+  });
+
   it("createTeamInvite tolerates email and notification failures", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     mocks.sendEmail.mockRejectedValueOnce(new Error("smtp down"));

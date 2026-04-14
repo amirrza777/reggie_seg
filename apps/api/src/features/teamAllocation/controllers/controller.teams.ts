@@ -43,7 +43,7 @@ export async function createTeamHandler(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: "teamName is required" });
     }
     if (error?.code === "TEAM_NAME_ALREADY_EXISTS") {
-      return res.status(409).json({ error: "Team name already exists in this enterprise" });
+      return res.status(409).json({ error: "Team name already exists in this project" });
     }
     if (error?.code === "USER_NOT_FOUND") {
       return res.status(404).json({ error: "User not found" });
@@ -76,7 +76,7 @@ export async function createTeamForProjectHandler(req: AuthRequest, res: Respons
       return res.status(400).json({ error: "teamName is required" });
     }
     if (error?.code === "TEAM_NAME_ALREADY_EXISTS") {
-      return res.status(409).json({ error: "Team name already exists in this enterprise" });
+      return res.status(409).json({ error: "Team name already exists in this project" });
     }
     if (error?.code === "USER_NOT_FOUND") {
       return res.status(404).json({ error: "User not found" });

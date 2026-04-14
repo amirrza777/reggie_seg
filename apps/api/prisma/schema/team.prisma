@@ -52,7 +52,6 @@ model Team {
   invites             TeamInvite[]
 
   @@unique([projectId, teamName])
-  @@unique([enterpriseId, teamName])
   @@index([projectId])
   @@index([enterpriseId])
   @@index([allocationLifecycle])

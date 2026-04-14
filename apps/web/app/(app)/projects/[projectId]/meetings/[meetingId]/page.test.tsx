@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import MeetingPage from "./page";
 
-vi.mock("@/features/meetings/components/MeetingDetailContent", () => ({
+vi.mock("@/features/meetings/components/detail/MeetingDetailContent", () => ({
   MeetingDetailContent: ({ meetingId, projectId }: { meetingId: number; projectId: number }) => (
     <div data-testid="meeting-detail-content" data-meeting-id={meetingId} data-project-id={projectId} />
   ),

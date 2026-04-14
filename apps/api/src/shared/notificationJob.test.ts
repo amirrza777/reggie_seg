@@ -6,6 +6,7 @@ const teamUpdateManyMock = vi.fn();
 const userFindManyMock = vi.fn();
 const sendEmailMock = vi.fn();
 const cronScheduleMock = vi.fn();
+const evaluateProjectWarningsForAllProjectsMock = vi.fn();
 
 vi.mock("./db.js", () => ({
   prisma: {
@@ -26,6 +27,10 @@ vi.mock("./email.js", () => ({
   sendEmail: sendEmailMock,
 }));
 
+vi.mock("../features/warnings/service.js", () => ({
+  evaluateProjectWarningsForAllProjects: evaluateProjectWarningsForAllProjectsMock,
+}));
+
 vi.mock("node-cron", () => ({
   default: {
     schedule: cronScheduleMock,
@@ -40,6 +45,7 @@ describe("notificationJob", () => {
     teamUpdateManyMock.mockResolvedValue({ count: 0 });
     sendEmailMock.mockResolvedValue(undefined);
     userFindManyMock.mockResolvedValue([]);
+    evaluateProjectWarningsForAllProjectsMock.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -358,8 +364,9 @@ describe("notificationJob", () => {
       sendMissingPeerAssessmentAlerts: ok,
       sendNoRepoAlerts: ok,
       sendNoGithubAccountAlerts: ok,
+      sendProjectWarningAlerts: ok,
     });
-    expect(ok).toHaveBeenCalledTimes(5);
+    expect(ok).toHaveBeenCalledTimes(6);
 
     const err = new Error("boom");
     await runNotificationCycle({
@@ -368,6 +375,7 @@ describe("notificationJob", () => {
       sendMissingPeerAssessmentAlerts: vi.fn().mockRejectedValue(err),
       sendNoRepoAlerts: vi.fn().mockRejectedValue(err),
       sendNoGithubAccountAlerts: vi.fn().mockRejectedValue(err),
+      sendProjectWarningAlerts: vi.fn().mockRejectedValue(err),
     });
 
     expect(consoleErrorSpy).toHaveBeenCalledWith("Notification job error:", err);
@@ -375,6 +383,7 @@ describe("notificationJob", () => {
     expect(consoleErrorSpy).toHaveBeenCalledWith("Missing peer assessment alert job error:", err);
     expect(consoleErrorSpy).toHaveBeenCalledWith("No-repo alert job error:", err);
     expect(consoleErrorSpy).toHaveBeenCalledWith("No-GitHub-account alert job error:", err);
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Project warning alert job error:", err);
     consoleErrorSpy.mockRestore();
   });
 
@@ -394,5 +403,11 @@ describe("notificationJob", () => {
     const { sendNoRepoAlerts, sendNoGithubAccountAlerts } = await import("./notificationJob.ts");
     await expect(sendNoRepoAlerts()).resolves.toBeUndefined();
     await expect(sendNoGithubAccountAlerts()).resolves.toBeUndefined();
+  });
+
+  it("sendProjectWarningAlerts delegates to warning evaluation sweep", async () => {
+    const { sendProjectWarningAlerts } = await import("./notificationJob.ts");
+    await sendProjectWarningAlerts();
+    expect(evaluateProjectWarningsForAllProjectsMock).toHaveBeenCalledTimes(1);
   });
 });

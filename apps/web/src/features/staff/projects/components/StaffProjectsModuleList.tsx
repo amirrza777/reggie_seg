@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ProgressPie } from "@/shared/ui/ProgressPie";
+import { ProgressPie } from "@/shared/ui/progress/ProgressPie";
 import type { StaffProject } from "@/features/projects/types";
 import { formatDate } from "@/shared/lib/formatDate";
 import { highlightSearchText } from "@/shared/lib/highlightSearchText";

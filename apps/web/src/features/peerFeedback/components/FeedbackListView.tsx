@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
+import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
 import { PeerFeedback } from "../types";
 import "../styles/list.css";
 
@@ -51,9 +51,7 @@ export function FeedbackAssessmentView({
                 >
                   <div className="feedback-card__content">
                     <div className="feedback-card__header">
-                      <div className="feedback-card__meta">
-                        From: {f.firstName} {f.lastName}
-                      </div>
+                      <div className="feedback-card__meta">From: Teammate</div>
                       <span
                         className={`feedback-card__status ${
                           isSubmitted

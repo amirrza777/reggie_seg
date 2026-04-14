@@ -11,7 +11,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-vi.mock("@/features/questionnaires/components/questionnaireList", () => ({
+vi.mock("@/features/questionnaires/components/QuestionnaireList", () => ({
   QuestionnaireList: () => <div data-testid="questionnaire-list" />,
 }));
 

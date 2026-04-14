@@ -67,6 +67,18 @@ describe("middleware", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
+  it("updates guarded-route access when the same account role changes", async () => {
+    vi.spyOn(global, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ role: "STAFF", isStaff: true }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ role: "STUDENT", isStaff: false }), { status: 200 }));
+
+    const beforeRoleChange = await middleware(makeReq("/staff/dashboard"));
+    expect(beforeRoleChange.headers.get("location")).toBeNull();
+
+    const afterRoleChange = await middleware(makeReq("/staff/dashboard"));
+    expect(afterRoleChange.headers.get("location")).toContain("/dashboard");
+  });
+
   it("redirects unassigned users to dashboard from guarded non-dashboard routes", async () => {
     mockFetch(new Response(JSON.stringify({ role: "STUDENT", isUnassigned: true }), { status: 200 }));
     const res = await middleware(makeReq("/projects/12"));

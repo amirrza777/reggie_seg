@@ -248,14 +248,16 @@
   --btn-primary-text: var(--surface);
   --btn-ghost-text: #111111;
   --btn-ghost-border: #111111;
+  --control-height-md: 34px;
+  --control-height-sm: 30px;
   --btn-border-width: 1px;
   --btn-font-size: var(--fs-body-sm);
   --btn-line-height: 1.2;
-  --btn-min-height: 34px;
+  --btn-min-height: var(--control-height-md);
   --btn-padding-block: 8px;
   --btn-padding-inline: 14px;
   --btn-sm-font-size: var(--fs-body-xs);
-  --btn-sm-min-height: 30px;
+  --btn-sm-min-height: var(--control-height-sm);
   --btn-sm-padding-block: 6px;
   --btn-sm-padding-inline: 10px;
   --surface-strong: #ffffff;

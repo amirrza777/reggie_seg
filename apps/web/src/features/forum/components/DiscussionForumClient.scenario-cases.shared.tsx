@@ -5,12 +5,13 @@ import {
   createStudentForumReport,
   deleteDiscussionPost,
   getDiscussionPosts,
+  getForumSettings,
   reactToDiscussionPost,
   reportDiscussionPost,
   updateDiscussionPost,
 } from "@/features/forum/api/client";
 
-vi.mock("@/shared/ui/RichTextEditor", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextEditor", () => ({
   RichTextEditor: ({ onChange, onEmptyChange, placeholder }: { onChange: (v: string) => void; onEmptyChange?: (e: boolean) => void; placeholder?: string }) => (
     <textarea
       placeholder={placeholder}
@@ -22,7 +23,7 @@ vi.mock("@/shared/ui/RichTextEditor", () => ({
   ),
 }));
 
-vi.mock("@/shared/ui/RichTextViewer", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextViewer", () => ({
   RichTextViewer: ({ content }: { content: string }) => <p>{content}</p>,
 }));
 
@@ -35,6 +36,7 @@ vi.mock("@/features/forum/api/client", () => ({
   createStudentForumReport: vi.fn(),
   deleteDiscussionPost: vi.fn(),
   getDiscussionPosts: vi.fn(),
+  getForumSettings: vi.fn(),
   reactToDiscussionPost: vi.fn(),
   reportDiscussionPost: vi.fn(),
   updateDiscussionPost: vi.fn(),
@@ -45,6 +47,7 @@ export const createDiscussionPostMock = vi.mocked(createDiscussionPost);
 export const createStudentForumReportMock = vi.mocked(createStudentForumReport);
 export const deleteDiscussionPostMock = vi.mocked(deleteDiscussionPost);
 export const getDiscussionPostsMock = vi.mocked(getDiscussionPosts);
+export const getForumSettingsMock = vi.mocked(getForumSettings);
 export const reactToDiscussionPostMock = vi.mocked(reactToDiscussionPost);
 export const reportDiscussionPostMock = vi.mocked(reportDiscussionPost);
 export const updateDiscussionPostMock = vi.mocked(updateDiscussionPost);
@@ -71,6 +74,7 @@ export function makePost(overrides: Record<string, unknown> = {}) {
 export function setupDiscussionForumScenarioCaseDefaults() {
   vi.clearAllMocks();
   consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  getForumSettingsMock.mockResolvedValue({ forumIsAnonymous: false });
   useUserMock.mockReturnValue({
     user: {
       id: 1,

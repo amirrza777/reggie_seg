@@ -229,7 +229,7 @@ export async function applyCustomAllocationHandler(req: AuthRequest, res: Respon
       });
     }
     if (error?.code === "TEAM_NAME_ALREADY_EXISTS") {
-      return res.status(409).json({ error: "One or more team names already exist in this enterprise" });
+      return res.status(409).json({ error: "One or more team names already exist in this project" });
     }
     if (error?.code === "CUSTOM_ALLOCATION_NOT_IMPLEMENTED") {
       return res.status(501).json({ error: "Customised allocation is not fully implemented yet" });

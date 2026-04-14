@@ -1,3 +1,4 @@
+import { QuestionnairePurpose } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../shared/db.js", () => {
@@ -46,7 +47,10 @@ describe("services/peerAssessment PeerAssessmentService", () => {
     const result = await service.getAssessmentsByStudent(5);
 
     expect(mockPrisma.peerAssessment.findMany).toHaveBeenCalledWith({
-      where: { reviewerUserId: 5 },
+      where: {
+        reviewerUserId: 5,
+        questionnaireTemplate: { purpose: QuestionnairePurpose.PEER_ASSESSMENT },
+      },
       include: { reviewee: { select: { firstName: true, lastName: true } } },
     });
     expect(result).toHaveLength(1);
@@ -58,7 +62,10 @@ describe("services/peerAssessment PeerAssessmentService", () => {
     await service.getFeedbackForStudent(9);
 
     expect(mockPrisma.peerAssessment.findMany).toHaveBeenCalledWith({
-      where: { revieweeUserId: 9 },
+      where: {
+        revieweeUserId: 9,
+        questionnaireTemplate: { purpose: QuestionnairePurpose.PEER_ASSESSMENT },
+      },
       select: selectFields,
     });
   });

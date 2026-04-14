@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
-import { ModalPortal } from "@/shared/ui/ModalPortal";
+import { ModalPortal } from "@/shared/ui/modal/ModalPortal";
 import { getAuditStreamUrl, listAuditLogs } from "../api/client";
 import type { AuditLogEntry } from "../types";
 

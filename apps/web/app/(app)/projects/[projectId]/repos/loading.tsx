@@ -1,1 +1,1 @@
-export { GithubReposRouteSkeleton as default } from "@/shared/ui/FeatureRouteSkeletons";
+export { GithubReposRouteSkeleton as default } from "@/shared/ui/skeletons/FeatureRouteSkeletons";

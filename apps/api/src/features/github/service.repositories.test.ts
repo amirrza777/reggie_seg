@@ -26,7 +26,7 @@ vi.mock("./repo.js", () => repoMocks);
 vi.mock("./oauth.service.js", () => ({
   getValidGithubAccessToken: oauthMocks.getValidGithubAccessToken,
 }));
-vi.mock("./service.analysis.run.js", () => ({
+vi.mock("./analysis/service.analysis.run.js", () => ({
   analyseProjectGithubRepository: analysisMocks.analyseProjectGithubRepository,
 }));
 vi.mock("./config.js", () => ({

@@ -35,7 +35,7 @@ vi.mock("@/features/modules/api/client", () => ({
   listModules: vi.fn(),
 }));
 
-vi.mock("@/features/staff/projects/components/StaffProjectCreatePanel", () => ({
+vi.mock("@/features/staff/projects/components/create/StaffProjectCreatePanel", () => ({
   StaffProjectCreatePanel: ({
     modules,
     modulesError,

@@ -21,7 +21,7 @@ const footerLinkPages: FooterLinkPageMap = {
   product: {
     "peer-assessment": {
       slug: "peer-assessment",
-      label: "Peer assessment",
+      label: "Peer Assessment",
       title: "Peer assessment that teams actually complete",
       description:
         "Launch clear review cycles, keep scoring criteria consistent, and deliver feedback without manual spreadsheet cleanup.",
@@ -77,7 +77,7 @@ const footerLinkPages: FooterLinkPageMap = {
     },
     "roles-and-permissions": {
       slug: "roles-and-permissions",
-      label: "Roles and permissions",
+      label: "Roles and Permissions",
       title: "Role controls that fit staff and student workflows",
       description:
         "Define who can create, review, and manage project data with role-based permissions built for academic team structures.",

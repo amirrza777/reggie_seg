@@ -18,7 +18,7 @@ export {
   listAssignableUsers,
   parseAccessUserSearchFilters,
   searchAssignableUsers,
-} from "./service.overview-search.js";
+} from "./overview-search/service.overview-search.js";
 
 export {
   parseEnterpriseUserSearchFilters,
@@ -37,6 +37,6 @@ export {
   deleteModule,
   getModuleStudents,
   updateModuleStudents,
-} from "./service.module-management.js";
+} from "./module-management/service.module-management.js";
 
-export { getModuleMeetingSettings, updateModuleMeetingSettings } from "./service.meeting-settings.js";
+export { getModuleMeetingSettings, updateModuleMeetingSettings } from "./meeting-settings/service.meeting-settings.js";

@@ -23,6 +23,7 @@ import teamsRouter from "./features/teams/router.js";
 import forumRouter from "./features/forum/router.js";
 import helpRouter from "./features/help/router.js";
 import moduleJoinRouter from "./features/moduleJoin/router.js";
+import { isAllowedCorsOrigin, resolveAllowedOrigins } from "./cors.js";
 
 const app = express();
 
@@ -38,29 +39,12 @@ app.use((req, _res, next) => {
   next();
 });
 
-const allowedOrigins = [
-  "http://localhost:3001",
-  "http://localhost:3002",
-  "http://localhost:5173",
-  "http://127.0.0.1:3001",
-  "http://127.0.0.1:3002",
-  "http://127.0.0.1:5173",
-  ...(process.env.APP_BASE_URL ? [process.env.APP_BASE_URL.replace(/\/$/, "")] : []),
-  ...(process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS
-      .split(",")
-      .map((o) => o.trim())
-      .filter(Boolean)
-    : []),
-];
-
-// Allow Vercel preview deployment URLs for this project (e.g. reggie-abc123-amirrza777s-projects.vercel.app)
-const vercelPreviewPattern = /^https:\/\/[a-z0-9-]+-amirrza777s-projects\.vercel\.app$/;
+const allowedOrigins = resolveAllowedOrigins(process.env);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || (origin && vercelPreviewPattern.test(origin))) {
+      if (isAllowedCorsOrigin(origin, allowedOrigins)) {
         callback(null, true);
       } else {
         callback(new Error(`CORS: origin ${origin} not allowed`));

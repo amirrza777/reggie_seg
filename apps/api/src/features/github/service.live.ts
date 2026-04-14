@@ -14,8 +14,8 @@ import {
   fetchUserCommitsForRepositoryPage,
   getBranchAheadBehind,
   listRepositoryBranchesLive,
-} from "./service.analysis.fetch.js";
-import { isMergePullRequestCommit } from "./service.analysis.aggregate.js";
+} from "./analysis/service.analysis.fetch.js";
+import { isMergePullRequestCommit } from "./analysis/service.analysis.aggregate.js";
 import { matchesFuzzySearchCandidate } from "../../shared/fuzzySearch.js";
 
 type IdentityCandidate = {

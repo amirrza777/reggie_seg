@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { DiscussionForumComposer } from "./DiscussionForumComposer";
 
 // Mock RichTextEditor
-vi.mock("@/shared/ui/RichTextEditor", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextEditor", () => ({
   RichTextEditor: ({ onChange, onEmptyChange, initialContent, placeholder }: any) => {
     const handleChange = (e: any) => {
       const value = e.target.value;

@@ -4,13 +4,13 @@ import { DiscussionForumPostThread } from "./DiscussionForumPostThread";
 import type { DiscussionForumPostThreadProps } from "./DiscussionForumPostThread.types";
 import type { DiscussionPost } from "../types";
 
-vi.mock("@/shared/ui/RichTextEditor", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextEditor", () => ({
   RichTextEditor: ({ initialContent, onChange }: { initialContent: string; onChange: (v: string) => void }) => (
     <textarea data-testid="rich-text-editor" defaultValue={initialContent} onChange={(e) => onChange(e.target.value)} />
   ),
 }));
 
-vi.mock("@/shared/ui/RichTextViewer", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextViewer", () => ({
   RichTextViewer: ({ content }: { content: string }) => <div data-testid="rich-text-viewer">{content}</div>,
 }));
 

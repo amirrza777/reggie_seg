@@ -54,8 +54,8 @@ export async function upsertScenarioProject(context: SeedContext, moduleId: numb
 export async function upsertScenarioTeam(context: SeedContext, projectId: number) {
   const existing = await prisma.team.findUnique({
     where: {
-      enterpriseId_teamName: {
-        enterpriseId: context.enterprise.id,
+      projectId_teamName: {
+        projectId,
         teamName: TEAM_NAME,
       },
     },
@@ -66,7 +66,6 @@ export async function upsertScenarioTeam(context: SeedContext, projectId: number
     return prisma.team.update({
       where: { id: existing.id },
       data: {
-        projectId,
         archivedAt: null,
         allocationLifecycle: "ACTIVE",
         deadlineProfile: "STANDARD",

@@ -56,6 +56,7 @@ describe("projects user project deadline repo", () => {
 
   it("returns null when user has no active team allocation for project", async () => {
     (prisma.teamAllocation.findFirst as any).mockResolvedValueOnce(null);
+    (prisma.project.findUnique as any).mockResolvedValueOnce({ deadline: null });
     await expect(getUserProjectDeadline(12, 34)).resolves.toBeNull();
   });
 

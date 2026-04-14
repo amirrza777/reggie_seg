@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { sortProjectsByTaskOpenDate } from "../lib/sortProjectsByTaskOpenDate";
 import { formatDate } from "@/shared/lib/formatDate";
-import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
+import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
 import type { Project } from "../types";
 import type { ProjectWorkflowState } from "@/features/projects/lib/projectWorkflowState";
-import "@/features/projects/styles/project-list.css";
 
 const PROJECT_LIST_DATE_LOCALE = "en-GB";
 

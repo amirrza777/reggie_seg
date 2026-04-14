@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { EnterpriseOverviewSummary } from "./EnterpriseOverviewSummary";
-import { useEnterpriseOverviewSummary } from "./useEnterpriseOverviewSummary";
+import { useEnterpriseOverviewSummary } from "./hooks/useEnterpriseOverviewSummary";
 
 vi.mock("next/link", async () => {
   const React = await import("react");
@@ -14,7 +14,7 @@ vi.mock("next/link", async () => {
   };
 });
 
-vi.mock("./useEnterpriseOverviewSummary", () => ({
+vi.mock("./hooks/useEnterpriseOverviewSummary", () => ({
   useEnterpriseOverviewSummary: vi.fn(),
 }));
 

@@ -1,0 +1,93 @@
+.staff-projects__peer-student-assessments {
+  margin-top: 10px;
+}
+
+.staff-projects__peer-student-assessments__empty {
+  margin: 0;
+}
+
+.staff-projects__peer-student-assessments__card-title {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.25em;
+  row-gap: 0.1em;
+  line-height: 1.35;
+}
+
+.staff-projects__peer-student-assessments__title-meta {
+  font-size: var(--fs-fixed-0-9rem);
+  font-weight: 500;
+}
+
+.staff-projects__peer-student-assessments__title-name {
+  font-size: var(--fs-panel-section-title);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.staff-projects__peer-student-assessments__assessment {
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.staff-projects__peer-student-assessments__submitted {
+  margin: 0 0 10px;
+}
+
+.staff-projects__peer-student-assessments__no-answers {
+  margin: 0;
+}
+
+.staff-projects__peer-student-assessments__answers {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.staff-projects__peer-student-assessments__question-label {
+  display: block;
+  margin: 0 0 6px;
+}
+
+.staff-projects__peer-student-assessments__answer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 12px;
+  row-gap: 8px;
+}
+
+.staff-projects__peer-student-assessments__answer-body {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.staff-projects__peer-student-assessments__feedback-section {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.staff-projects__peer-student-assessments__feedback-heading {
+  margin: 0;
+  font-size: var(--fs-fixed-1rem);
+}
+
+.staff-projects__peer-student-assessments__feedback-box {
+  margin: 0;
+  padding: 10px 12px;
+  background-color: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  min-height: 100px;
+  display: flex;
+  align-items: flex-start;
+  color: var(--ink);
+}
+
+.staff-projects__peer-student-assessments__feedback-empty {
+  margin: 0;
+}

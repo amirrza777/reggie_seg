@@ -1,9 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrelloBoardAction, TrelloCard } from "../types";
 import {
+  clampChangeDayKey,
+  earliestNavigableCalendarDay,
   getBoardStateAtDate,
   getCalendarDaysInRange,
   getDateKeysWithActions,
+  lastChangeDayOnOrBefore,
+  latestChangeDayJumpBackFromCurrent,
   nextCalendarDay,
   nextChangeDay,
   prevCalendarDay,
@@ -129,5 +133,31 @@ describe("boardStateAtDate", () => {
 
   it("prevChangeDay returns null when dateKey is after all change days (no match index)", () => {
     expect(prevChangeDay("2099-01-01", ["2020-01-01"])).toBeNull();
+  });
+
+  it("earliestNavigableCalendarDay allows yesterday when first change is today", () => {
+    expect(earliestNavigableCalendarDay("2024-06-05", "2024-06-05")).toBe("2024-06-04");
+    expect(earliestNavigableCalendarDay("2024-06-01", "2024-06-05")).toBe("2024-06-01");
+  });
+
+  it("lastChangeDayOnOrBefore picks the latest key not after dateKey", () => {
+    const days = ["2024-01-01", "2024-01-05", "2024-01-10"];
+    expect(lastChangeDayOnOrBefore("2024-01-07", days)).toBe("2024-01-05");
+    expect(lastChangeDayOnOrBefore("2024-01-01", days)).toBe("2024-01-01");
+    expect(lastChangeDayOnOrBefore("2020-01-01", days)).toBeNull();
+  });
+
+  it("clampChangeDayKey maps unknown keys to nearest older or first", () => {
+    const days = ["2024-01-05", "2024-01-10"];
+    expect(clampChangeDayKey("2024-01-10", days)).toBe("2024-01-10");
+    expect(clampChangeDayKey("2024-01-07", days)).toBe("2024-01-05");
+    expect(clampChangeDayKey("2020-01-01", days)).toBe("2024-01-05");
+  });
+
+  it("latestChangeDayJumpBackFromCurrent prefers a day strictly before today", () => {
+    const today = "2024-06-10";
+    expect(latestChangeDayJumpBackFromCurrent(today, ["2024-06-01", "2024-06-10"])).toBe("2024-06-01");
+    expect(latestChangeDayJumpBackFromCurrent(today, ["2024-06-10"])).toBe("2024-06-10");
+    expect(latestChangeDayJumpBackFromCurrent(today, [])).toBeNull();
   });
 });

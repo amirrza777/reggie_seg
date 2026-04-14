@@ -5,6 +5,7 @@ const serviceMocks = vi.hoisted(() => ({
   saveFeedbackReview: vi.fn(),
   getFeedbackReview: vi.fn(),
   getFeedbackReviewStatuses: vi.fn(),
+  getFeedbackReviewsForViewer: vi.fn(),
   getPeerAssessment: vi.fn(),
 }));
 
@@ -12,11 +13,13 @@ vi.mock("./service.js", () => ({
   saveFeedbackReview: serviceMocks.saveFeedbackReview,
   getFeedbackReview: serviceMocks.getFeedbackReview,
   getFeedbackReviewStatuses: serviceMocks.getFeedbackReviewStatuses,
+  getFeedbackReviewsForViewer: serviceMocks.getFeedbackReviewsForViewer,
   getPeerAssessment: serviceMocks.getPeerAssessment,
 }));
 
 import {
   createPeerFeedbackHandler,
+  getPeerFeedbackReviewsByAssessmentsHandler,
   getPeerFeedbackStatusesHandler,
   getPeerAssessmentHandler,
   getPeerFeedbackHandler,
@@ -257,6 +260,33 @@ describe("peerFeedback controller", () => {
       expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe("getPeerFeedbackReviewsByAssessmentsHandler", () => {
+    it("returns 401 when user id missing", async () => {
+      const req = { user: {}, body: { peerAssessmentIds: [1] } } as any;
+      const res = createMockResponse();
+      await getPeerFeedbackReviewsByAssessmentsHandler(req, res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it("returns 400 for invalid body", async () => {
+      const req = { user: { sub: 5 }, body: {} } as any;
+      const res = createMockResponse();
+      await getPeerFeedbackReviewsByAssessmentsHandler(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it("returns reviews map on success", async () => {
+      const req = { user: { sub: 5 }, body: { peerAssessmentIds: [10, "11"] } } as any;
+      const res = createMockResponse();
+      serviceMocks.getFeedbackReviewsForViewer.mockResolvedValue({ "10": { reviewText: "Hi", agreementsJson: null } });
+
+      await getPeerFeedbackReviewsByAssessmentsHandler(req, res);
+
+      expect(serviceMocks.getFeedbackReviewsForViewer).toHaveBeenCalledWith(5, [10, 11]);
+      expect(res.json).toHaveBeenCalledWith({ reviews: { "10": { reviewText: "Hi", agreementsJson: null } } });
     });
   });
 

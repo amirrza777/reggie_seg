@@ -1,4 +1,4 @@
-import { DiscussionPostsSkeleton } from "@/shared/ui/LoadingSkeletonBlocks";
+import { DiscussionPostsSkeleton } from "@/shared/ui/skeletons/LoadingSkeletonBlocks";
 import { PaginationControls, PaginationPageIndicator } from "@/shared/ui/PaginationControls";
 import type { DiscussionPost } from "@/features/forum/types";
 

@@ -203,6 +203,58 @@ describe("projects service", () => {
     ]);
   });
 
+  it("fetchModulesForUser normalizes null and invalid module date fields", async () => {
+    const archivedAt = new Date("2025-07-01T00:00:00.000Z");
+    (repo.getModulesForUser as any).mockResolvedValue([
+      {
+        id: 10,
+        code: "MOD-10",
+        name: "Null Windows",
+        teamCount: 2,
+        projectCount: 1,
+        accessRole: "OWNER",
+        projectWindowStart: null,
+        projectWindowEnd: null,
+        archivedAt,
+        staffWithAccessCount: 4,
+      },
+      {
+        id: 11,
+        code: "MOD-11",
+        name: "Invalid Windows",
+        teamCount: 3,
+        projectCount: 2,
+        accessRole: "OWNER",
+        projectWindowStart: "not-a-date",
+        projectWindowEnd: 12345,
+        archivedAt: "not-a-date",
+      },
+    ]);
+
+    const result = await fetchModulesForUser(7, { staffOnly: true, compact: false });
+
+    expect(result[0]).toEqual(
+      expect.objectContaining({
+        id: "10",
+        title: "Null Windows",
+        projectWindowStart: null,
+        projectWindowEnd: null,
+        archivedAt: archivedAt.toISOString(),
+        staffWithAccessCount: 4,
+      }),
+    );
+    expect(result[1]).toEqual(
+      expect.objectContaining({
+        id: "11",
+        title: "Invalid Windows",
+        archivedAt: null,
+        staffWithAccessCount: 0,
+      }),
+    );
+    expect(result[1]).not.toHaveProperty("projectWindowStart");
+    expect(result[1]).not.toHaveProperty("projectWindowEnd");
+  });
+
   it("fetchModulesForUser forwards module scope options to repo", async () => {
     (repo.getModulesForUser as any).mockResolvedValue([]);
     await fetchModulesForUser(7, { staffOnly: true, compact: true });
@@ -300,7 +352,14 @@ describe("projects service", () => {
         moduleId: 8,
         module: { name: "SEGP" },
         teams: [
-          { id: 3, teamName: "Team Alpha", projectId: 42, inactivityFlag: "NONE", _count: { allocations: 5 } },
+          {
+            id: 3,
+            teamName: "Team Alpha",
+            projectId: 42,
+            inactivityFlag: "NONE",
+            _count: { allocations: 5 },
+            staffTeamMarking: { mark: 72 },
+          },
         ],
       },
     ] as unknown as RepoAsyncResult<typeof repo.getStaffProjectsForMarking>);
@@ -311,8 +370,9 @@ describe("projects service", () => {
         name: "Capstone",
         moduleId: 8,
         moduleName: "SEGP",
+        markingProgress: { markedTeamCount: 1, totalTeamCount: 1 },
         teams: [
-          { id: 3, teamName: "Team Alpha", projectId: 42, inactivityFlag: "NONE", studentCount: 5 },
+          { id: 3, teamName: "Team Alpha", projectId: 42, inactivityFlag: "NONE", studentCount: 5, teamMark: 72 },
         ],
       },
     ]);
@@ -326,8 +386,22 @@ describe("projects service", () => {
         moduleId: 8,
         module: { name: "SEGP" },
         teams: [
-          { id: 3, teamName: "Team Alpha", projectId: 42, inactivityFlag: "NONE", _count: { allocations: 5 } },
-          { id: 4, teamName: "Delta Builders", projectId: 42, inactivityFlag: "YELLOW", _count: { allocations: 4 } },
+          {
+            id: 3,
+            teamName: "Team Alpha",
+            projectId: 42,
+            inactivityFlag: "NONE",
+            _count: { allocations: 5 },
+            staffTeamMarking: { mark: null },
+          },
+          {
+            id: 4,
+            teamName: "Delta Builders",
+            projectId: 42,
+            inactivityFlag: "YELLOW",
+            _count: { allocations: 4 },
+            staffTeamMarking: { mark: 61 },
+          },
         ],
       },
     ] as unknown as RepoAsyncResult<typeof repo.getStaffProjectsForMarking>);
@@ -338,8 +412,9 @@ describe("projects service", () => {
         name: "Capstone",
         moduleId: 8,
         moduleName: "SEGP",
+        markingProgress: { markedTeamCount: 1, totalTeamCount: 2 },
         teams: [
-          { id: 4, teamName: "Delta Builders", projectId: 42, inactivityFlag: "YELLOW", studentCount: 4 },
+          { id: 4, teamName: "Delta Builders", projectId: 42, inactivityFlag: "YELLOW", studentCount: 4, teamMark: 61 },
         ],
       },
     ]);

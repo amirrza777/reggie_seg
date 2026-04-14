@@ -4,7 +4,7 @@
 
 import React, { useEffect, useRef } from "react";
 import { formatDate } from "@/shared/lib/formatDate";
-import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
+import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
 import type { TrelloBoardAction } from "../types";
 
 type CardMovementHistoryProps = {

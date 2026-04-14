@@ -6,6 +6,7 @@ import { isFeatureEnabledForUser } from "../featureFlags/service.js";
 const mocks = vi.hoisted(() => ({
   requireAuth: vi.fn((_req: any, _res: any, next: NextFunction) => next()),
   createPeerFeedbackHandler: vi.fn(),
+  getPeerFeedbackReviewsByAssessmentsHandler: vi.fn(),
   getPeerFeedbackStatusesHandler: vi.fn(),
   getPeerFeedbackHandler: vi.fn(),
   getPeerAssessmentHandler: vi.fn(),
@@ -19,6 +20,7 @@ vi.mock("../featureFlags/service.js", () => ({
 }));
 vi.mock("./controller.js", () => ({
   createPeerFeedbackHandler: mocks.createPeerFeedbackHandler,
+  getPeerFeedbackReviewsByAssessmentsHandler: mocks.getPeerFeedbackReviewsByAssessmentsHandler,
   getPeerFeedbackStatusesHandler: mocks.getPeerFeedbackStatusesHandler,
   getPeerFeedbackHandler: mocks.getPeerFeedbackHandler,
   getPeerAssessmentHandler: mocks.getPeerAssessmentHandler,

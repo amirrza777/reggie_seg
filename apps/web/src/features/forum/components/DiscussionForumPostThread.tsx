@@ -1,7 +1,7 @@
 import { ThumbsDown, ThumbsUp } from "lucide-react";
 import type { ReactNode } from "react";
-import { RichTextEditor } from "@/shared/ui/RichTextEditor";
-import { RichTextViewer } from "@/shared/ui/RichTextViewer";
+import { RichTextEditor } from "@/shared/ui/rich-text/RichTextEditor";
+import { RichTextViewer } from "@/shared/ui/rich-text/RichTextViewer";
 import { getAuthorRoleMeta } from "./DiscussionForumClient.tree";
 import { DiscussionForumPostThreadMenu } from "./DiscussionForumPostThread.menu";
 import type { DiscussionForumPostThreadProps } from "./DiscussionForumPostThread.types";

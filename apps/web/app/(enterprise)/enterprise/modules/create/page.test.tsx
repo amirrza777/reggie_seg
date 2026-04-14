@@ -38,7 +38,7 @@ vi.mock("@/shared/ui/Card", () => ({
   ),
 }));
 
-vi.mock("@/features/enterprise/components/EnterpriseModuleCreateForm", () => ({
+vi.mock("@/features/enterprise/components/module-create/EnterpriseModuleCreateForm", () => ({
   EnterpriseModuleCreateForm: () => <div data-testid="module-create-form" />,
 }));
 

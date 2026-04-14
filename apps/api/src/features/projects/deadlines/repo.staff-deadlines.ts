@@ -1,7 +1,7 @@
 import { prisma } from "../../../shared/db.js";
 import { assertProjectMutableForWritesByProjectId } from "../../../shared/projectWriteGuard.js";
-import { getScopedStaffUser, isAdminScopedRole } from "../repo.staff-scope.js";
-import type { StudentDeadlineOverrideInput } from "../repo.types.js";
+import { getScopedStaffUser, isAdminScopedRole } from "../repo/repo.staff-scope.js";
+import type { StudentDeadlineOverrideInput } from "../repo/repo.types.js";
 
 type DeadlineScopeProject = {
   id: number;

@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { Card } from "@/shared/ui/Card";
-import { PerformanceSummaryCard } from "@/shared/ui/PerformanceSummaryCard";
+import { PerformanceSummaryCard } from "@/shared/ui/progress/PerformanceSummaryCard";
 import { formatDateTime } from "@/shared/lib/dateFormatter";
 import { getStudentDetails, getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { StaffMarkingCard } from "@/features/staff/peerAssessments/components/StaffMarkingCard";
 import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import { ApiError } from "@/shared/api/errors";
+import { RichTextViewer } from "@/shared/ui/rich-text/RichTextViewer";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
@@ -193,9 +194,11 @@ export default async function StaffTeamGradingStudentPage({ params }: PageProps)
               <strong>Team mark:</strong>{" "}
               {teamMarkingDisplay.mark == null ? "Not set" : teamMarkingDisplay.mark}
             </p>
-            <p className="muted">
-              {teamMarkingDisplay.formativeFeedback ?? "No team formative feedback yet."}
-            </p>
+            {teamMarkingDisplay.formativeFeedback ? (
+              <RichTextViewer content={teamMarkingDisplay.formativeFeedback} />
+            ) : (
+              <p className="muted">No team formative feedback yet.</p>
+            )}
             <p className="ui-note ui-note--muted">
               Updated by {memberName(teamMarkingDisplay.marker)} on{" "}
               {formatMarkingUpdatedAt(teamMarkingDisplay.updatedAt)}

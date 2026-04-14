@@ -176,6 +176,8 @@ describe("EnterpriseModuleManager", () => {
     await waitFor(() =>
       expect(searchEnterpriseModulesMock).toHaveBeenLastCalledWith({ q: undefined, page: 2, pageSize: 10 }),
     );
-    expect(screen.getByText("Paged module 11")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Paged module 11")).toBeInTheDocument();
+    });
   });
 });

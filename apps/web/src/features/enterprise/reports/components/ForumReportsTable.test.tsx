@@ -21,11 +21,11 @@ vi.mock("@/shared/ui/ForumConversationTree", () => ({
   ForumConversationTree: ({ focusPostId }: { focusPostId: number }) => <div>Conversation tree {focusPostId}</div>,
 }));
 
-vi.mock("@/shared/ui/RichTextViewer", () => ({
+vi.mock("@/shared/ui/rich-text/RichTextViewer", () => ({
   RichTextViewer: ({ content }: { content: string }) => <span>{content}</span>,
 }));
 
-vi.mock("@/shared/ui/ModalPortal", () => ({
+vi.mock("@/shared/ui/modal/ModalPortal", () => ({
   ModalPortal: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 

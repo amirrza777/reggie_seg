@@ -1,0 +1,34 @@
+/* Layout for peer assessment due date + policy pill */
+.staff-projects__peer-deadline-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+}
+
+.staff-projects__peer-deadline-date {
+  font-size: var(--fs-caption);
+  color: var(--muted);
+}
+
+.staff-projects__peer-deadline-row--empty .staff-projects__peer-deadline-date {
+  font-style: italic;
+}
+
+/* Smaller / subtler than team policy cards */
+.staff-projects__peer-deadline-row .staff-projects__policy-pill {
+  padding: 2px 7px;
+  font-size: var(--fs-fixed-0-72rem);
+  font-weight: var(--fw-medium);
+  line-height: 1.35;
+  border-color: color-mix(in srgb, var(--border) 85%, transparent);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--muted);
+}
+
+.staff-projects__peer-deadline-row .staff-projects__policy-pill--mcf {
+  border-color: color-mix(in srgb, var(--accent-border) 28%, var(--border));
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  color: var(--muted);
+}

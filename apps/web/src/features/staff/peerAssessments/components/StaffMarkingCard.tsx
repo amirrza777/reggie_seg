@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
-import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { RichTextEditor } from "@/shared/ui/rich-text/RichTextEditor";
 import {
   saveStudentMarking,
   saveTeamMarking,

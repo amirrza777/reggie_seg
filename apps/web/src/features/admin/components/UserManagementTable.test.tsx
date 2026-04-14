@@ -93,7 +93,7 @@ describe("UserManagementTable", () => {
     installSearchMock([{ ...apiUser, role: undefined, isStaff: true }]);
     await renderTable();
     expect(screen.getByText(apiUser.email)).toBeInTheDocument();
-    const staffButton = screen.getByRole("button", { name: /Staff/i });
+    const staffButton = screen.getByRole("button", { name: "Staff" });
     expect(staffButton).toBeDisabled();
   });
 
@@ -102,7 +102,7 @@ describe("UserManagementTable", () => {
     await renderTable();
 
     expect(screen.getByText(apiUser.email)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Student/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Student" })).toBeDisabled();
     expect(screen.getByText("Active")).toBeInTheDocument();
   });
 
@@ -132,7 +132,7 @@ describe("UserManagementTable", () => {
 
   it("updates user role and shows confirmation", async () => {
     await renderTable();
-    fireEvent.click(screen.getByRole("button", { name: /Staff/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Staff" }));
     await waitFor(() => expect(updateUserRoleMock).toHaveBeenCalledWith(apiUser.id, "STAFF"));
     expect(screen.getByText(/Updated role to staff/i)).toBeInTheDocument();
   });
@@ -142,7 +142,9 @@ describe("UserManagementTable", () => {
     await renderTable();
     fireEvent.click(screen.getByText("Active"));
     await waitFor(() => expect(updateUserMock).toHaveBeenCalledWith(apiUser.id, { active: false }));
-    expect(screen.getByText(/Account suspended/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Account suspended/i)).toBeInTheDocument();
+    });
   });
 
   it("filters visible users with search", async () => {
@@ -213,9 +215,11 @@ describe("UserManagementTable", () => {
     await waitFor(() =>
       expect(searchUsersMock).toHaveBeenLastCalledWith({ q: undefined, page: 2, pageSize: 10 }),
     );
-    expect(screen.getByText("user11@example.com")).toBeInTheDocument();
-    expect(screen.getByText("user13@example.com")).toBeInTheDocument();
-    expect(screen.queryByText("user1@example.com")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("user11@example.com")).toBeInTheDocument();
+      expect(screen.getByText("user13@example.com")).toBeInTheDocument();
+      expect(screen.queryByText("user1@example.com")).not.toBeInTheDocument();
+    });
     expect(screen.getByText(/Showing 11-13 of 13 accounts\./i)).toBeInTheDocument();
   });
 
@@ -240,9 +244,11 @@ describe("UserManagementTable", () => {
     await waitFor(() =>
       expect(searchUsersMock).toHaveBeenLastCalledWith({ q: undefined, page: 2, pageSize: 10 }),
     );
-    expect(screen.getByText("user11@example.com")).toBeInTheDocument();
-    expect(screen.getByText("user13@example.com")).toBeInTheDocument();
-    expect(screen.queryByText("user1@example.com")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("user11@example.com")).toBeInTheDocument();
+      expect(screen.getByText("user13@example.com")).toBeInTheDocument();
+      expect(screen.queryByText("user1@example.com")).not.toBeInTheDocument();
+    });
   });
 
   it("supports previous-page navigation and submit-based page jump", async () => {
@@ -365,9 +371,9 @@ describe("UserManagementTable", () => {
 
     await renderTable();
 
-    fireEvent.click(screen.getByRole("button", { name: /Staff/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Staff" }));
     await waitFor(() => expect(screen.getByText("Role failed.")).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: /Student/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Student" })).toBeDisabled();
 
     fireEvent.click(screen.getByText("Active"));
     await waitFor(() => expect(screen.getByText("Status failed.")).toBeInTheDocument());
@@ -379,7 +385,7 @@ describe("UserManagementTable", () => {
     updateUserMock.mockRejectedValueOnce("status-failed");
 
     await renderTable();
-    fireEvent.click(screen.getByRole("button", { name: /Staff/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Staff" }));
     await waitFor(() => expect(screen.getByText("Could not update role.")).toBeInTheDocument());
 
     fireEvent.click(screen.getByText("Active"));

@@ -4,12 +4,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { ApiError } from "@/shared/api/errors";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { getAdminSummary, inviteCurrentEnterpriseAdmin, inviteGlobalAdmin } from "../api/client";
+import { getAdminSummary, inviteGlobalAdmin } from "../api/client";
 import type { AdminSummary } from "../types";
 import { AuditLogModal } from "./AuditLogModal";
 
 type RequestState = "idle" | "loading" | "success" | "error";
-type InviteAccessLevel = "enterprise_admin" | "global_admin";
 
 const INVITE_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -21,7 +20,6 @@ export function AdminWorkspaceSummaryView() {
   const [summaryNotice, setSummaryNotice] = useState<string | null>(null);
 
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteAccessLevel, setInviteAccessLevel] = useState<InviteAccessLevel>("enterprise_admin");
   const [inviteStatus, setInviteStatus] = useState<RequestState>("idle");
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
 
@@ -59,30 +57,20 @@ export function AdminWorkspaceSummaryView() {
     setInviteStatus("loading");
     setInviteMessage(null);
     try {
-      const result = inviteAccessLevel === "global_admin"
-        ? await inviteGlobalAdmin(normalizedEmail)
-        : await inviteCurrentEnterpriseAdmin(normalizedEmail);
+      const result = await inviteGlobalAdmin(normalizedEmail);
       setInviteEmail("");
       setInviteStatus("success");
-      if (inviteAccessLevel === "global_admin") {
-        setInviteMessage(`Global admin invite sent to ${result.email}.`);
-      } else {
-        setInviteMessage(`Enterprise admin invite sent to ${result.email}.`);
-      }
+      setInviteMessage(`Admin invite sent to ${result.email}.`);
     } catch (err) {
       setInviteStatus("error");
-      if (inviteAccessLevel === "global_admin" && err instanceof ApiError && err.status === 403) {
-        setInviteMessage("Only the super admin can send global admin invites.");
+      if (err instanceof ApiError && err.status === 403) {
+        setInviteMessage("Only the super admin can send admin invites.");
         return;
       }
       if (err instanceof Error) {
         setInviteMessage(err.message);
       } else {
-        setInviteMessage(
-          inviteAccessLevel === "global_admin"
-            ? "Could not send global admin invite."
-            : "Could not send enterprise admin invite.",
-        );
+        setInviteMessage("Could not send admin invite.");
       }
     }
   };
@@ -145,7 +133,7 @@ export function AdminWorkspaceSummaryView() {
                   Invite admin
                 </h3>
                 <p className="muted">
-                  Choose admin access level and enter the invite email.
+                  Enter the invite email.
                 </p>
               </div>
               <Button
@@ -165,19 +153,6 @@ export function AdminWorkspaceSummaryView() {
               noValidate
               autoComplete="off"
             >
-              <label className="ui-stack-xs" htmlFor="admin-invite-access-level">
-                <span className="eyebrow">Access level</span>
-                <select
-                  id="admin-invite-access-level"
-                  name="admin-invite-access-level"
-                  value={inviteAccessLevel}
-                  onChange={(event) => setInviteAccessLevel(event.target.value as InviteAccessLevel)}
-                  className="ui-input"
-                >
-                  <option value="enterprise_admin">Enterprise admin</option>
-                  <option value="global_admin">Global admin (super admin only)</option>
-                </select>
-              </label>
               <input
                 type="email"
                 name="enterprise-admin-invite-email"

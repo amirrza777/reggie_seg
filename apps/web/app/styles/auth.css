@@ -114,6 +114,26 @@
   font-size: var(--fs-fixed-14px);
 }
 
+.auth-form .status-alert {
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-form .status-alert--error {
+  background: var(--status-danger-soft);
+  border-color: var(--status-danger-border);
+  color: var(--status-danger-text);
+}
+
+.auth-form .status-alert--success {
+  background: var(--status-success-soft);
+  border-color: var(--status-success-border);
+  color: var(--status-success-text);
+}
+
 .auth-alert--spacious {
   margin-bottom: 24px;
   padding: 16px;

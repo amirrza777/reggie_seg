@@ -48,7 +48,7 @@ vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
 }));
 
-vi.mock("@/features/modules/components/ModuleDashboard", () => ({
+vi.mock("@/features/modules/components/dashboard/ModuleDashboard", () => ({
   ModuleDashboardPageView: ({
     dashboard,
     projectsPanel,
@@ -138,6 +138,16 @@ describe("ModulePage", () => {
   });
 
   it("renders the dashboard view with built data and a projects panel linking to module projects", async () => {
+    getProjectDeadlineMock.mockResolvedValueOnce({
+      taskOpenDate: null,
+      taskDueDate: "2026-02-10T09:00:00.000Z",
+      assessmentOpenDate: null,
+      assessmentDueDate: null,
+      feedbackOpenDate: null,
+      feedbackDueDate: null,
+      isOverridden: false,
+    } as Awaited<ReturnType<typeof getProjectDeadline>>);
+
     const page = await ModulePage({
       params: Promise.resolve({ moduleId: "17" }),
     });
@@ -150,7 +160,8 @@ describe("ModulePage", () => {
     expect(screen.getByTestId("module-dashboard-view")).toHaveTextContent(
       '"marksRows":[["Project A","78","Published"]]',
     );
-    expect(screen.getByTestId("projects-panel")).toHaveTextContent("Projects in this module");
+    expect(screen.getByTestId("module-dashboard-view")).toHaveTextContent('"activity":"Task due"');
+    expect(screen.getByTestId("projects-panel")).toHaveTextContent("Large-Scale Systems");
     expect(screen.getByRole("link", { name: /Project A/i })).toHaveAttribute("href", "/projects/100");
   });
 

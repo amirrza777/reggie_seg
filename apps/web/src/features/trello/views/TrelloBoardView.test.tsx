@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TrelloBoardView } from "./TrelloBoardView";
 import type { BoardView } from "@/features/trello/api/client";
 import type { TrelloBoardAction, TrelloCard } from "@/features/trello/types";
@@ -71,6 +71,10 @@ describe("TrelloBoardView", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("disables My tasks when trello member id is null", async () => {
@@ -152,6 +156,19 @@ describe("TrelloBoardView", () => {
     expect(await screen.findByText(/Current board state/i)).toBeInTheDocument();
   });
 
+  it("inner earlier from current works when the only action buckets are on today", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-08-10T12:00:00.000Z"));
+    getMyTrelloMemberIdMock.mockResolvedValue({ trelloMemberId: null });
+    render(<TrelloBoardView view={buildView(["2024-08-10"])} sectionConfig={{}} onRequestChangeBoard={vi.fn()} />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Earlier day/i }));
+      await Promise.resolve();
+    });
+    expect(screen.getByText(/Board state as of/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Current board state/i)).not.toBeInTheDocument();
+  });
+
   it("hides time controls when there are no dated actions", async () => {
     getMyTrelloMemberIdMock.mockResolvedValue({ trelloMemberId: null });
     const view = buildView(changeKeys, { actionsByDate: {} });
@@ -181,8 +198,7 @@ describe("TrelloBoardView", () => {
     const user = userEvent.setup();
     getMyTrelloMemberIdMock.mockResolvedValue({ trelloMemberId: null });
     const todayStr = new Date().toISOString().slice(0, 10);
-    const keys = [pastDateKey(14), todayStr].sort((a, b) => a.localeCompare(b));
-    render(<TrelloBoardView view={buildView(keys)} sectionConfig={{}} onRequestChangeBoard={vi.fn()} />);
+    render(<TrelloBoardView view={buildView([todayStr])} sectionConfig={{}} onRequestChangeBoard={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /previous day with changes/i }));
     expect(await screen.findByText(/Board state as of/i)).toBeInTheDocument();

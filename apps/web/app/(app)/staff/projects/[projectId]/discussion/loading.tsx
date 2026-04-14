@@ -1,1 +1,1 @@
-export { StaffDiscussionRouteSkeleton as default } from "@/shared/ui/FeatureRouteSkeletons";
+export { StaffDiscussionRouteSkeleton as default } from "@/shared/ui/skeletons/FeatureRouteSkeletons";

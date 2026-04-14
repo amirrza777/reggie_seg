@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../../../shared/db.js";
-import { getScopedStaffUser, isAdminScopedRole } from "../repo.staff-scope.js";
+import { getScopedStaffUser, isAdminScopedRole } from "../repo/repo.staff-scope.js";
 
 function teamAccessWhere(
   actor: NonNullable<Awaited<ReturnType<typeof getScopedStaffUser>>>,

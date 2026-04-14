@@ -38,7 +38,7 @@ vi.mock("@/features/forum/components/ForumSettingsCard", () => ({
   ForumSettingsCard: () => <div data-testid="forum-settings" />,
 }));
 
-vi.mock("../../StaffProjectNavFlagsPanel", () => ({
+vi.mock("../../navigation/StaffProjectNavFlagsPanel", () => ({
   StaffProjectNavFlagsPanel: () => <div data-testid="nav-flags" />,
 }));
 

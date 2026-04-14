@@ -1,1 +1,1 @@
-export { StaffModuleProjectsPageSkeleton as default } from "@/shared/ui/FeatureRouteSkeletons";
+export { StaffModuleProjectsPageSkeleton as default } from "@/shared/ui/skeletons/FeatureRouteSkeletons";

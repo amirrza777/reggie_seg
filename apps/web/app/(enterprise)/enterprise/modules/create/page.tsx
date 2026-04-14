@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/EnterpriseModuleCreateForm";
+import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/module-create/EnterpriseModuleCreateForm";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/session";
 import { Card } from "@/shared/ui/Card";
 import { Breadcrumbs } from "@/shared/layout/Breadcrumbs";

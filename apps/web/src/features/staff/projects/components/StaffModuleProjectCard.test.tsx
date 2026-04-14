@@ -48,7 +48,7 @@ describe("StaffModuleProjectCard", () => {
     );
 
     expect(screen.getByRole("link", { name: "Open project" })).toHaveAttribute("href", "/staff/projects/9");
-    expect(screen.getByRole("link", { name: "Team allocation" })).toHaveAttribute("href", "/staff/projects/9/team-allocation");
+    expect(screen.getByRole("link", { name: "Team Allocation" })).toHaveAttribute("href", "/staff/projects/9/team-allocation");
     expect(screen.getByRole("link", { name: /Alpha Team/i })).toHaveAttribute("href", "/staff/projects/9/teams/1");
     expect(screen.getByText("✓ GitHub connected")).toBeInTheDocument();
     expect(screen.getByText("⚠ No GitHub repo")).toBeInTheDocument();

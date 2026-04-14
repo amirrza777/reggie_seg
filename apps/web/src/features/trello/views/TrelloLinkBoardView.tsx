@@ -10,7 +10,7 @@ import type { BoardView, OwnerBoard } from "@/features/trello/api/client";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
 import { Card } from "@/shared/ui/Card";
 import { SearchField } from "@/shared/ui/SearchField";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import "@/features/trello/styles/link-board.css";
 
 const MAX_PREVIEW_CARDS_PER_LIST = 5;

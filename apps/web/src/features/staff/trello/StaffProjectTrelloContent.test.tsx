@@ -25,7 +25,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => usePathnameMock(),
 }));
 
-vi.mock("@/features/staff/projects/components/navBasePath", () => ({
+vi.mock("@/features/staff/projects/components/navigation/navBasePath", () => ({
   resolveStaffTeamBasePath: () => "/staff/projects/9/teams/4",
 }));
 

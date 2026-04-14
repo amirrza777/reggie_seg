@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { listMeetings, getTeamMeetingSettings } from "../api/client";
 import { MeetingList } from "./MeetingList";
-import { CreateMeetingForm } from "./CreateMeetingForm";
+import { CreateMeetingForm } from "./forms/CreateMeetingForm";
 import type { Meeting, MeetingPermissions } from "../types";
 
 type Tab = "upcoming" | "previous" | "new";

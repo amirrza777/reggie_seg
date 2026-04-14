@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
-import { RichTextEditor } from "@/shared/ui/RichTextEditor";
-import type { Member } from "@/shared/ui/MentionPlugin";
+import { RichTextEditor } from "@/shared/ui/rich-text/RichTextEditor";
+import type { Member } from "@/shared/ui/rich-text/MentionPlugin";
 
 type DiscussionForumComposerProps = {
   title: string;

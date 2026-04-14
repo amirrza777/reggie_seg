@@ -1,6 +1,11 @@
-import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
+import { getStaffTeamDeadline } from "@/features/projects/api/client";
 import { getTeamDetails, getStudentDetails } from "@/features/staff/peerAssessments/api/client";
 import { StaffPeerMemberDualProgressGrid } from "@/features/staff/projects/components/StaffPeerMemberDualProgressGrid";
+import {
+  buildStaffPeerAssessmentDeadlineDisplay,
+  type StaffPeerAssessmentDeadlineDisplay,
+} from "@/features/staff/projects/lib/staffPeerAssessmentDeadlineDisplay";
+import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
@@ -22,6 +27,14 @@ export default async function StaffPeerAssessmentSectionPage({ params }: PagePro
     students = detailData.students;
   } catch (error) {
     detailError = error instanceof Error ? error.message : "Failed to load peer assessment data.";
+  }
+
+  let peerAssessmentDeadlineDisplay: StaffPeerAssessmentDeadlineDisplay | null = null;
+  try {
+    const teamDeadline = await getStaffTeamDeadline(user.id, project.id, team.id);
+    peerAssessmentDeadlineDisplay = buildStaffPeerAssessmentDeadlineDisplay(teamDeadline.effectiveDeadline);
+  } catch {
+    peerAssessmentDeadlineDisplay = null;
   }
 
   const receivedByStudentId = new Map<
@@ -72,15 +85,13 @@ export default async function StaffPeerAssessmentSectionPage({ params }: PagePro
       givenExpected: student.expected,
       receivedSubmitted: recv?.received ?? 0,
       receivedExpected: recv?.expected ?? student.expected,
+      deadline: peerAssessmentDeadlineDisplay ?? undefined,
       href:
         sid != null
-          ? `/staff/projects/${project.id}/teams/${team.id}/peer-assessment/${sid}`
+          ? `/staff/projects/${encodeURIComponent(projectId)}/teams/${encodeURIComponent(teamId)}/peer-assessment/${encodeURIComponent(String(sid))}`
           : undefined,
     };
   });
-
-  const submittedTotal = students.reduce((sum, s) => sum + (Number(s.submitted) || 0), 0);
-  const expectedTotal = students.reduce((sum, s) => sum + (Number(s.expected) || 0), 0);
 
   return (
     <>

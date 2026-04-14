@@ -13,14 +13,14 @@ import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedU
 import type { SeedProfileConfig } from "./config";
 import { seedAssessmentAccountEmailSet } from "./data";
 import type { SeedContext, SeedEnterprise } from "./types";
-import { seedForumPosts } from "./forum";
+import { seedForumPosts } from "./steps/forum";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines, seedStaffStudentMarks } from "./outcomes";
-import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios";
-import { seedMeetings } from "./meetings";
-import { seedTeamHealthWarningScenario } from "./team-health-warning-scenario";
-import { seedNotifications } from "./notifications";
-import { seedSyncProjectStudentsFromTeamAllocations } from "./projectStudentsFromAllocations";
-import { seedTeamInvites } from "./teamInvites";
+import { seedPeerAssessmentProgressScenarios } from "./steps/peer-assessment-scenarios";
+import { seedMeetings } from "./steps/meetings";
+import { seedTeamHealthWarningScenario } from "./teamHealthScenario/team-health-warning-scenario";
+import { seedNotifications } from "./steps/notifications";
+import { seedSyncProjectStudentsFromTeamAllocations } from "./steps/projectStudentsFromAllocations";
+import { seedTeamInvites } from "./steps/teamInvites";
 import { seedAdminUser } from "./core";
 
 export type SeedPlanLayer = "core" | "membership" | "scenario";

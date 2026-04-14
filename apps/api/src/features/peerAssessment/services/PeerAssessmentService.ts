@@ -1,6 +1,7 @@
-import { Prisma } from '@prisma/client';
-import { prisma } from '../../../shared/db.js';
-import type { PeerAssessment } from '@prisma/client';
+import { Prisma } from "@prisma/client";
+import type { PeerAssessment } from "@prisma/client";
+import { prisma } from "../../../shared/db.js";
+import { wherePeerAssessmentIsPeerReview } from "../peerAssessmentPurposeWhere.js";
 
 
 export class PeerAssessmentService {
@@ -14,6 +15,7 @@ export class PeerAssessmentService {
     return await prisma.peerAssessment.findMany({
       where: {
         reviewerUserId: reviewerId,
+        ...wherePeerAssessmentIsPeerReview,
       },
       include: { 
         reviewee: {
@@ -30,6 +32,7 @@ export class PeerAssessmentService {
     return await prisma.peerAssessment.findMany({
       where: {
         revieweeUserId: revieweeId,
+        ...wherePeerAssessmentIsPeerReview,
       },
       select: {
         id: true,

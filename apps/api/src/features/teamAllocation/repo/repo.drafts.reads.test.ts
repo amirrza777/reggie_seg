@@ -16,7 +16,7 @@ import {
   findModuleStudentsByIdsInModule,
   findProjectDraftTeams,
   findStudentAllocationConflictsInProject,
-  findTeamNameConflictInEnterprise,
+  findTeamNameConflictInProject,
 } from "./repo.drafts.reads.js";
 
 describe("repo.drafts.reads", () => {
@@ -93,10 +93,11 @@ describe("repo.drafts.reads", () => {
     expect(team).toEqual(expect.objectContaining({ id: 3, memberCount: 1 }));
   });
 
-  it("findTeamNameConflictInEnterprise handles excludeTeamId", async () => {
+  it("findTeamNameConflictInProject handles excludeTeamId", async () => {
     mocks.prisma.team.findFirst.mockResolvedValue({ id: 6 });
-    await expect(findTeamNameConflictInEnterprise("ent-1", "Blue", { excludeTeamId: 2 })).resolves.toBe(true);
+    await expect(findTeamNameConflictInProject(9, "Blue", { excludeTeamId: 2 })).resolves.toBe(true);
     const where = mocks.prisma.team.findFirst.mock.calls[0]?.[0]?.where;
+    expect(where.projectId).toBe(9);
     expect(where.id).toEqual({ not: 2 });
   });
 

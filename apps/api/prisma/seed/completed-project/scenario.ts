@@ -88,12 +88,11 @@ async function upsertScenarioProject(enterpriseId: string, moduleId: number, que
 
 async function upsertScenarioTeam(enterpriseId: string, projectId: number) {
   const existingTeam = await prisma.team.findUnique({
-    where: { enterpriseId_teamName: { enterpriseId, teamName: SCENARIO_TEAM_NAME } },
+    where: { projectId_teamName: { projectId, teamName: SCENARIO_TEAM_NAME } },
     select: { id: true },
   });
   if (existingTeam) {
-    const team = await prisma.team.update({ where: { id: existingTeam.id }, data: { projectId }, select: { id: true } });
-    return { team, createdTeam: 0 };
+    return { team: existingTeam, createdTeam: 0 };
   }
   const team = await prisma.team.create({
     data: { enterpriseId, projectId, teamName: SCENARIO_TEAM_NAME },

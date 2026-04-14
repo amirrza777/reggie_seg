@@ -331,7 +331,9 @@
 .sidebar__mobile-group-items {
   display: grid;
   gap: 6px;
-  padding: 0 0 0 12px;
+  width: 100%;
+  box-sizing: border-box;
+  padding-inline: 12px;
 }
 
 .sidebar__mobile-sublink {

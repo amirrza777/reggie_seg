@@ -3,7 +3,7 @@ import {
   StaffPeerStudentAssessmentsPanel,
   type StaffPeerAssessmentGroup,
 } from "@/features/staff/projects/components/StaffPeerStudentAssessmentsPanel";
-import { getFeedbackReview } from "@/features/peerFeedback/api/client";
+import { getFeedbackReviewsForAssessments } from "@/features/peerFeedback/api/client";
 import {
   getPeerAssessmentsForUser,
   getPeerAssessmentsReceivedForUser,
@@ -121,13 +121,17 @@ export default async function StaffPeerAssessmentStudentPage({ params, searchPar
   let receivedAssessments: PeerAssessment[] = [];
   let loadError: string | null = null;
 
+  const currentTeamId = team.id;
+
   try {
     const [given, received] = await Promise.all([
       getPeerAssessmentsForUser(numericStudentId, numericProjectId),
       getPeerAssessmentsReceivedForUser(numericStudentId, numericProjectId),
     ]);
-    givenAssessments = given;
-    receivedAssessments = received;
+    const belongsToThisTeam = (a: PeerAssessment) =>
+      typeof a.teamId !== "number" || a.teamId === currentTeamId;
+    givenAssessments = given.filter(belongsToThisTeam);
+    receivedAssessments = received.filter(belongsToThisTeam);
   } catch (error) {
     loadError = error instanceof Error ? error.message : "Failed to load peer assessments.";
   }
@@ -142,26 +146,18 @@ export default async function StaffPeerAssessmentStudentPage({ params, searchPar
     // keep raw ids as labels
   }
 
-  const feedbackById: Record<
+  let feedbackById: Record<
     string,
     { reviewText: string | null; agreementsJson: Record<string, { selected: string; score: number }> | null }
   > = {};
 
   try {
-    await Promise.all(
-      receivedAssessments.map(async (assessment) => {
-        try {
-          const review = await getFeedbackReview(String(assessment.id));
-          feedbackById[String(assessment.id)] = {
-            reviewText: review.reviewText ?? null,
-            agreementsJson:
-              (review.agreementsJson as Record<string, { selected: string; score: number }> | null) ?? null,
-          };
-        } catch {
-          feedbackById[String(assessment.id)] = { reviewText: null, agreementsJson: null };
-        }
-      })
-    );
+    feedbackById = (await getFeedbackReviewsForAssessments(
+      receivedAssessments.map((a) => String(a.id)),
+    )) as Record<
+      string,
+      { reviewText: string | null; agreementsJson: Record<string, { selected: string; score: number }> | null }
+    >;
   } catch {
     // feedback layer optional
   }
@@ -180,6 +176,7 @@ export default async function StaffPeerAssessmentStudentPage({ params, searchPar
         </section>
       ) : (
         <StaffPeerStudentAssessmentsPanel
+          focusStudentName={studentTitle}
           questionLabels={questionLabelById}
           expectedPeerReviews={expectedPeerReviews}
           givenGroups={givenGroups}

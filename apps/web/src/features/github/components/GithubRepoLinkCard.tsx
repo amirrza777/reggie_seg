@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/shared/ui/Button";
-import { GithubRepoChartsDashboard } from "./GithubRepoChartsDashboard";
+import { GithubRepoChartsDashboard } from "./dashboard/GithubRepoChartsDashboard";
 import type {
   GithubLatestSnapshot,
   GithubLiveProjectRepoBranchCommits,

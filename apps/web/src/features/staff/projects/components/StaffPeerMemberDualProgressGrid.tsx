@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { ProgressBar } from "@/shared/ui/ProgressBar";
+import { StaffPeerAssessmentDeadlineRow } from "@/features/staff/projects/components/StaffPeerAssessmentDeadlineRow";
+import type { StaffPeerAssessmentDeadlineDisplay } from "@/features/staff/projects/lib/staffPeerAssessmentDeadlineDisplay";
+import { ProgressBar } from "@/shared/ui/progress/ProgressBar";
+
+export type StaffPeerMemberDeadlineDisplay = StaffPeerAssessmentDeadlineDisplay;
 
 export type StaffPeerMemberDualProgressItem = {
   id: number;
@@ -8,7 +12,7 @@ export type StaffPeerMemberDualProgressItem = {
   givenExpected: number;
   receivedSubmitted: number;
   receivedExpected: number;
-  deadline?: string;
+  deadline?: StaffPeerAssessmentDeadlineDisplay;
   href?: string;
 };
 
@@ -19,6 +23,11 @@ function barPct(submitted: number, expected: number) {
 }
 
 export function StaffPeerMemberDualProgressGrid({ items }: { items: StaffPeerMemberDualProgressItem[] }) {
+  const studentLinkStyle = {
+    textDecoration: "none" as const,
+    color: "inherit" as const,
+  };
+
   return (
     <div
       style={{
@@ -31,66 +40,62 @@ export function StaffPeerMemberDualProgressGrid({ items }: { items: StaffPeerMem
       {items.map((item) => {
         const givenPct = barPct(item.givenSubmitted, item.givenExpected);
         const receivedPct = barPct(item.receivedSubmitted, item.receivedExpected);
-        const body = (
-          <div className="card" style={{ height: "100%" }}>
-            <div className="card__header">
-              <div>
-                <div className="eyebrow" style={{ marginBottom: 6 }}>
-                  Peer assessments
-                </div>
-                <h3 style={{ margin: 0 }}>{item.title}</h3>
-                <p className="muted" style={{ margin: "6px 0 0" }}>
-                  {item.deadline ?? "Deadline not set"}
-                </p>
+
+        const cardBody = (
+          <div className="card__body" style={{ display: "grid", gap: 14 }}>
+            <div>
+              <p className="muted" style={{ margin: "0 0 6px", fontSize: "var(--fs-fixed-0-875rem)" }}>
+                Written for teammates
+              </p>
+              <p style={{ margin: "0 0 6px", fontSize: "var(--fs-fixed-0-9rem)" }}>
+                {item.givenSubmitted}/{item.givenExpected} submitted
+              </p>
+              <ProgressBar value={givenPct} />
+              <div className="progress-bar__label">
+                <strong>{Math.round(givenPct)}%</strong>
               </div>
             </div>
-            <div className="card__body" style={{ display: "grid", gap: 14 }}>
-              <div>
-                <p className="muted" style={{ margin: "0 0 6px", fontSize: "var(--fs-fixed-0-875rem)" }}>
-                  Written for teammates
-                </p>
-                <p style={{ margin: "0 0 6px", fontSize: "var(--fs-fixed-0-9rem)" }}>
-                  {item.givenSubmitted}/{item.givenExpected} submitted
-                </p>
-                <ProgressBar value={givenPct} />
-                <div className="progress-bar__label">
-                  <strong>{Math.round(givenPct)}%</strong>
-                </div>
-              </div>
-              <div>
-                <p className="muted" style={{ margin: "0 0 6px", fontSize: "var(--fs-fixed-0-875rem)" }}>
-                  Received from teammates
-                </p>
-                <p style={{ margin: "0 0 6px", fontSize: "var(--fs-fixed-0-9rem)" }}>
-                  {item.receivedSubmitted}/{item.receivedExpected} received
-                </p>
-                <ProgressBar value={receivedPct} />
-                <div className="progress-bar__label">
-                  <strong>{Math.round(receivedPct)}%</strong>
-                </div>
+            <div>
+              <p className="muted" style={{ margin: "0 0 6px", fontSize: "var(--fs-fixed-0-875rem)" }}>
+                Received from teammates
+              </p>
+              <p style={{ margin: "0 0 6px", fontSize: "var(--fs-fixed-0-9rem)" }}>
+                {item.receivedSubmitted}/{item.receivedExpected} received
+              </p>
+              <ProgressBar value={receivedPct} />
+              <div className="progress-bar__label">
+                <strong>{Math.round(receivedPct)}%</strong>
               </div>
             </div>
           </div>
         );
 
-        if (item.href) {
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              style={{
-                textDecoration: "none",
-                color: "inherit",
-                display: "block",
-                height: "100%",
-              }}
-            >
-              {body}
-            </Link>
-          );
-        }
-
-        return <div key={item.id}>{body}</div>;
+        return (
+          <div key={item.id} className="card" style={{ height: "100%" }}>
+            <div className="card__header">
+              <div>
+                <div className="eyebrow" style={{ marginBottom: 6 }}>
+                  Peer assessments
+                </div>
+                {item.href ? (
+                  <Link href={item.href} style={studentLinkStyle}>
+                    <h3 style={{ margin: 0 }}>{item.title}</h3>
+                  </Link>
+                ) : (
+                  <h3 style={{ margin: 0 }}>{item.title}</h3>
+                )}
+                <StaffPeerAssessmentDeadlineRow display={item.deadline} />
+              </div>
+            </div>
+            {item.href ? (
+              <Link href={item.href} style={{ ...studentLinkStyle, display: "block" }}>
+                {cardBody}
+              </Link>
+            ) : (
+              cardBody
+            )}
+          </div>
+        );
       })}
     </div>
   );

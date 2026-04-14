@@ -9,7 +9,8 @@ export type AuditEventAction =
   | "USER_ROLE_CHANGED"
   | "USER_UPDATED"
   | "ENTERPRISE_CREATED"
-  | "ENTERPRISE_DELETED";
+  | "ENTERPRISE_DELETED"
+  | "USER_DELETED";
 
 type AuditMeta = {
   ip?: string | null;

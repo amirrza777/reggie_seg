@@ -9,10 +9,10 @@ import {
   downloadIcs,
 } from "../lib/calendarLinks";
 import "../styles/meeting-detail.css";
-import { GoogleIcon } from "@/shared/ui/GoogleIcon";
-import { OutlookIcon } from "@/shared/ui/OutlookIcon";
-import { AppleIcon } from "@/shared/ui/AppleIcon";
-import { MicrosoftIcon } from "@/shared/ui/MicrosoftIcon";
+import { GoogleIcon } from "@/shared/ui/icons/GoogleIcon";
+import { OutlookIcon } from "@/shared/ui/icons/OutlookIcon";
+import { AppleIcon } from "@/shared/ui/icons/AppleIcon";
+import { MicrosoftIcon } from "@/shared/ui/icons/MicrosoftIcon";
 import type { Meeting } from "../types";
 
 type AddToCalendarDropdownProps = {

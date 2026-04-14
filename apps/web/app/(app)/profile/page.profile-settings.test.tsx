@@ -205,4 +205,170 @@ describe("ProfilePage (profile-settings)", () => {
     });
     expect(await screen.findByText("GitHub account disconnected.")).toBeInTheDocument();
   });
+
+  it("returns null when no profile is available", () => {
+    useUserMock.mockReturnValue({
+      user: null,
+      setUser: vi.fn(),
+      refresh: vi.fn(),
+      loading: false,
+    } as any);
+
+    const { container } = render(<ProfilePage />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("handles GitHub callback query error state from URL", async () => {
+    window.history.replaceState({}, "", "http://localhost:3000/profile?github=error&reason=denied");
+
+    render(<ProfilePage />);
+
+    expect(await screen.findByText("GitHub connection failed: denied")).toBeInTheDocument();
+  });
+
+  it("shows fallback error messaging for failed Trello and GitHub connect/disconnect actions", async () => {
+    getLinkTokenMock.mockRejectedValueOnce("link failed" as never);
+    getGithubConnectUrlMock.mockRejectedValueOnce("connect failed" as never);
+    const { unmount } = render(<ProfilePage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Link Trello account" }));
+    await waitFor(() => expect(getLinkTokenMock).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "Connect GitHub" }));
+    expect(await screen.findByText("Failed to start GitHub connect flow.")).toBeInTheDocument();
+
+    unmount();
+
+    disconnectGithubAccountMock.mockRejectedValueOnce("disconnect failed" as never);
+    getGithubConnectionStatusMock.mockReset();
+    getGithubConnectionStatusMock.mockResolvedValue({
+      connected: true,
+      account: { id: 11, login: "ayan-dev", avatarUrl: null },
+    } as any);
+
+    render(<ProfilePage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Disconnect GitHub" }));
+    expect(await screen.findByText("Failed to disconnect GitHub.")).toBeInTheDocument();
+  });
+
+  it("propagates name/avatar callbacks and shows update fallback errors", async () => {
+    const setUserMock = vi.fn();
+    useUserMock.mockReturnValue({
+      user: makeUser(),
+      setUser: setUserMock,
+      refresh: vi.fn().mockResolvedValue(makeUser()),
+      loading: false,
+    });
+    updateProfileMock.mockRejectedValueOnce("bad update" as never);
+
+    const originalFileReader = window.FileReader;
+    class MockFileReader {
+      result: string | ArrayBuffer | null = null;
+      onload: ((this: FileReader, ev: ProgressEvent<FileReader>) => unknown) | null = null;
+      readAsDataURL(file: File) {
+        this.result = `data:${file.type};base64,YXZhdGFy`;
+        this.onload?.call(this as unknown as FileReader, {} as ProgressEvent<FileReader>);
+      }
+    }
+    Object.defineProperty(window, "FileReader", {
+      value: MockFileReader,
+      configurable: true,
+      writable: true,
+    });
+
+    render(<ProfilePage />);
+
+    fireEvent.change(screen.getByLabelText("First name"), { target: { value: "Ali" } });
+    fireEvent.change(screen.getByLabelText("Last name"), { target: { value: "Zed" } });
+    fireEvent.click(screen.getByRole("button", { name: "Reset password" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove avatar" }));
+
+    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(fileInput).toBeTruthy();
+    const file = new File(["avatar"], "avatar.png", { type: "image/png" });
+    fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    expect(await screen.findByText("Update failed")).toBeInTheDocument();
+
+    expect(setUserMock).toHaveBeenCalledWith(expect.objectContaining({ firstName: "Ali" }));
+    expect(setUserMock).toHaveBeenCalledWith(expect.objectContaining({ lastName: "Zed" }));
+    expect(setUserMock).toHaveBeenCalledWith(expect.objectContaining({ avatarBase64: null, avatarMime: null }));
+    expect(setUserMock).toHaveBeenCalledWith(
+      expect.objectContaining({ avatarBase64: "YXZhdGFy", avatarMime: "image/png" }),
+    );
+    expect(pushMock).toHaveBeenCalledWith("/forgot-password");
+
+    Object.defineProperty(window, "FileReader", {
+      value: originalFileReader,
+      configurable: true,
+      writable: true,
+    });
+  });
+
+  it("validates email code flows and surfaces send/confirm fallback errors", async () => {
+    render(<ProfilePage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Change email" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+    expect(requestEmailChangeMock).not.toHaveBeenCalled();
+
+    requestEmailChangeMock.mockRejectedValueOnce("send failed" as never);
+    fireEvent.change(screen.getByLabelText("New email"), { target: { value: "new.ayan@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+    expect(await screen.findByText("Failed to send code")).toBeInTheDocument();
+
+    requestEmailChangeMock.mockResolvedValueOnce(undefined);
+    fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+    expect(await screen.findByRole("button", { name: "Confirm email" })).toBeInTheDocument();
+
+    const otpInputs = Array.from(document.querySelectorAll<HTMLInputElement>(".otp-input"));
+    fireEvent.change(otpInputs[0], { target: { value: "1" } });
+    fireEvent.change(otpInputs[1], { target: { value: "2" } });
+    fireEvent.change(otpInputs[2], { target: { value: "3" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirm email" }));
+    expect(confirmEmailChangeMock).not.toHaveBeenCalled();
+
+    const focusSpy = vi.spyOn(otpInputs[0], "focus");
+    fireEvent.change(otpInputs[1], { target: { value: "" } });
+    fireEvent.keyDown(otpInputs[1], { key: "Backspace" });
+    expect(focusSpy).toHaveBeenCalled();
+
+    confirmEmailChangeMock.mockRejectedValueOnce("confirm failed" as never);
+    fireEvent.change(otpInputs[1], { target: { value: "2" } });
+    fireEvent.change(otpInputs[3], { target: { value: "4" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm email" }));
+    expect(await screen.findByText("Failed to verify code")).toBeInTheDocument();
+  });
+
+  it("handles github connected callback success and github-status load fallback", async () => {
+    getGithubConnectionStatusMock.mockRejectedValueOnce(new Error("status failed"));
+    window.history.replaceState({}, "", "http://localhost:3000/profile?github=connected");
+
+    render(<ProfilePage />);
+
+    expect(await screen.findByText("GitHub account connected successfully.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getGithubConnectionStatusMock).toHaveBeenCalled();
+    });
+    expect(screen.getByRole("button", { name: "Connect GitHub" })).toBeInTheDocument();
+  });
+
+  it("starts the Trello connect flow and ignores session storage write failures", async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("quota");
+    });
+
+    render(<ProfilePage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Link Trello account" }));
+
+    await waitFor(() => expect(getLinkTokenMock).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(getConnectUrlMock).toHaveBeenCalledWith("http://localhost:3000/profile/trello/callback"),
+    );
+
+    setItemSpy.mockRestore();
+  });
 });

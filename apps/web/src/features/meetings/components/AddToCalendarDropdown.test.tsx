@@ -5,10 +5,10 @@ vi.mock("lucide-react", () => ({
   ChevronDown: () => <span data-testid="chevron-down" />,
   CalendarPlus: () => <span data-testid="calendar-plus" />,
 }));
-vi.mock("@/shared/ui/GoogleIcon", () => ({ GoogleIcon: () => <span data-testid="google-icon" /> }));
-vi.mock("@/shared/ui/OutlookIcon", () => ({ OutlookIcon: () => <span data-testid="outlook-icon" /> }));
-vi.mock("@/shared/ui/AppleIcon", () => ({ AppleIcon: () => <span data-testid="apple-icon" /> }));
-vi.mock("@/shared/ui/MicrosoftIcon", () => ({ MicrosoftIcon: () => <span data-testid="microsoft-icon" /> }));
+vi.mock("@/shared/ui/icons/GoogleIcon", () => ({ GoogleIcon: () => <span data-testid="google-icon" /> }));
+vi.mock("@/shared/ui/icons/OutlookIcon", () => ({ OutlookIcon: () => <span data-testid="outlook-icon" /> }));
+vi.mock("@/shared/ui/icons/AppleIcon", () => ({ AppleIcon: () => <span data-testid="apple-icon" /> }));
+vi.mock("@/shared/ui/icons/MicrosoftIcon", () => ({ MicrosoftIcon: () => <span data-testid="microsoft-icon" /> }));
 
 import { AddToCalendarDropdown } from "./AddToCalendarDropdown";
 import type { Meeting } from "../types";
@@ -233,6 +233,18 @@ describe("AddToCalendarDropdown", () => {
     fireEvent.click(screen.getByRole("button", { name: /add to calendar/i }));
     fireEvent.click(screen.getByText("Google Calendar"));
 
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("closes dropdown when Outlook and Microsoft links are clicked", () => {
+    render(<AddToCalendarDropdown meeting={baseMeeting} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /add to calendar/i }));
+    fireEvent.click(screen.getByText("Outlook"));
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /add to calendar/i }));
+    fireEvent.click(screen.getByText("Microsoft 365"));
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 });

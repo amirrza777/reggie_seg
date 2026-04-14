@@ -1,4 +1,6 @@
 import cron from "node-cron";
+import { wherePeerAssessmentIsPeerReview } from "../features/peerAssessment/peerAssessmentPurposeWhere.js";
+import { evaluateProjectWarningsForAllProjects } from "../features/warnings/service.js";
 import { prisma } from "./db.js";
 import { sendEmail } from "./email.js";
 
@@ -211,7 +213,10 @@ export async function sendMissingPeerAssessmentAlerts() {
       allocations: {
         select: { user: { select: { id: true, firstName: true, lastName: true } } },
       },
-      peerAssessments: { select: { reviewerUserId: true } },
+      peerAssessments: {
+        where: wherePeerAssessmentIsPeerReview,
+        select: { reviewerUserId: true },
+      },
     },
   });
 
@@ -283,12 +288,17 @@ export async function sendNoGithubAccountAlerts() {
   return;
 }
 
+export async function sendProjectWarningAlerts() {
+  await evaluateProjectWarningsForAllProjects();
+}
+
 export type NotificationJobRunners = {
   sendDeadlineReminders: () => Promise<void>;
   sendInactivityAlerts: () => Promise<void>;
   sendMissingPeerAssessmentAlerts: () => Promise<void>;
   sendNoRepoAlerts: () => Promise<void>;
   sendNoGithubAccountAlerts: () => Promise<void>;
+  sendProjectWarningAlerts: () => Promise<void>;
 };
 
 function logJobError(message: string, err: unknown) {
@@ -302,6 +312,7 @@ export async function runNotificationCycle(
     sendMissingPeerAssessmentAlerts,
     sendNoRepoAlerts,
     sendNoGithubAccountAlerts,
+    sendProjectWarningAlerts,
   }
 ) {
   try {
@@ -328,6 +339,11 @@ export async function runNotificationCycle(
     await runners.sendNoGithubAccountAlerts();
   } catch (err) {
     logJobError("No-GitHub-account alert job error:", err);
+  }
+  try {
+    await runners.sendProjectWarningAlerts();
+  } catch (err) {
+    logJobError("Project warning alert job error:", err);
   }
 }
 

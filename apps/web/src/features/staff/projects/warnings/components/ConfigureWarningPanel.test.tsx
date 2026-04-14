@@ -157,6 +157,7 @@ describe("ConfigureWarningPanel", () => {
 
   it("shows save error message when update fails", async () => {
     updateProjectWarningsConfigMock.mockRejectedValue(new Error("save failed"));
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     render(<ConfigureWarningPanel projectId={21} warningsConfig={buildConfig()} />);
 
@@ -165,6 +166,11 @@ describe("ConfigureWarningPanel", () => {
 
     expect(await screen.findByText("Failed to save configuration. Please try again.")).toBeInTheDocument();
     expect(screen.queryByText("Configuration updated successfully.")).not.toBeInTheDocument();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "Failed to update warnings configuration:",
+      expect.any(Error),
+    );
+    consoleErrorSpy.mockRestore();
   });
 
   it("applies attendance-level edits (enabled, severity, lookback) when saving", async () => {

@@ -13,7 +13,7 @@ vi.mock("@/features/auth/context", () => ({
   useUser: vi.fn(),
 }));
 
-vi.mock("./MeetingEditForm", () => ({
+vi.mock("./forms/MeetingEditForm", () => ({
   MeetingEditForm: (props: any) => (
     <div data-testid="edit-form">{props.meeting.title}</div>
   ),

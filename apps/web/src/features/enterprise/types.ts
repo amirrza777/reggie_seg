@@ -72,7 +72,7 @@ export type EnterpriseManagedUserCreate = {
   email: string;
   firstName?: string;
   lastName?: string;
-  role?: Extract<UserRole, "STUDENT" | "STAFF">;
+  role?: Extract<UserRole, "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN">;
 };
 
 export type EnterpriseUserSortBy = "name" | "joinDate";

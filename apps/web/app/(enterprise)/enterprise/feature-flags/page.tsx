@@ -1,4 +1,4 @@
-import { EnterpriseFeatureFlagsCard } from "@/features/enterprise/components/EnterpriseFeatureFlagsCard";
+import { EnterpriseFeatureFlagsCard } from "@/features/enterprise/components/feature-flags/EnterpriseFeatureFlagsCard";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/session";
 import { redirect } from "next/navigation";
 

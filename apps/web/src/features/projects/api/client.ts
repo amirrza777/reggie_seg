@@ -100,6 +100,7 @@ export type StaffMarkingTeam = {
   projectId: number;
   inactivityFlag: "NONE" | "YELLOW" | "RED";
   studentCount: number;
+  teamMark: number | null;
 };
 
 export type StaffMarkingProject = {
@@ -107,6 +108,7 @@ export type StaffMarkingProject = {
   name: string;
   moduleId: number;
   moduleName: string;
+  markingProgress: { markedTeamCount: number; totalTeamCount: number };
   teams: StaffMarkingTeam[];
 };
 

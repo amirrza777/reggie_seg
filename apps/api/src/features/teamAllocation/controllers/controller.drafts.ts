@@ -74,7 +74,7 @@ export async function updateAllocationDraftHandler(req: AuthRequest, res: Respon
       return res.status(400).json({ error: "All selected students must belong to this module" });
     }
     if (error?.code === "TEAM_NAME_ALREADY_EXISTS") {
-      return res.status(409).json({ error: "Team name already exists in this enterprise" });
+      return res.status(409).json({ error: "Team name already exists in this project" });
     }
     if (error?.code === "STUDENT_ALREADY_ASSIGNED") {
       return res.status(409).json({

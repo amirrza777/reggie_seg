@@ -47,7 +47,7 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
   return (
     <div className="stack module-dashboard">
       <header className="module-workspace__section-header">
-        <h2 className="overview-title">Staff members</h2>
+        <h2 className="overview-title">Staff Members</h2>
         <p className="muted">
           Module leads and teaching assistants with access to this module.
         </p>

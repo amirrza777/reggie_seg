@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { ModuleWorkspaceNav } from "@/features/modules/components/ModuleWorkspaceNav";
-import { StaffModuleWorkspaceArchivedBanner } from "@/features/modules/components/StaffModuleWorkspaceArchivedBanner";
-import { StaffModuleWorkspaceBreadcrumbs } from "@/features/modules/components/StaffModuleWorkspaceBreadcrumbs";
-import { StaffModuleWorkspaceHero } from "@/features/modules/components/StaffModuleWorkspaceHero";
+import { StaffModuleWorkspaceArchivedBanner } from "@/features/modules/components/workspace/StaffModuleWorkspaceArchivedBanner";
+import { StaffModuleWorkspaceBreadcrumbs } from "@/features/modules/components/workspace/StaffModuleWorkspaceBreadcrumbs";
+import { StaffModuleWorkspaceHero } from "@/features/modules/components/workspace/StaffModuleWorkspaceHero";
 import {
   loadStaffModuleWorkspaceContext,
   resolveStaffModuleWorkspaceAccess,

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getCurrentUser } from "@/shared/auth/session";
-import { StaffAllocationModesPanel } from "@/features/staff/projects/components/StaffAllocationModesPanel";
-import { StaffAllocationDraftsPanel } from "@/features/staff/projects/components/StaffAllocationDraftsPanel";
+import { StaffAllocationModesPanel } from "@/features/staff/projects/components/allocation/StaffAllocationModesPanel";
+import { StaffAllocationDraftsPanel } from "@/features/staff/projects/components/allocation/StaffAllocationDraftsPanel";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectAllocationPageProps = {

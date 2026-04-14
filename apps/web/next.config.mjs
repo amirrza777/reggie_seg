@@ -1,16 +1,17 @@
 import path from "path";
 import { fileURLToPath } from "url";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const isDevCommand = process.argv.includes("dev");
-const usesTurbopack = process.argv.includes("--turbopack") || process.argv.includes("--turbo");
-const devDistDir = usesTurbopack ? ".next-dev-turbo" : ".next-dev-webpack";
+const devDistDir = process.env.NEXT_DEV_DIST_DIR?.trim();
 
 /** @type {import('next').NextConfig} */
-const createConfig = () => {
+const createConfig = (phase) => {
+  const isDevServer = phase === PHASE_DEVELOPMENT_SERVER;
+
   return {
-    // Keep webpack/turbopack dev caches isolated to avoid stale manifest/file mismatches.
-    ...(isDevCommand ? { distDir: devDistDir } : {}),
+    // Keep dev output isolated so concurrent `next build` runs do not mutate active dev manifests.
+    ...(isDevServer && devDistDir ? { distDir: devDistDir } : {}),
     reactStrictMode: true,
     eslint: {
       ignoreDuringBuilds: true,

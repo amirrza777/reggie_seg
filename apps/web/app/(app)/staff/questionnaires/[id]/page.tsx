@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Placeholder } from "@/shared/ui/Placeholder";
-import { SkeletonText } from "@/shared/ui/Skeleton";
+import { SkeletonText } from "@/shared/ui/skeletons/Skeleton";
 import { Breadcrumbs } from "@/shared/layout/Breadcrumbs";
 import { QuestionnaireView } from "@/features/questionnaires/components/QuestionnaireView";
 import { DeleteQuestionnaireButton, EditQuestionnaireButton } from "@/features/questionnaires/components/SharedQuestionnaireButtons";

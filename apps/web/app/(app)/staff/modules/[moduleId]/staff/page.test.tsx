@@ -100,4 +100,86 @@ describe("StaffModuleStaffListPage", () => {
     render(page);
     expect(screen.getByTestId("table")).toBeInTheDocument();
   });
+
+  it("renders action links for editable staff setup and enterprise editor access", async () => {
+    resolveAccessMock.mockReturnValueOnce({
+      canEdit: true,
+      staffModuleSetup: true,
+      enterpriseModuleEditor: true,
+    } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>);
+    getStaffListMock.mockResolvedValueOnce({ members: [] } as any);
+
+    const page = await StaffModuleStaffListPage({ params: Promise.resolve({ moduleId: "9" }) });
+    render(page);
+
+    expect(screen.getByRole("link", { name: "Manage staff access" })).toHaveAttribute(
+      "href",
+      "/staff/modules/9/staff/access",
+    );
+    expect(screen.getByRole("link", { name: "Enterprise module editor" })).toHaveAttribute(
+      "href",
+      "/enterprise/modules/9/edit",
+    );
+    expect(screen.getByText(/Assign leads and TAs in/i)).toBeInTheDocument();
+  });
+
+  it("renders enterprise-only empty-state guidance when staff setup is unavailable", async () => {
+    resolveAccessMock.mockReturnValueOnce({
+      canEdit: true,
+      staffModuleSetup: false,
+      enterpriseModuleEditor: true,
+    } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>);
+    getStaffListMock.mockResolvedValueOnce({ members: [] } as any);
+
+    const page = await StaffModuleStaffListPage({ params: Promise.resolve({ moduleId: "9" }) });
+    render(page);
+
+    expect(screen.queryByRole("link", { name: "Manage staff access" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Enterprise module editor" })).toBeInTheDocument();
+    expect(screen.getByText(/Assign leads and TAs in the/i)).toBeInTheDocument();
+  });
+
+  it("renders setup guidance without enterprise link when enterprise editor access is unavailable", async () => {
+    resolveAccessMock.mockReturnValueOnce({
+      canEdit: true,
+      staffModuleSetup: true,
+      enterpriseModuleEditor: false,
+    } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>);
+    getStaffListMock.mockResolvedValueOnce({ members: [] } as any);
+
+    const page = await StaffModuleStaffListPage({ params: Promise.resolve({ moduleId: "9" }) });
+    render(page);
+
+    expect(screen.getByRole("link", { name: "module settings" })).toHaveAttribute("href", "/staff/modules/9/manage");
+    expect(screen.queryByRole("link", { name: "enterprise module editor" })).not.toBeInTheDocument();
+  });
+
+  it("hides enrollment guidance when viewer cannot edit", async () => {
+    resolveAccessMock.mockReturnValueOnce({
+      canEdit: false,
+      staffModuleSetup: true,
+      enterpriseModuleEditor: false,
+    } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>);
+    getStaffListMock.mockResolvedValueOnce({ members: [] } as any);
+
+    const page = await StaffModuleStaffListPage({ params: Promise.resolve({ moduleId: "9" }) });
+    render(page);
+
+    expect(screen.getByText("No module leads or teaching assistants are assigned yet.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "module settings" })).not.toBeInTheDocument();
+  });
+
+  it("renders fallback load-failed card when API response has no members payload", async () => {
+    resolveAccessMock.mockReturnValueOnce({
+      canEdit: false,
+      staffModuleSetup: false,
+      enterpriseModuleEditor: false,
+    } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>);
+    getStaffListMock.mockResolvedValueOnce({} as any);
+
+    const page = await StaffModuleStaffListPage({ params: Promise.resolve({ moduleId: "9" }) });
+    render(page);
+
+    expect(screen.getByText(/Could not load the staff list/i)).toBeInTheDocument();
+  });
 });

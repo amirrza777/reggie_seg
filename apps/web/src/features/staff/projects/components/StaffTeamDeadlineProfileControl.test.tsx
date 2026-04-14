@@ -13,7 +13,7 @@ vi.mock("@/features/projects/api/client", () => ({
   updateStaffTeamDeadlineProfile: vi.fn(),
 }));
 
-vi.mock("@/shared/ui/ConfirmationModal", () => ({
+vi.mock("@/shared/ui/modal/ConfirmationModal", () => ({
   ConfirmationModal: ({
     open,
     title,

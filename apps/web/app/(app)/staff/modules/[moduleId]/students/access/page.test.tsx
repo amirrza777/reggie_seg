@@ -79,4 +79,39 @@ describe("StaffModuleStudentAccessPage", () => {
     render(page);
     expect(screen.getByTestId("student-access-form")).toBeInTheDocument();
   });
+
+  it("redirects when user cannot edit student access", async () => {
+    resolveAccessMock.mockReturnValueOnce({
+      staffModuleSetup: true,
+      canEdit: false,
+    } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>);
+
+    await expect(StaffModuleStudentAccessPage({ params: Promise.resolve({ moduleId: "12" }) })).rejects.toBeInstanceOf(
+      RedirectSentinel,
+    );
+    expect(redirectMock).toHaveBeenCalledWith("/staff/modules/12/students");
+  });
+
+  it("redirects when module record is missing or initial selection fails", async () => {
+    loadCtxMock.mockResolvedValueOnce({
+      ...ownerCtx,
+      moduleRecord: null,
+    } as any);
+    await expect(StaffModuleStudentAccessPage({ params: Promise.resolve({ moduleId: "12" }) })).rejects.toBeInstanceOf(
+      RedirectSentinel,
+    );
+    expect(redirectMock).toHaveBeenCalledWith("/staff/modules/12/students");
+
+    vi.clearAllMocks();
+    loadCtxMock.mockResolvedValue(ownerCtx);
+    resolveAccessMock.mockReturnValue({
+      staffModuleSetup: true,
+      canEdit: true,
+    } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>);
+    loadSelectionMock.mockResolvedValueOnce(null);
+    await expect(StaffModuleStudentAccessPage({ params: Promise.resolve({ moduleId: "12" }) })).rejects.toBeInstanceOf(
+      RedirectSentinel,
+    );
+    expect(redirectMock).toHaveBeenCalledWith("/staff/modules/12/students");
+  });
 });

@@ -111,9 +111,10 @@ describe("StaffMarksPage", () => {
         name: "Beta Project",
         moduleId: 200,
         moduleName: "Module B",
+        markingProgress: { markedTeamCount: 1, totalTeamCount: 2 },
         teams: [
-          { id: 22, teamName: "Team Red", projectId: 2, inactivityFlag: "RED", studentCount: 3 },
-          { id: 23, teamName: "Team Amber", projectId: 2, inactivityFlag: "YELLOW", studentCount: 2 },
+          { id: 22, teamName: "Team Red", projectId: 2, inactivityFlag: "RED", studentCount: 3, teamMark: 68 },
+          { id: 23, teamName: "Team Amber", projectId: 2, inactivityFlag: "YELLOW", studentCount: 2, teamMark: null },
         ],
       },
       {
@@ -121,6 +122,7 @@ describe("StaffMarksPage", () => {
         name: "Alpha Project",
         moduleId: 100,
         moduleName: "Module A",
+        markingProgress: { markedTeamCount: 0, totalTeamCount: 0 },
         teams: [],
       },
     ] as Awaited<ReturnType<typeof getStaffProjectsForMarking>>);
@@ -137,6 +139,8 @@ describe("StaffMarksPage", () => {
     expect(screen.getByRole("link", { name: /Team Amber/i })).toHaveAttribute("href", "/staff/projects/2/teams/23/grading");
     expect(screen.getByText(/⚠ inactive/)).toBeInTheDocument();
     expect(screen.getByText(/⚡ low activity/)).toBeInTheDocument();
+    expect(screen.getByText("Mark: 68")).toBeInTheDocument();
+    expect(screen.getByText("No team mark")).toBeInTheDocument();
   });
 
   it("renders singular counters and student text without inactivity tag", async () => {
@@ -147,7 +151,8 @@ describe("StaffMarksPage", () => {
         name: "Solo Project",
         moduleId: 777,
         moduleName: "Solo Module",
-        teams: [{ id: 44, teamName: "Solo Team", projectId: 11, inactivityFlag: "NONE", studentCount: 1 }],
+        markingProgress: { markedTeamCount: 1, totalTeamCount: 1 },
+        teams: [{ id: 44, teamName: "Solo Team", projectId: 11, inactivityFlag: "NONE", studentCount: 1, teamMark: 55 }],
       },
     ] as Awaited<ReturnType<typeof getStaffProjectsForMarking>>);
 
@@ -162,5 +167,6 @@ describe("StaffMarksPage", () => {
     expect(screen.getByText("1 student")).toBeInTheDocument();
     expect(screen.queryByText(/inactive|low activity/i)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Solo Team/i })).toHaveAttribute("href", "/staff/projects/11/teams/44/grading");
+    expect(screen.getByText("Mark: 55")).toBeInTheDocument();
   });
 });

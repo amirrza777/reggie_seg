@@ -30,6 +30,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       all: true,
+      reportOnFailure: true,
       reporter: ["text", "html", "lcov"],
       reportsDirectory: "coverage",
       include: ["src/**/*.{ts,tsx}", "app/**/*.{ts,tsx}", "middleware.ts"],

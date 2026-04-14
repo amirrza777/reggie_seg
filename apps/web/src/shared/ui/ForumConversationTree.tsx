@@ -1,6 +1,6 @@
 "use client";
 
-import { RichTextViewer } from "./RichTextViewer";
+import { RichTextViewer } from "./rich-text/RichTextViewer";
 import "@/features/forum/styles/discussion-forum.css";
 
 export type ForumConversationTreePost = {
