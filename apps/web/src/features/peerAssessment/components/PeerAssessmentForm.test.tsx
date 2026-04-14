@@ -224,4 +224,64 @@ describe("PeerAssessmentForm", () => {
     expect(screen.queryByRole("button", { name: /save assessment/i })).not.toBeInTheDocument();
     expect(createPeerAssessmentMock).not.toHaveBeenCalled();
   });
+
+  it("resets answers with discard and clears previous status message", async () => {
+    createPeerAssessmentMock.mockRejectedValueOnce(new Error("save failed"));
+
+    renderForm({
+      initialAnswers: {
+        1: "Initial text",
+        2: "Excellent",
+        3: 3,
+        4: 40,
+      },
+    });
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Changed text" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save assessment/i }));
+    expect(await screen.findByText("save failed")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /discard changes/i }));
+    expect(screen.getByRole("textbox")).toHaveValue("Initial text");
+    expect(screen.queryByText("save failed")).not.toBeInTheDocument();
+  });
+
+  it("shows fallback save failure for non-Error values", async () => {
+    createPeerAssessmentMock.mockRejectedValueOnce("network down" as never);
+    renderForm({
+      questions: [
+        { id: 1, text: "Question", type: "text", order: 0 },
+      ],
+    });
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Answer" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save assessment/i }));
+
+    expect(await screen.findByText("Failed to save assessment")).toBeInTheDocument();
+  });
+
+  it("renders helper and empty-option states and supports back navigation", () => {
+    renderForm({
+      questions: [
+        { id: 1, text: "Text question", type: "text", order: 0, configs: { helperText: "text help" } },
+        { id: 2, text: "MC question", type: "multiple-choice", order: 1, configs: { options: [] } },
+        { id: 3, text: "Rating question", type: "rating", order: 2, configs: { helperText: "rating help" } },
+        { id: 4, text: "Slider question", type: "slider", order: 3, configs: { min: 0, max: 10, step: 1, helperText: "slider help" } },
+      ] as any,
+    });
+
+    expect(screen.getByText("text help")).toBeInTheDocument();
+    expect(screen.getByText("No options configured for this question.")).toBeInTheDocument();
+    expect(screen.getByText("rating help")).toBeInTheDocument();
+    expect(screen.getByText("slider help")).toBeInTheDocument();
+    expect(screen.queryByText("Low")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(push).toHaveBeenCalledWith("/projects/10/peer-assessments");
+    expect(refresh).toHaveBeenCalled();
+  });
 });
