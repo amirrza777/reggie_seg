@@ -14,11 +14,11 @@ type StaffTeamSectionNavProps = {
 const teamTabs = [
   { key: "overview", label: "Overview", hrefSuffix: "" },
   { key: "deadlines", label: "Deadlines", hrefSuffix: "/deadlines" },
-  { key: "teamhealth", label: "Health", hrefSuffix: "/teamhealth" },
-  { key: "team-meetings", label: "Team meetings", hrefSuffix: "/team-meetings" },
+  { key: "teamhealth", label: "Team Health", hrefSuffix: "/teamhealth" },
+  { key: "team-meetings", label: "Team Meetings", hrefSuffix: "/team-meetings" },
   { key: "repositories", label: "Repositories", hrefSuffix: "/repositories" },
   { key: "trello", label: "Trello", hrefSuffix: "/trello" },
-  { key: "peer-assessment", label: "Peer assessment", hrefSuffix: "/peer-assessment" },
+  { key: "peer-assessment", label: "Peer Assessment", hrefSuffix: "/peer-assessment" },
   { key: "grading", label: "Marking", hrefSuffix: "/grading" },
 ];
 

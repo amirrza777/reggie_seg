@@ -25,12 +25,12 @@ type ProjectNavPhase = "active" | "completed";
 const TAB_LABELS: Array<{ key: ProjectNavFlagKey; label: string }> = [
   { key: "team", label: "Team" },
   { key: "meetings", label: "Meetings" },
-  { key: "peer_assessment", label: "Peer assessment" },
-  { key: "peer_feedback", label: "Peer feedback" },
+  { key: "peer_assessment", label: "Peer Assessment" },
+  { key: "peer_feedback", label: "Peer Feedback" },
   { key: "repos", label: "Repositories" },
   { key: "trello", label: "Trello" },
-  { key: "discussion", label: "Discussion forum" },
-  { key: "team_health", label: "Team health" },
+  { key: "discussion", label: "Discussion Forum" },
+  { key: "team_health", label: "Team Health" },
 ];
 
 function getBusyKey(phase: ProjectNavPhase, key: ProjectNavFlagKey) {

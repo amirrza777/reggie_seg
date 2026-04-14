@@ -30,12 +30,12 @@ export function ModuleWorkspaceNav({ moduleId, basePath }: ModuleWorkspaceNavPro
     },
     {
       href: `${base}/staff`,
-      label: "Staff members",
+      label: "Staff Members",
       match: (path) => path === `${base}/staff` || Boolean(path?.startsWith(`${base}/staff/`)),
     },
     {
       href: `${base}/students`,
-      label: "Student members",
+      label: "Student Members",
       match: (path) => path === `${base}/students` || Boolean(path?.startsWith(`${base}/students/`)),
     },
     {

@@ -13,7 +13,7 @@ describe("StaffTeamSectionNav", () => {
     usePathnameMock.mockReturnValue("/staff/projects/2/teams/3");
     render(<StaffTeamSectionNav projectId="2" teamId="3" />);
 
-    const healthLink = screen.getByRole("link", { name: "Health" });
+    const healthLink = screen.getByRole("link", { name: "Team Health" });
     expect(healthLink).toHaveAttribute("href", "/staff/projects/2/teams/3/teamhealth");
   });
 
@@ -44,14 +44,14 @@ describe("StaffTeamSectionNav", () => {
     usePathnameMock.mockReturnValue("/staff/projects/2/teams/3");
     render(<StaffTeamSectionNav projectId="2" teamId="3" moduleId={12} />);
 
-    expect(screen.getByRole("link", { name: "Health" })).toHaveAttribute("href", "/staff/projects/2/teams/3/teamhealth");
+    expect(screen.getByRole("link", { name: "Team Health" })).toHaveAttribute("href", "/staff/projects/2/teams/3/teamhealth");
   });
 
   it("normalizes module-scoped routes to canonical staff/projects links", () => {
     usePathnameMock.mockReturnValue("/staff/modules/12/projects/2/teams/3");
     render(<StaffTeamSectionNav projectId="2" teamId="3" moduleId={12} />);
 
-    expect(screen.getByRole("link", { name: "Health" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Team Health" })).toHaveAttribute(
       "href",
       "/staff/projects/2/teams/3/teamhealth",
     );

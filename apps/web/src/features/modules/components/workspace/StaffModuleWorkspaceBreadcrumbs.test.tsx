@@ -29,7 +29,7 @@ describe("StaffModuleWorkspaceBreadcrumbs", () => {
     render(<StaffModuleWorkspaceBreadcrumbs moduleId="12" moduleTitle="SEGP" />);
 
     expect(screen.getByRole("link", { name: "SEGP" })).toHaveAttribute("href", "/staff/modules/12");
-    expect(screen.getByRole("link", { name: "Student members" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Student Members" })).toHaveAttribute(
       "href",
       "/staff/modules/12/students",
     );

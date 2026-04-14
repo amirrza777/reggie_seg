@@ -126,7 +126,7 @@ export function StaffModuleProjectCard({ project, hasQuery, rawQuery }: StaffMod
               Open project
             </Link>
             <Link href={`${baseProjectHref}/team-allocation`} className="staff-projects__badge">
-              Team allocation
+              Team Allocation
             </Link>
           </div>
         </div>

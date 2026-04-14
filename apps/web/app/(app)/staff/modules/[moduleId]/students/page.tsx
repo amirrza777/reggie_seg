@@ -57,7 +57,7 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
   return (
     <div className="stack module-dashboard">
       <header className="module-workspace__section-header">
-        <h2 className="overview-title">Student members</h2>
+        <h2 className="overview-title">Student Members</h2>
         <p className="muted">
           Enrolled students can be added to projects and participate in teams. Students can self-enrol via join code, or you can manage access manually.
         </p>
