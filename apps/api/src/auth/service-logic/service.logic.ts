@@ -29,3 +29,4 @@ export {
   validateRefreshTokenSession,
   verifyRefreshToken,
 } from "./service.logic.tokens.js";
+export { needsEnterpriseCodeEntry } from "./service.logic.enterprise.js";

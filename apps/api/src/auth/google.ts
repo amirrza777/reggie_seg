@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy, type Profile, type VerifyCallback } from "passport-google-oauth20";
-import { signUpWithProvider } from "./service.js";
+import { signUpWithProvider, needsEnterpriseCodeEntry } from "./service.js";
 
 async function handleGoogleVerify(profile: Profile, done: VerifyCallback) {
   try {
@@ -11,7 +11,8 @@ async function handleGoogleVerify(profile: Profile, done: VerifyCallback) {
     const firstName = profile.name?.givenName ?? "";
     const lastName = profile.name?.familyName ?? "";
     const user = await signUpWithProvider({ email, firstName, lastName, provider: "google" });
-    return done(null, user);
+    const needsCode = await needsEnterpriseCodeEntry(user.id);
+    return done(null, { id: user.id, email: user.email, needsEnterpriseCode: needsCode });
   } catch (error) {
     return done(error);
   }

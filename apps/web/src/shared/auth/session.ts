@@ -14,6 +14,7 @@ export type SessionUser = {
   isAdmin?: boolean;
   isEnterpriseAdmin?: boolean;
   isUnassigned?: boolean;
+  needsEnterpriseCode?: boolean;
   role?: UserRole;
   active?: boolean;
   suspended?: boolean;
@@ -27,6 +28,7 @@ const normalizeUser = (user: SessionUser): SessionUser => {
     role,
     active: user.active ?? true,
     isUnassigned: user.isUnassigned ?? false,
+    needsEnterpriseCode: user.needsEnterpriseCode ?? false,
   };
 };
 
