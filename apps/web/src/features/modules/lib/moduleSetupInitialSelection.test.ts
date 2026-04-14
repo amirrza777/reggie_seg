@@ -57,4 +57,30 @@ describe("loadModuleSetupInitialSelection", () => {
     expect(merged?.module.expectationsText).toBe("row exp");
     expect(merged?.module.readinessNotesText).toBe("row ready");
   });
+
+  it("keeps non-empty API values over staff row values", async () => {
+    getSelectionMock.mockResolvedValue({
+      module: {
+        name: " API Name ",
+        briefText: "api brief",
+        timelineText: "api time",
+        expectationsText: "api exp",
+        readinessNotesText: "api ready",
+      },
+    } as Awaited<ReturnType<typeof getEnterpriseModuleAccessSelection>>);
+
+    const merged = await loadModuleSetupInitialSelection(4, {
+      title: "Row title",
+      briefText: "row brief",
+      timelineText: "row time",
+      expectationsText: "row exp",
+      readinessNotesText: "row ready",
+    });
+
+    expect(merged?.module.name).toBe(" API Name ");
+    expect(merged?.module.briefText).toBe("api brief");
+    expect(merged?.module.timelineText).toBe("api time");
+    expect(merged?.module.expectationsText).toBe("api exp");
+    expect(merged?.module.readinessNotesText).toBe("api ready");
+  });
 });

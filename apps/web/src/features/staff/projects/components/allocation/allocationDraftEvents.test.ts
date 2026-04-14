@@ -12,4 +12,18 @@ describe("allocationDraftEvents", () => {
     expect(spy).toHaveBeenCalledWith(expect.objectContaining({ type: STAFF_ALLOCATION_DRAFTS_REFRESH_EVENT }));
     spy.mockRestore();
   });
+
+  it("no-ops when window is unavailable", () => {
+    const originalWindow = globalThis.window;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (globalThis as any).window;
+      expect(() => emitStaffAllocationDraftsRefresh()).not.toThrow();
+    } finally {
+      Object.defineProperty(globalThis, "window", {
+        configurable: true,
+        value: originalWindow,
+      });
+    }
+  });
 });

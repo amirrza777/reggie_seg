@@ -1,4 +1,12 @@
 import { prisma } from "../../shared/db.js";
+import {
+  mergeDeadlinesForTeam,
+  parseDeadlineOverrideMetadata,
+  PROJECT_DEADLINE_MERGE_SELECT,
+  serializeDeadlineOverrideMetadata,
+  type DeadlineFieldKey,
+  type DeadlineInputMode,
+} from "./repo.deadline-helpers.js";
 
 async function getScopedStaffUser(userId: number) {
   return prisma.user.findUnique({
@@ -43,7 +51,7 @@ export async function createTeamHealthMessage(
   teamId: number,
   requesterUserId: number,
   subject: string,
-  details: string
+  details: string,
 ) {
   return prisma.teamHealthMessage.create({
     data: {
@@ -57,7 +65,10 @@ export async function createTeamHealthMessage(
   });
 }
 
-export async function getTeamHealthMessagesForUserInProject(projectId: number, requesterUserId: number) {
+export async function getTeamHealthMessagesForUserInProject(
+  projectId: number,
+  requesterUserId: number,
+) {
   return prisma.teamHealthMessage.findMany({
     where: {
       projectId,
@@ -68,7 +79,10 @@ export async function getTeamHealthMessagesForUserInProject(projectId: number, r
   });
 }
 
-export async function getTeamHealthMessagesForTeamInProject(projectId: number, teamId: number) {
+export async function getTeamHealthMessagesForTeamInProject(
+  projectId: number,
+  teamId: number,
+) {
   return prisma.teamHealthMessage.findMany({
     where: {
       projectId,
@@ -79,7 +93,11 @@ export async function getTeamHealthMessagesForTeamInProject(projectId: number, t
   });
 }
 
-export async function hasAnotherResolvedTeamHealthMessage(projectId: number, teamId: number, requestId: number) {
+export async function hasAnotherResolvedTeamHealthMessage(
+  projectId: number,
+  teamId: number,
+  requestId: number,
+) {
   const existing = await prisma.teamHealthMessage.findFirst({
     where: {
       projectId,
@@ -93,7 +111,11 @@ export async function hasAnotherResolvedTeamHealthMessage(projectId: number, tea
   return Boolean(existing);
 }
 
-export async function canStaffAccessTeamInProject(userId: number, projectId: number, teamId: number) {
+export async function canStaffAccessTeamInProject(
+  userId: number,
+  projectId: number,
+  teamId: number,
+) {
   const user = await getScopedStaffUser(userId);
   if (!user) return false;
 
@@ -122,160 +144,7 @@ export async function canStaffAccessTeamInProject(userId: number, projectId: num
   return Boolean(project);
 }
 
-type DeadlineSnapshot = {
-  taskOpenDate: Date | null;
-  taskDueDate: Date | null;
-  taskDueDateMcf: Date | null;
-  assessmentOpenDate: Date | null;
-  assessmentDueDate: Date | null;
-  assessmentDueDateMcf: Date | null;
-  feedbackOpenDate: Date | null;
-  feedbackDueDate: Date | null;
-  feedbackDueDateMcf: Date | null;
-  isOverridden: boolean;
-};
-
-type DeadlineFieldKey =
-  | "taskOpenDate"
-  | "taskDueDate"
-  | "assessmentOpenDate"
-  | "assessmentDueDate"
-  | "feedbackOpenDate"
-  | "feedbackDueDate";
-
-export type DeadlineInputMode = "SHIFT_DAYS" | "SELECT_DATE";
-
-type DeadlineOverrideMetadata = {
-  inputMode: DeadlineInputMode;
-  shiftDays?: Partial<Record<DeadlineFieldKey, number>>;
-};
-
-function parseDeadlineOverrideMetadata(reason: string | null | undefined): DeadlineOverrideMetadata | null {
-  if (!reason) return null;
-  try {
-    const parsed = JSON.parse(reason) as {
-      inputMode?: unknown;
-      shiftDays?: unknown;
-    };
-    if (parsed.inputMode !== "SHIFT_DAYS" && parsed.inputMode !== "SELECT_DATE") {
-      return null;
-    }
-
-    const shiftDays: Partial<Record<DeadlineFieldKey, number>> = {};
-    if (parsed.shiftDays && typeof parsed.shiftDays === "object" && !Array.isArray(parsed.shiftDays)) {
-      const candidate = parsed.shiftDays as Record<string, unknown>;
-      const fields: DeadlineFieldKey[] = [
-        "taskOpenDate",
-        "taskDueDate",
-        "assessmentOpenDate",
-        "assessmentDueDate",
-        "feedbackOpenDate",
-        "feedbackDueDate",
-      ];
-
-      for (const field of fields) {
-        const value = candidate[field];
-        if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
-          shiftDays[field] = value;
-        }
-      }
-    }
-
-    return {
-      inputMode: parsed.inputMode,
-      ...(Object.keys(shiftDays).length > 0 ? { shiftDays } : {}),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function serializeDeadlineOverrideMetadata(
-  metadata?:
-    | {
-        inputMode?: DeadlineInputMode;
-        shiftDays?: Partial<Record<DeadlineFieldKey, number>>;
-      }
-    | null
-) {
-  if (!metadata?.inputMode) return undefined;
-
-  const payload: DeadlineOverrideMetadata = {
-    inputMode: metadata.inputMode,
-  };
-
-  if (metadata.inputMode === "SHIFT_DAYS" && metadata.shiftDays) {
-    const sanitized: Partial<Record<DeadlineFieldKey, number>> = {};
-    const fields: DeadlineFieldKey[] = [
-      "taskOpenDate",
-      "taskDueDate",
-      "assessmentOpenDate",
-      "assessmentDueDate",
-      "feedbackOpenDate",
-      "feedbackDueDate",
-    ];
-
-    for (const field of fields) {
-      const value = metadata.shiftDays[field];
-      if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
-        sanitized[field] = value;
-      }
-    }
-    if (Object.keys(sanitized).length > 0) {
-      payload.shiftDays = sanitized;
-    }
-  }
-
-  return JSON.stringify(payload);
-}
-
-function mergeDeadlinesForTeam(
-  projectDeadline: {
-    taskOpenDate: Date;
-    taskDueDate: Date;
-    taskDueDateMcf?: Date | null;
-    assessmentOpenDate: Date;
-    assessmentDueDate: Date;
-    assessmentDueDateMcf?: Date | null;
-    feedbackOpenDate: Date;
-    feedbackDueDate: Date;
-    feedbackDueDateMcf?: Date | null;
-  } | null,
-  teamOverride: {
-    taskOpenDate: Date | null;
-    taskDueDate: Date | null;
-    assessmentOpenDate: Date | null;
-    assessmentDueDate: Date | null;
-    feedbackOpenDate: Date | null;
-    feedbackDueDate: Date | null;
-  } | null,
-): DeadlineSnapshot | null {
-  if (!projectDeadline) return null;
-  return {
-    taskOpenDate: teamOverride?.taskOpenDate ?? projectDeadline.taskOpenDate,
-    taskDueDate: teamOverride?.taskDueDate ?? projectDeadline.taskDueDate,
-    taskDueDateMcf: projectDeadline.taskDueDateMcf ?? null,
-    assessmentOpenDate: teamOverride?.assessmentOpenDate ?? projectDeadline.assessmentOpenDate,
-    assessmentDueDate: teamOverride?.assessmentDueDate ?? projectDeadline.assessmentDueDate,
-    assessmentDueDateMcf: projectDeadline.assessmentDueDateMcf ?? null,
-    feedbackOpenDate: teamOverride?.feedbackOpenDate ?? projectDeadline.feedbackOpenDate,
-    feedbackDueDate: teamOverride?.feedbackDueDate ?? projectDeadline.feedbackDueDate,
-    feedbackDueDateMcf: projectDeadline.feedbackDueDateMcf ?? null,
-    isOverridden: Boolean(teamOverride),
-  };
-}
-
-const PROJECT_DEADLINE_MERGE_SELECT = {
-  taskOpenDate: true,
-  taskDueDate: true,
-  taskDueDateMcf: true,
-  assessmentOpenDate: true,
-  assessmentDueDate: true,
-  assessmentDueDateMcf: true,
-  feedbackOpenDate: true,
-  feedbackDueDate: true,
-  feedbackDueDateMcf: true,
-} as const;
+export { type DeadlineInputMode } from "./repo.deadline-helpers.js";
 
 export async function getTeamCurrentDeadlineInProject(projectId: number, teamId: number) {
   const team = await prisma.team.findFirst({
@@ -364,7 +233,7 @@ export async function reviewTeamHealthMessage(
   requestId: number,
   reviewerUserId: number,
   resolved: boolean,
-  responseText?: string
+  responseText?: string,
 ) {
   const existing = await prisma.teamHealthMessage.findFirst({
     where: { id: requestId, projectId, teamId },
@@ -421,7 +290,7 @@ export async function resolveTeamHealthMessageWithDeadlineOverride(
   metadata?: {
     inputMode?: DeadlineInputMode;
     shiftDays?: Partial<Record<DeadlineFieldKey, number>>;
-  }
+  },
 ) {
   return prisma.$transaction(async (tx) => {
     const existingRequest = await tx.teamHealthMessage.findFirst({

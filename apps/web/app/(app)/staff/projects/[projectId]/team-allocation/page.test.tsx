@@ -45,4 +45,18 @@ describe("staff project team-allocation page", () => {
     ).toBeInTheDocument();
     expect(getStaffProjectTeamsMock).toHaveBeenCalledWith(7, 12);
   });
+
+  it("renders singular student/member labels", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 3, role: "STAFF", isStaff: true } as any);
+    getStaffProjectTeamsMock.mockResolvedValue({
+      project: { id: 99, moduleId: 5, name: "P", moduleName: "M" },
+      projectStudentCount: 1,
+      unassignedProjectStudentCount: 1,
+      teams: [{ id: 77, teamName: "Solo", allocations: [{ userId: 1 }] }],
+    } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
+
+    await renderPage("99");
+    expect(screen.getByText(/1 student not yet assigned to a team \(1 student in project\)/)).toBeInTheDocument();
+    expect(screen.getByText(/1 member/)).toBeInTheDocument();
+  });
 });

@@ -131,6 +131,21 @@ describe("StaffModuleStudentAccessForm", () => {
     ).toBeInTheDocument();
   });
 
+  it("embedded variant shows permission error and custom message", () => {
+    useStateMock.mockReturnValue(
+      makeHookState({ canEditModule: false, errorMessage: "No permission." })
+    );
+    render(<StaffModuleStudentAccessForm moduleId={7} initialAccessSelection={initialAccess} />);
+    expect(screen.getByText("No permission.")).toBeInTheDocument();
+  });
+
+  it("page variant renders full form chrome in edit state", () => {
+    useStateMock.mockReturnValue(makeHookState());
+    render(<StaffModuleStudentAccessForm moduleId={7} initialAccessSelection={initialAccess} variant="page" />);
+    expect(screen.getByText(/Choose which students are enrolled in this module/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Review changes" })).toBeInTheDocument();
+  });
+
   it("reviews enrollment diff and saves", () => {
     const performSubmit = vi.fn().mockResolvedValue(undefined);
     useStateMock.mockReturnValue(makeHookState({ performSubmit }));
@@ -140,6 +155,114 @@ describe("StaffModuleStudentAccessForm", () => {
     expect(screen.getByText(/Eleven/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Confirm and save" }));
     expect(performSubmit).toHaveBeenCalled();
+  });
+
+  it("disables review action when there are no changes", () => {
+    useStateMock.mockReturnValue(makeHookState({ studentIds: [10], studentSet: new Set([10]) }));
+    render(<StaffModuleStudentAccessForm moduleId={7} initialAccessSelection={initialAccess} />);
+    expect(screen.getByRole("button", { name: "Review changes" })).toBeDisabled();
+  });
+
+  it("shows removal review summary and review-step error", () => {
+    const state = makeHookState({
+      studentIds: [],
+      studentSet: new Set<number>(),
+      errorMessage: "Failed to save",
+    });
+    useStateMock.mockReturnValue(state);
+    render(<StaffModuleStudentAccessForm moduleId={7} initialAccessSelection={initialAccess} />);
+    fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
+    expect(screen.getByText("Enroll — remove (1)")).toBeInTheDocument();
+    expect(screen.getByText(/Ten S/)).toBeInTheDocument();
+    expect(screen.getByText("Failed to save")).toBeInTheDocument();
+  });
+
+  it("returns from review step back to editing", () => {
+    useStateMock.mockReturnValue(makeHookState());
+    render(<StaffModuleStudentAccessForm moduleId={7} initialAccessSelection={initialAccess} />);
+    fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to editing" }));
+    expect(screen.getByRole("button", { name: "Review changes" })).toBeInTheDocument();
+  });
+
+  it("uses email and id fallback labels in review when names are unavailable", () => {
+    useStateMock.mockReturnValue(
+      makeHookState({
+        studentIds: [10, 12, 99],
+        studentSet: new Set([10, 12, 99]),
+        studentUsers: [user(10, "Ten"), { id: 12, firstName: "", lastName: "", email: "fallback@test", active: true }],
+      })
+    );
+    render(<StaffModuleStudentAccessForm moduleId={7} initialAccessSelection={initialAccess} />);
+    fireEvent.click(screen.getByRole("button", { name: "Review changes" }));
+    expect(screen.getByText("fallback@test")).toBeInTheDocument();
+    expect(screen.getByText("User ID 99")).toBeInTheDocument();
+  });
+
+  it("renders no-results search copy when no students match query", () => {
+    useStateMock.mockReturnValue(
+      makeHookState({
+        studentUsers: [],
+        studentSearchQuery: "abc",
+        studentIds: [10],
+        studentSet: new Set([10]),
+        studentTotal: 0,
+        studentStart: 0,
+        studentEnd: 0,
+      })
+    );
+    render(<StaffModuleStudentAccessForm moduleId={7} initialAccessSelection={initialAccess} />);
+    expect(screen.getByText('No students match "abc".')).toBeInTheDocument();
+  });
+
+  it("shows edit-step error and wires search/filter/pagination callbacks", () => {
+    const setStudentPage = vi.fn();
+    const setStudentPageInput = vi.fn();
+    const applyPageInput = vi.fn();
+    const setStudentSearchOnlyWithoutModuleAccess = vi.fn();
+    const toggleStudent = vi.fn();
+    const setStudentSearchQuery = vi.fn();
+    useStateMock.mockReturnValue(
+      makeHookState({
+        errorMessage: "Something went wrong",
+        studentTotalPages: 3,
+        studentPage: 2,
+        studentPageInput: "2",
+        setStudentPage,
+        setStudentPageInput,
+        applyPageInput,
+        setStudentSearchOnlyWithoutModuleAccess,
+        toggleStudent,
+        setStudentSearchQuery,
+      })
+    );
+
+    render(<StaffModuleStudentAccessForm moduleId={7} initialAccessSelection={initialAccess} />);
+    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Students" }), {
+      target: { value: "ten" },
+    });
+    expect(setStudentSearchQuery).toHaveBeenCalledWith("ten");
+
+    fireEvent.click(screen.getByRole("switch", { name: /hide users already on this module/i }));
+    expect(setStudentSearchOnlyWithoutModuleAccess).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /Ten S/i }));
+    expect(toggleStudent).toHaveBeenCalledWith(10, false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(setStudentPage).toHaveBeenCalledTimes(2);
+
+    const pageInput = screen.getByRole("spinbutton", { name: "Go to student page" });
+    fireEvent.change(pageInput, { target: { value: "3" } });
+    fireEvent.blur(pageInput);
+    expect(setStudentPageInput).toHaveBeenCalledWith("3");
+    expect(applyPageInput).toHaveBeenCalledWith("students", "2");
+
+    fireEvent.submit(pageInput.closest("form")!);
+    expect(applyPageInput).toHaveBeenCalledTimes(2);
   });
 
   it("cancel returns to students route", () => {

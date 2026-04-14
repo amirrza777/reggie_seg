@@ -60,6 +60,13 @@ describe("archive controller", () => {
   });
 
   describe("listProjectsHandler", () => {
+    it("returns 401 when subject is missing", async () => {
+      (service.isStaffOrAdmin as any).mockResolvedValue(true);
+      const res = mockResponse();
+      await listProjectsHandler({ user: undefined, params: {} } as any, res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
     it("returns 403 when not staff or admin", async () => {
       (service.isStaffOrAdmin as any).mockResolvedValue(false);
       const res = mockResponse();
@@ -78,6 +85,12 @@ describe("archive controller", () => {
   });
 
   describe("archiveModuleHandler", () => {
+    it("returns 401 when subject is missing", async () => {
+      const res = mockResponse();
+      await archiveModuleHandler({ user: undefined, params: { id: "1" } } as any, res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
     it("returns 403 when not staff or admin", async () => {
       (service.isStaffOrAdmin as any).mockResolvedValue(false);
       const res = mockResponse();
@@ -111,6 +124,12 @@ describe("archive controller", () => {
   });
 
   describe("unarchiveModuleHandler", () => {
+    it("returns 401 when subject is missing", async () => {
+      const res = mockResponse();
+      await unarchiveModuleHandler({ user: undefined, params: { id: "1" } } as any, res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
     it("returns 403 when not staff or admin", async () => {
       (service.isStaffOrAdmin as any).mockResolvedValue(false);
       const res = mockResponse();
@@ -133,9 +152,23 @@ describe("archive controller", () => {
       expect(service.unarchiveModule).toHaveBeenCalledWith(1, 1);
       expect(res.json).toHaveBeenCalledWith({ id: 1 });
     });
+
+    it("returns 404 when module is not in scope", async () => {
+      (service.isStaffOrAdmin as any).mockResolvedValue(true);
+      (service.unarchiveModule as any).mockResolvedValue(null);
+      const res = mockResponse();
+      await unarchiveModuleHandler(authedReq({ id: "1" }), res);
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
   });
 
   describe("archiveProjectHandler", () => {
+    it("returns 401 when subject is missing", async () => {
+      const res = mockResponse();
+      await archiveProjectHandler({ user: undefined, params: { id: "2" } } as any, res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
     it("returns 403 when not staff or admin", async () => {
       (service.isStaffOrAdmin as any).mockResolvedValue(false);
       const res = mockResponse();
@@ -158,9 +191,23 @@ describe("archive controller", () => {
       expect(service.archiveProject).toHaveBeenCalledWith(1, 2);
       expect(res.json).toHaveBeenCalledWith({ id: 2 });
     });
+
+    it("returns 404 when project is not in scope", async () => {
+      (service.isStaffOrAdmin as any).mockResolvedValue(true);
+      (service.archiveProject as any).mockResolvedValue(null);
+      const res = mockResponse();
+      await archiveProjectHandler(authedReq({ id: "2" }), res);
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
   });
 
   describe("unarchiveProjectHandler", () => {
+    it("returns 401 when subject is missing", async () => {
+      const res = mockResponse();
+      await unarchiveProjectHandler({ user: undefined, params: { id: "2" } } as any, res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
     it("returns 403 when not staff or admin", async () => {
       (service.isStaffOrAdmin as any).mockResolvedValue(false);
       const res = mockResponse();
@@ -182,6 +229,14 @@ describe("archive controller", () => {
       await unarchiveProjectHandler(authedReq({ id: "2" }), res);
       expect(service.unarchiveProject).toHaveBeenCalledWith(1, 2);
       expect(res.json).toHaveBeenCalledWith({ id: 2 });
+    });
+
+    it("returns 404 when project is not in scope", async () => {
+      (service.isStaffOrAdmin as any).mockResolvedValue(true);
+      (service.unarchiveProject as any).mockResolvedValue(null);
+      const res = mockResponse();
+      await unarchiveProjectHandler(authedReq({ id: "2" }), res);
+      expect(res.status).toHaveBeenCalledWith(404);
     });
   });
 });

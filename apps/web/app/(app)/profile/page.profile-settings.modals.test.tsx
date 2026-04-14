@@ -69,6 +69,7 @@ describe("profile settings modals", () => {
       />,
     );
     fireEvent.change(screen.getByLabelText("New email"), { target: { value: "new@example.com" } });
+    fireEvent.click(screen.getByRole("dialog"));
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     fireEvent.click(screen.getByRole("button", { name: "Send code" }));
     expect(setNewEmail).toHaveBeenCalledWith("new@example.com");
@@ -93,6 +94,7 @@ describe("profile settings modals", () => {
     const otpInputs = screen.getAllByRole("textbox");
     fireEvent.change(otpInputs[0], { target: { value: "9" } });
     fireEvent.keyDown(otpInputs[0], { key: "Backspace" });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     fireEvent.click(screen.getByRole("button", { name: "Didn’t receive an email? Try again" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm email" }));
     expect(onOtpChange).toHaveBeenCalledWith(0, "9");
@@ -151,6 +153,7 @@ describe("profile settings modals", () => {
         confirmPhrase="DELETE"
       />,
     );
+    fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(setError).toHaveBeenCalledWith(null);
     expect(setStep).toHaveBeenCalledWith("confirm");
@@ -174,6 +177,7 @@ describe("profile settings modals", () => {
         confirmPhrase="DELETE"
       />,
     );
+    fireEvent.change(screen.getByLabelText("Type DELETE"), { target: { value: "DELETE" } });
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByText("wrong phrase")).toBeInTheDocument();
 
@@ -289,5 +293,72 @@ describe("profile settings modals", () => {
     expect(close).toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders busy-state button labels and password-step back action", () => {
+    const close = vi.fn();
+    const setStep = vi.fn();
+    const onDelete = vi.fn(async () => undefined);
+
+    const { rerender } = render(
+      <DeleteAccountModal
+        open
+        close={close}
+        step="password"
+        error={null}
+        acknowledge={true}
+        setAcknowledge={vi.fn()}
+        setStep={setStep}
+        setError={vi.fn()}
+        busy={true}
+        phrase="DELETE"
+        setPhrase={vi.fn()}
+        password="secret"
+        setPassword={vi.fn()}
+        onDelete={onDelete}
+        confirmPhrase="DELETE"
+      />,
+    );
+
+    fireEvent.click(document.querySelector(".modal__dialog") as Element);
+    expect(screen.getByRole("button", { name: "Deleting..." })).toBeDisabled();
+
+    rerender(
+      <DeleteAccountModal
+        open
+        close={close}
+        step="password"
+        error={null}
+        acknowledge={true}
+        setAcknowledge={vi.fn()}
+        setStep={setStep}
+        setError={vi.fn()}
+        busy={false}
+        phrase="DELETE"
+        setPhrase={vi.fn()}
+        password="secret"
+        setPassword={vi.fn()}
+        onDelete={onDelete}
+        confirmPhrase="DELETE"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(setStep).toHaveBeenCalledWith("confirm");
+
+    rerender(
+      <LeaveEnterpriseModal
+        open
+        close={close}
+        error={null}
+        phrase="LEAVE"
+        setPhrase={vi.fn()}
+        busy={true}
+        onLeave={vi.fn(async () => undefined)}
+        confirmPhrase="LEAVE"
+      />,
+    );
+
+    expect(screen.queryByText("leave failed")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Leaving..." })).toBeDisabled();
   });
 });

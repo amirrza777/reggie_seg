@@ -94,4 +94,58 @@ describe("GithubProjectReposBranchesTab", () => {
     rerender(<GithubProjectReposBranchesTab {...props} />);
     expect(screen.getByText("No linked repository available.")).toBeInTheDocument();
   });
+
+  it("renders branch/commit loading, error, and empty-result states", () => {
+    const props = makeProps();
+    props.liveBranchesLoadingByLinkId = { 1: true };
+    props.liveBranchesErrorByLinkId = { 1: "branch api failed" };
+    props.branchCommitsLoadingByLinkId = { 1: true };
+    props.branchCommitsErrorByLinkId = { 1: "commit api failed" };
+    props.branchCommitsByLinkId = { 1: { commits: [] } } as any;
+
+    const { rerender } = render(<GithubProjectReposBranchesTab {...props} />);
+    expect(screen.getByText("Loading branches...")).toBeInTheDocument();
+    expect(screen.getByText("Failed to load branches: branch api failed")).toBeInTheDocument();
+    expect(screen.getByText("Loading recent commits...")).toBeInTheDocument();
+    expect(screen.getByText("Failed to load commits: commit api failed")).toBeInTheDocument();
+
+    props.liveBranchesLoadingByLinkId = { 1: false };
+    props.liveBranchesErrorByLinkId = { 1: null };
+    props.liveBranchesByLinkId = { 1: { branches: [] } } as any;
+    props.branchCommitsLoadingByLinkId = { 1: false };
+    props.branchCommitsErrorByLinkId = { 1: null };
+    props.selectedBranchByLinkId = { 1: "main" };
+    rerender(<GithubProjectReposBranchesTab {...props} />);
+
+    expect(screen.getByText("No branches returned for this repository.")).toBeInTheDocument();
+    expect(screen.getByText("No commits returned for this branch.")).toBeInTheDocument();
+  });
+
+  it("falls back commit metadata when optional fields are missing", () => {
+    const props = makeProps();
+    props.selectedBranchByLinkId = { 1: "feature/a" };
+    props.latestSnapshotByLinkId = { 1: null } as any;
+    props.branchCommitsByLinkId = {
+      1: {
+        commits: [
+          {
+            sha: "1234567890abcdef",
+            message: "",
+            authorLogin: null,
+            authorEmail: null,
+            date: null,
+            additions: undefined,
+            deletions: undefined,
+            htmlUrl: "https://github.com/team/repo/commit/1234567890abcdef",
+          },
+        ],
+      },
+    } as any;
+
+    render(<GithubProjectReposBranchesTab {...props} />);
+    expect(screen.getByText("(no message)")).toBeInTheDocument();
+    expect(screen.getByText(/unknown/)).toBeInTheDocument();
+    expect(screen.getByText("Unknown date")).toBeInTheDocument();
+    expect(screen.queryByText(/\+\d+ \/ -\d+/)).not.toBeInTheDocument();
+  });
 });

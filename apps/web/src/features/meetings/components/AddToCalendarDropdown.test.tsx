@@ -235,4 +235,16 @@ describe("AddToCalendarDropdown", () => {
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
+
+  it("closes dropdown when Outlook and Microsoft links are clicked", () => {
+    render(<AddToCalendarDropdown meeting={baseMeeting} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /add to calendar/i }));
+    fireEvent.click(screen.getByText("Outlook"));
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /add to calendar/i }));
+    fireEvent.click(screen.getByText("Microsoft 365"));
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
 });

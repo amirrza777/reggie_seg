@@ -276,4 +276,90 @@ describe("FeedbackReviewForm", () => {
     expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
     expect(submitPeerFeedbackMock).not.toHaveBeenCalled();
   });
+
+  it("forces before-open and read-only submit guards when form submit is triggered", async () => {
+    const openAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const dueAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    const { container, rerender } = render(
+      <FeedbackReviewForm
+        feedback={makeFeedback()}
+        currentUserId="4"
+        feedbackOpenAt={openAt}
+        feedbackDueAt={dueAt}
+      />
+    );
+    fireEvent.submit(container.querySelector("form")!);
+    expect((await screen.findAllByText(/Peer feedback is locked until/i)).length).toBeGreaterThan(0);
+
+    rerender(<FeedbackReviewForm feedback={makeFeedback()} currentUserId="4" readOnly />);
+    fireEvent.submit(container.querySelector("form")!);
+    expect(await screen.findByText("This feedback is read-only after the deadline.")).toBeInTheDocument();
+  });
+
+  it("submits and falls back to router.back when no project id exists", async () => {
+    render(
+      <FeedbackReviewForm
+        feedback={makeFeedback({ projectId: undefined })}
+        currentUserId="4"
+      />
+    );
+    fireEvent.change(screen.getByPlaceholderText("Type your response here..."), {
+      target: { value: "No project context" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit Review" }));
+    await waitFor(() => {
+      expect(back).toHaveBeenCalled();
+    });
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("submits using fallback project redirect when redirectTo is empty", async () => {
+    render(
+      <FeedbackReviewForm
+        feedback={makeFeedback()}
+        currentUserId="4"
+        redirectTo=""
+      />
+    );
+    fireEvent.change(screen.getByPlaceholderText("Type your response here..."), {
+      target: { value: "Fallback redirect" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit Review" }));
+    await waitFor(() => {
+      expect(push).toHaveBeenCalledWith("/projects/1/peer-feedback");
+    });
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it("shows API error message when submit fails", async () => {
+    submitPeerFeedbackMock.mockRejectedValueOnce(new Error("API down"));
+    render(<FeedbackReviewForm feedback={makeFeedback()} currentUserId="4" />);
+    fireEvent.change(screen.getByPlaceholderText("Type your response here..."), {
+      target: { value: "Attempt submit" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit Review" }));
+    expect(await screen.findByText("API down")).toBeInTheDocument();
+  });
+
+  it("shows generic error message when submit throws a non-Error value", async () => {
+    submitPeerFeedbackMock.mockRejectedValueOnce("failure");
+    render(<FeedbackReviewForm feedback={makeFeedback()} currentUserId="4" />);
+    fireEvent.change(screen.getByPlaceholderText("Type your response here..."), {
+      target: { value: "Attempt submit" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit Review" }));
+    expect(await screen.findByText("Failed to submit peer feedback")).toBeInTheDocument();
+  });
+
+  it("handles back navigation for both project and non-project feedback", () => {
+    const withProject = render(<FeedbackReviewForm feedback={makeFeedback()} currentUserId="4" />);
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(push).toHaveBeenCalledWith("/projects/1/peer-feedback");
+    withProject.unmount();
+
+    render(<FeedbackReviewForm feedback={makeFeedback({ projectId: undefined })} currentUserId="4" />);
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(back).toHaveBeenCalled();
+  });
+
 });
