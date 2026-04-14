@@ -7,7 +7,6 @@ import { listModules } from "@/features/modules/api/client";
 import { getUserProjects } from "@/features/projects/api/client";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin, isModuleScopedStaff } from "@/shared/auth/session";
 import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
-import { getFeatureFlagMap } from "@/shared/featureFlags";
 import { logDevError } from "@/shared/lib/devLogger";
 
 class RedirectSentinel extends Error {
@@ -89,10 +88,6 @@ vi.mock("@/shared/auth/default-space", () => ({
   getDefaultSpaceOverviewPath: vi.fn(),
 }));
 
-vi.mock("@/shared/featureFlags", () => ({
-  getFeatureFlagMap: vi.fn(),
-}));
-
 vi.mock("@/shared/lib/devLogger", () => ({
   logDevError: vi.fn(),
 }));
@@ -105,7 +100,6 @@ const isAdminMock = vi.mocked(isAdmin);
 const isEnterpriseAdminMock = vi.mocked(isEnterpriseAdmin);
 const isModuleScopedStaffMock = vi.mocked(isModuleScopedStaff);
 const getDefaultSpaceOverviewPathMock = vi.mocked(getDefaultSpaceOverviewPath);
-const getFeatureFlagMapMock = vi.mocked(getFeatureFlagMap);
 const logDevErrorMock = vi.mocked(logDevError);
 
 describe("AppLayout", () => {
@@ -125,7 +119,6 @@ describe("AppLayout", () => {
     isAdminMock.mockReturnValue(false);
     isEnterpriseAdminMock.mockReturnValue(false);
     isModuleScopedStaffMock.mockReturnValue(false);
-    getFeatureFlagMapMock.mockResolvedValue({});
     getDefaultSpaceOverviewPathMock.mockReturnValue("/dashboard");
     listModulesMock.mockResolvedValue([
       { id: 7, title: "SE Foundations" },

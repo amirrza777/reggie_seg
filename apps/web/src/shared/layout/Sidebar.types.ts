@@ -7,14 +7,12 @@ export type SidebarMode = "full" | "desktop" | "mobile";
 export type SidebarChildLink = {
   href: string;
   label: string;
-  flag?: string;
 };
 
 export type SidebarLink = {
   href: string;
   label: string;
   space?: SpaceKey;
-  flag?: string;
   children?: SidebarChildLink[];
   defaultExpanded?: boolean;
 };
