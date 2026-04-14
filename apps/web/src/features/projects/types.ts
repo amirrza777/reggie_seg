@@ -204,9 +204,7 @@ export type StaffProjectTeamsResponse = {
     canManageProjectSettings?: boolean;
     informationText?: string | null;
   };
-  /** Students explicitly on this project (project access), used for allocation scope. */
   projectStudentCount: number;
-  /** Of those, not yet on any active team for this project. */
   unassignedProjectStudentCount: number;
   teams: Team[];
 };
@@ -251,6 +249,8 @@ export type StaffProjectManageSummary = {
   projectDeadline: StaffProjectManageDeadlineSnapshot | null;
   hasSubmittedPeerAssessments: boolean;
   projectAccess: StaffProjectManageAccessSnapshot;
+  /** False for TAs, they can open this page to view but must not edit via the API. */
+  canMutateProjectSettings: boolean;
 };
 
 export type StaffProjectManageDeadlinePatchPayload = {
