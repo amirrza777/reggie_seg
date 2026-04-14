@@ -17,6 +17,9 @@ export const QUESTIONNAIRE_PURPOSE_VALUES = [
   "GENERAL_PURPOSE",
 ] as const;
 
+/** Matches MySQL constraint. */
+export const QUESTION_LABEL_MAX_LENGTH = 191;
+
 export type EditableQuestion = Omit<Question, "id"> & {
   id?: number;
   dbId?: number;

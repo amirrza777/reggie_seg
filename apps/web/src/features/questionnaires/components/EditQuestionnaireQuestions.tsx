@@ -3,11 +3,12 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
-import type {
-  EditableQuestion,
-  MultipleChoiceConfigs,
-  SliderConfigs,
-  QuestionType,
+import {
+  QUESTION_LABEL_MAX_LENGTH,
+  type EditableQuestion,
+  type MultipleChoiceConfigs,
+  type QuestionType,
+  type SliderConfigs,
 } from "@/features/questionnaires/types";
 
 type EditQuestionnaireQuestionsProps = {
@@ -53,7 +54,13 @@ export function EditQuestionnaireQuestions({
                 className="questionnaire-editor__question-main"
                 placeholder="Enter your question"
                 value={q.label}
-                onChange={(e) => updateQuestion(q.uiId, (question) => ({ ...question, label: e.target.value }))}
+                maxLength={QUESTION_LABEL_MAX_LENGTH}
+                onChange={(e) =>
+                  updateQuestion(q.uiId, (question) => ({
+                    ...question,
+                    label: e.target.value.slice(0, QUESTION_LABEL_MAX_LENGTH),
+                  }))
+                }
               />
             ) : (
               <div className="questionnaire-editor__question-main">
