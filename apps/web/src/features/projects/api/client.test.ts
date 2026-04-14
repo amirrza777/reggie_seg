@@ -17,7 +17,13 @@ import {
   reviewStaffTeamHealthMessage,
   getStaffTeamHealthMessages,
   createStaffProject,
+  clearStaffStudentDeadlineOverride,
+  dismissTeamFlag,
+  getStaffProjects,
+  getStaffProjectsForMarking,
+  getStaffStudentDeadlineOverrides,
   getTeamAllocationQuestionnaireForProject,
+  getTeamAllocationQuestionnaireStatusForProject,
   submitTeamAllocationQuestionnaireResponse,
   getProject,
   getProjectDeadline,
@@ -33,6 +39,8 @@ import {
   getTeamByUserAndProject,
   getTeammatesInProject,
   getUserProjects,
+  updateStaffTeamDeadlineProfile,
+  upsertStaffStudentDeadlineOverride,
   updateStaffProjectWarningsConfig,
   updateStaffProjectNavFlagsConfig,
 } from "./client";
@@ -422,6 +430,78 @@ describe("projects api client", () => {
         informationText: "Project guidance for students.",
         deadline,
       }),
+    });
+  });
+
+  it("gets team allocation questionnaire status for a project", async () => {
+    await getTeamAllocationQuestionnaireStatusForProject(42);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/team-allocation-questionnaire-status", {
+      cache: "no-store",
+    });
+  });
+
+  it("gets staff projects for marking with and without query", async () => {
+    await getStaffProjectsForMarking(9);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/marking?userId=9");
+
+    await getStaffProjectsForMarking(9, { query: "  seg  " });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/marking?userId=9&q=seg");
+  });
+
+  it("gets staff projects with optional query and module filters", async () => {
+    await getStaffProjects(9);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/mine?userId=9");
+
+    await getStaffProjects(9, { query: "  repo  " });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/mine?userId=9&q=repo");
+
+    await getStaffProjects(9, { moduleId: 12 });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/mine?userId=9&moduleId=12");
+
+    await getStaffProjects(9, { query: "x", moduleId: 12 });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/mine?userId=9&q=x&moduleId=12");
+  });
+
+  it("dismisses warning flags and updates team deadline profile", async () => {
+    await dismissTeamFlag(55);
+    expect(apiFetchMock).toHaveBeenCalledWith("/teams/55/dismiss-flag", { method: "PATCH" });
+
+    await updateStaffTeamDeadlineProfile(44, "MCF");
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/teams/44/deadline-profile", {
+      method: "PATCH",
+      body: JSON.stringify({ deadlineProfile: "MCF" }),
+    });
+  });
+
+  it("gets, upserts, and clears student deadline overrides", async () => {
+    apiFetchMock.mockResolvedValueOnce({ overrides: [{ id: 1 }] });
+    const overrides = await getStaffStudentDeadlineOverrides(77);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/77/students/deadline-overrides", {
+      cache: "no-store",
+    });
+    expect(overrides).toEqual([{ id: 1 }]);
+
+    apiFetchMock.mockResolvedValueOnce({ override: { id: 2 } });
+    const updated = await upsertStaffStudentDeadlineOverride(77, 9, {
+      taskDueDate: "2026-03-15T12:00:00.000Z",
+      feedbackDueDate: null,
+      deadlineInputMode: "ABSOLUTE",
+      shiftDays: null,
+    });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/77/students/9/deadline-override", {
+      method: "PUT",
+      body: JSON.stringify({
+        taskDueDate: "2026-03-15T12:00:00.000Z",
+        feedbackDueDate: null,
+        deadlineInputMode: "ABSOLUTE",
+        shiftDays: null,
+      }),
+    });
+    expect(updated).toEqual({ id: 2 });
+
+    await clearStaffStudentDeadlineOverride(77, 9);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/77/students/9/deadline-override", {
+      method: "DELETE",
     });
   });
 });
