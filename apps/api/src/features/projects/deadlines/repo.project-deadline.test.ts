@@ -7,6 +7,9 @@ vi.mock("../../../shared/db.js", () => ({
     teamAllocation: {
       findFirst: vi.fn(),
     },
+    project: {
+      findUnique: vi.fn(),
+    },
   },
 }));
 
@@ -23,6 +26,7 @@ function baseProjectDeadline(overrides?: Record<string, Date | null>) {
     feedbackDueDateMcf: new Date("2026-01-09T09:00:00.000Z"),
     teamAllocationQuestionnaireOpenDate: new Date("2025-12-25T09:00:00.000Z"),
     teamAllocationQuestionnaireDueDate: new Date("2025-12-26T09:00:00.000Z"),
+    teamAllocationInviteDueDate: null,
     studentOverrides: [],
     ...overrides,
   };
@@ -102,6 +106,7 @@ describe("projects user project deadline repo", () => {
       feedbackDueDate: new Date("2026-01-08T09:00:00.000Z"),
       teamAllocationQuestionnaireOpenDate: new Date("2025-12-25T09:00:00.000Z"),
       teamAllocationQuestionnaireDueDate: new Date("2025-12-26T09:00:00.000Z"),
+      teamAllocationInviteDueDate: null,
       isOverridden: false,
       overrideScope: "NONE",
       deadlineProfile: "STANDARD",
@@ -129,6 +134,7 @@ describe("projects user project deadline repo", () => {
       feedbackDueDate: new Date("2026-01-08T09:00:00.000Z"),
       teamAllocationQuestionnaireOpenDate: new Date("2025-12-25T09:00:00.000Z"),
       teamAllocationQuestionnaireDueDate: new Date("2025-12-26T09:00:00.000Z"),
+      teamAllocationInviteDueDate: null,
       isOverridden: false,
       overrideScope: "NONE",
       deadlineProfile: "MCF",
@@ -158,6 +164,7 @@ describe("projects user project deadline repo", () => {
       feedbackDueDate: new Date("2026-01-08T09:00:00.000Z"),
       teamAllocationQuestionnaireOpenDate: new Date("2025-12-25T09:00:00.000Z"),
       teamAllocationQuestionnaireDueDate: new Date("2025-12-26T09:00:00.000Z"),
+      teamAllocationInviteDueDate: null,
       isOverridden: true,
       overrideScope: "TEAM",
       deadlineProfile: "STANDARD",
@@ -199,6 +206,7 @@ describe("projects user project deadline repo", () => {
       feedbackDueDate: new Date("2026-02-05T09:00:00.000Z"),
       teamAllocationQuestionnaireOpenDate: new Date("2025-12-25T09:00:00.000Z"),
       teamAllocationQuestionnaireDueDate: new Date("2025-12-26T09:00:00.000Z"),
+      teamAllocationInviteDueDate: null,
       isOverridden: true,
       overrideScope: "STUDENT",
       deadlineProfile: "STANDARD",
@@ -221,6 +229,7 @@ describe("projects user project deadline repo", () => {
       feedbackDueDate: undefined,
       teamAllocationQuestionnaireOpenDate: null,
       teamAllocationQuestionnaireDueDate: null,
+      teamAllocationInviteDueDate: null,
       isOverridden: false,
       overrideScope: "NONE",
       deadlineProfile: "STANDARD",
@@ -260,6 +269,7 @@ describe("projects user project deadline repo", () => {
       feedbackDueDate: new Date("2026-01-08T09:00:00.000Z"),
       teamAllocationQuestionnaireOpenDate: new Date("2025-12-25T09:00:00.000Z"),
       teamAllocationQuestionnaireDueDate: new Date("2025-12-26T09:00:00.000Z"),
+      teamAllocationInviteDueDate: null,
       isOverridden: true,
       overrideScope: "TEAM",
       deadlineProfile: "STANDARD",

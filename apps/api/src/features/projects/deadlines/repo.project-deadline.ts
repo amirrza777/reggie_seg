@@ -31,6 +31,7 @@ const USER_PROJECT_DEADLINE_SELECT = {
               feedbackDueDateMcf: true,
               teamAllocationQuestionnaireOpenDate: true,
               teamAllocationQuestionnaireDueDate: true,
+              teamAllocationInviteDueDate: true,
               studentOverrides: {
                 take: 1,
                 select: {
@@ -237,6 +238,7 @@ function mapUserProjectDeadline(context: UserTeamDeadlineContext) {
     ...feedbackDates,
     teamAllocationQuestionnaireOpenDate: projectDeadline?.teamAllocationQuestionnaireOpenDate ?? null,
     teamAllocationQuestionnaireDueDate: projectDeadline?.teamAllocationQuestionnaireDueDate ?? null,
+    teamAllocationInviteDueDate: projectDeadline?.teamAllocationInviteDueDate ?? null,
     isOverridden: hasStudentOverride || hasTeamOverride,
     overrideScope: resolveOverrideScope(hasStudentOverride, hasTeamOverride),
     deadlineProfile: context.team.deadlineProfile,
@@ -246,32 +248,33 @@ function mapUserProjectDeadline(context: UserTeamDeadlineContext) {
 export async function getUserProjectDeadline(userId: number, projectId: number) {
   const context = await findUserTeamDeadlineContext(userId, projectId);
   if (!context) {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: {
-      deadline: true,
-    },
-  });
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        deadline: true,
+      },
+    });
 
-  if (!project?.deadline) {
-    return null;
+    if (!project?.deadline) {
+      return null;
+    }
+
+    const d = project.deadline;
+
+    return {
+      taskOpenDate: d.taskOpenDate,
+      taskDueDate: d.taskDueDate,
+      assessmentOpenDate: d.assessmentOpenDate,
+      assessmentDueDate: d.assessmentDueDate,
+      feedbackOpenDate: d.feedbackOpenDate,
+      feedbackDueDate: d.feedbackDueDate,
+      teamAllocationQuestionnaireOpenDate: d.teamAllocationQuestionnaireOpenDate ?? null,
+      teamAllocationQuestionnaireDueDate: d.teamAllocationQuestionnaireDueDate ?? null,
+      teamAllocationInviteDueDate: d.teamAllocationInviteDueDate ?? null,
+      isOverridden: false,
+      overrideScope: "NONE",
+      deadlineProfile: "STANDARD",
+    };
   }
-
-  const d = project.deadline;
-
-  return {
-    taskOpenDate: d.taskOpenDate,
-    taskDueDate: d.taskDueDate,
-    assessmentOpenDate: d.assessmentOpenDate,
-    assessmentDueDate: d.assessmentDueDate,
-    feedbackOpenDate: d.feedbackOpenDate,
-    feedbackDueDate: d.feedbackDueDate,
-    teamAllocationQuestionnaireOpenDate: d.teamAllocationQuestionnaireOpenDate ?? null,
-    teamAllocationQuestionnaireDueDate: d.teamAllocationQuestionnaireDueDate ?? null,
-    isOverridden: false,
-    overrideScope: "NONE",
-    deadlineProfile: "STANDARD",
-  };
-}
   return mapUserProjectDeadline(context);
 }

@@ -215,4 +215,26 @@ describe("ProjectOverviewDashboard", () => {
     expect(screen.queryByText(/Updated by .* on .*Unknown time/)).not.toBeInTheDocument();
     expect(screen.getByText("No individual formative feedback yet.")).toBeInTheDocument();
   });
+
+  it("displays team invite deadline when provided", () => {
+    renderDashboard({
+      deadline: baseDeadline({
+        teamAllocationInviteDueDate: "2026-01-30T00:00:00.000Z",
+      }),
+    });
+
+    expect(screen.getByText("Team invite deadline")).toBeInTheDocument();
+    expect(screen.getByText("Team formation")).toBeInTheDocument();
+  });
+
+  it("does not display team invite deadline when not provided", () => {
+    renderDashboard({
+      deadline: baseDeadline({
+        teamAllocationInviteDueDate: null,
+      }),
+    });
+
+    expect(screen.queryByText("Team invite deadline")).not.toBeInTheDocument();
+  });
 });
+

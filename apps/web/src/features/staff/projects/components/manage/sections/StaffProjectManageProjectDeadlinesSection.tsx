@@ -36,6 +36,7 @@ type LocalDeadlineFields = {
   feedbackDueDateMcf: string;
   teamAllocationQuestionnaireOpenDate: string;
   teamAllocationQuestionnaireDueDate: string;
+  teamAllocationInviteDueDate: string;
 };
 
 function snapshotToLocal(dl: StaffProjectManageDeadlineSnapshot): LocalDeadlineFields {
@@ -51,6 +52,7 @@ function snapshotToLocal(dl: StaffProjectManageDeadlineSnapshot): LocalDeadlineF
     feedbackDueDateMcf: toDatetimeLocalValue(dl.feedbackDueDateMcf),
     teamAllocationQuestionnaireOpenDate: toDatetimeLocalValue(dl.teamAllocationQuestionnaireOpenDate),
     teamAllocationQuestionnaireDueDate: toDatetimeLocalValue(dl.teamAllocationQuestionnaireDueDate),
+    teamAllocationInviteDueDate: toDatetimeLocalValue(dl.teamAllocationInviteDueDate),
   };
 }
 
@@ -75,10 +77,14 @@ function buildPayload(fields: LocalDeadlineFields): StaffProjectManageDeadlinePa
   const taDue = fields.teamAllocationQuestionnaireDueDate.trim()
     ? fromDatetimeLocalValue(fields.teamAllocationQuestionnaireDueDate)
     : null;
+  const inviteDue = fields.teamAllocationInviteDueDate.trim()
+    ? fromDatetimeLocalValue(fields.teamAllocationInviteDueDate)
+    : null;
   return {
     ...core,
     teamAllocationQuestionnaireOpenDate: taOpen,
     teamAllocationQuestionnaireDueDate: taDue,
+    teamAllocationInviteDueDate: inviteDue,
   };
 }
 
@@ -237,6 +243,13 @@ export function StaffProjectManageProjectDeadlinesSection() {
           value={fields.teamAllocationQuestionnaireDueDate}
           disabled={disabled}
           onChange={(v) => setField("teamAllocationQuestionnaireDueDate", v)}
+        />
+        <DeadlineRow
+          label="Team invite deadline"
+          name="teamAllocationInviteDueDate"
+          value={fields.teamAllocationInviteDueDate}
+          disabled={disabled}
+          onChange={(v) => setField("teamAllocationInviteDueDate", v)}
         />
       </fieldset>
 

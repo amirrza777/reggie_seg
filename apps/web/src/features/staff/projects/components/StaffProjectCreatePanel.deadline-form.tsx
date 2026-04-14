@@ -112,6 +112,22 @@ export function StaffProjectCreatePanelDeadlineForm({
                 />
               </label>
             ) : null}
+            {!hasSelectedAllocationTemplate ? (
+              <label className="staff-projects__field">
+                <span className="staff-projects__field-label">Team invite deadline</span>
+                <input
+                  className="staff-projects__input"
+                  type="datetime-local"
+                  value={deadline.teamAllocationInviteDueDate}
+                  onChange={(event) =>
+                    setDeadline((prev) => ({
+                      ...prev,
+                      teamAllocationInviteDueDate: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+            ) : null}
             <label className="staff-projects__field">
               <span className="staff-projects__field-label">Task opens</span>
               <input
@@ -218,6 +234,21 @@ export function StaffProjectCreatePanelDeadlineForm({
               : "-"}
           </p>
           <div className="staff-projects__deadline-preview-grid">
+            {hasSelectedAllocationTemplate && deadlinePreview.teamAllocationQuestionnaireOpenDate ? (
+              <div>
+                <p className="staff-projects__field-label">Team questionnaire phase</p>
+                <p className="staff-projects__card-sub">
+                  {formatDateTime(deadlinePreview.teamAllocationQuestionnaireOpenDate)} <ArrowRightIcon />{" "}
+                  {formatDateTime(deadlinePreview.teamAllocationQuestionnaireDueDate)}
+                </p>
+              </div>
+            ) : null}
+            {!hasSelectedAllocationTemplate && deadlinePreview.teamAllocationInviteDueDate ? (
+              <div>
+                <p className="staff-projects__field-label">Team invite deadline</p>
+                <p className="staff-projects__card-sub">{formatDateTime(deadlinePreview.teamAllocationInviteDueDate)}</p>
+              </div>
+            ) : null}
             <div>
               <p className="staff-projects__field-label">Task phase</p>
               <p className="staff-projects__card-sub">

@@ -28,6 +28,7 @@ type Props = {
   projectCompleted?: boolean;
   teamFormationMode?: "self" | "custom" | "staff";
   questionnaireWindowOpen?: boolean;
+  teamAllocationInviteDueDate?: string | null;
 };
 
 function formatDate(iso: string) {
@@ -46,13 +47,15 @@ export function TeamFormationPanel({
   projectCompleted = false,
   teamFormationMode = "self",
   questionnaireWindowOpen = true,
+  teamAllocationInviteDueDate = null,
 }: Props) {
   const router = useRouter();
   const { canEdit: canEditTeamWorkspace, workspaceArchived } = useProjectWorkspaceCanEdit();
 
-  // Check if invitations should be disabled (after questionnaire deadline)
+  // Check if invitations should be disabled (after questionnaire deadline or invite deadline)
   const isQuestionnaireDeadlinePassed = !questionnaireWindowOpen;
-  const shouldDisableInvites = isQuestionnaireDeadlinePassed;
+  const isInviteDeadlinePassed = teamAllocationInviteDueDate ? new Date(teamAllocationInviteDueDate) <= new Date() : false;
+  const shouldDisableInvites = isQuestionnaireDeadlinePassed || isInviteDeadlinePassed;
 
   // Create team state
   const [teamName, setTeamName] = useState("");
@@ -270,6 +273,20 @@ export function TeamFormationPanel({
                 ? "Complete the allocation questionnaire to be assigned to a team. You'll be notified once your team is created."
                 : "Please wait for staff to add you to a team for this project."}
             </p>
+          </div>
+        </div>
+      );
+    }
+
+    // Self-organization mode and no team yet
+    // Check if the invite deadline has passed
+    if (isInviteDeadlinePassed) {
+      return (
+        <div className="team-formation">
+          <div className="team-formation__empty">
+            <span className="team-formation__empty-icon">👥</span>
+            <h3>Team invite deadline has passed</h3>
+            <p>Please wait for staff to add you to a team for this project.</p>
           </div>
         </div>
       );
