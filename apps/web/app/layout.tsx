@@ -39,8 +39,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body className={sfPro.className}>
+    <html lang="en" className={sfPro.className}>
+      <body>
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
