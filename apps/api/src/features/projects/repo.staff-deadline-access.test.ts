@@ -129,6 +129,7 @@ describe("projects repo staff and deadline access queries", () => {
       feedbackDueDate: "P-F",
       teamAllocationQuestionnaireOpenDate: null,
       teamAllocationQuestionnaireDueDate: null,
+      teamAllocationInviteDueDate: null,
       isOverridden: true,
       overrideScope: "TEAM",
       deadlineProfile: "STANDARD",
