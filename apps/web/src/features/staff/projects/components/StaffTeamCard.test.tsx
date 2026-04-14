@@ -80,6 +80,7 @@ describe("StaffTeamCard", () => {
     render(<StaffTeamCard team={buildTeam()} projectId={12} />);
 
     const dismissButton = screen.getByRole("button", { name: "Dismiss flag" });
+    fireEvent.keyDown(dismissButton, { key: "Enter" });
     fireEvent.click(dismissButton);
 
     expect(dismissTeamFlagMock).toHaveBeenCalledWith(42);
@@ -91,5 +92,27 @@ describe("StaffTeamCard", () => {
     });
 
     await waitFor(() => expect(screen.queryByText(/Inactive 14\+ days/)).not.toBeInTheDocument());
+  });
+
+  it("does not navigate for unrelated keys and renders yellow flag + initials fallback", () => {
+    const team = buildTeam({
+      inactivityFlag: "YELLOW",
+      trelloBoardId: "board_1",
+      allocations: [
+        {
+          userId: 10,
+          user: { firstName: "", lastName: "", email: "unknown@example.com", githubAccount: null },
+        },
+      ],
+    });
+    render(<StaffTeamCard team={team} projectId={55} />);
+
+    const card = screen.getByRole("link");
+    fireEvent.keyDown(card, { key: "Escape" });
+    expect(pushMock).not.toHaveBeenCalled();
+
+    expect(screen.getByText(/Inactive 7\+ days/)).toBeInTheDocument();
+    expect(screen.getByText("Trello")).toBeInTheDocument();
+    expect(screen.getByText("?")).toBeInTheDocument();
   });
 });
