@@ -61,8 +61,10 @@ export function NoTeamInviteDeadlinePassedView({
       <p className="text-sm font-medium text-gray-900">Team invite deadline has passed</p>
       <p className="text-sm text-gray-600">Please wait for staff to add you to a team for this project.</p>
       {teamAllocationInviteDueDate && (
-        <p className="text-xs text-gray-500">Deadline was {teamAllocationInviteDueDate}</p>
-      )}
+  <p className="text-xs text-gray-500">
+    Deadline was {new Date(teamAllocationInviteDueDate).toLocaleString()}
+  </p>
+)}
     </div>
   );
 }
