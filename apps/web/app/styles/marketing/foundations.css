@@ -47,6 +47,18 @@
   font-weight: var(--fw-semibold);
 }
 
+.marketing-shell .btn.btn--primary {
+  background: #fcfdff;
+  color: #0a0a0a;
+  border-color: #e2e8f0;
+}
+
+.marketing-shell .btn.btn--ghost,
+.marketing-shell .link-ghost {
+  color: #e2e8f0;
+  border-color: #e2e8f0;
+}
+
 .marketing-shell::before {
   content: "";
   position: absolute;
