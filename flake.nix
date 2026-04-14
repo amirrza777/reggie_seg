@@ -154,6 +154,7 @@
 
                 ensure_db() {
                   DB_URL_OVERRIDE=""
+                  LAST_FALLBACK_LOG_PATH=""
 
                   wait_for_mysql() {
                     local host="$1"
@@ -200,6 +201,23 @@
                     return 1
                   }
 
+                  fallback_mysql_runtime_dir() {
+                    local repo_root="$1"
+                    local state_root=""
+                    local repo_hash=""
+
+                    if [ -n "''${NIX_MYSQL_RUNTIME_DIR:-}" ]; then
+                      state_root="$NIX_MYSQL_RUNTIME_DIR"
+                    elif [ -n "''${XDG_STATE_HOME:-}" ]; then
+                      state_root="$XDG_STATE_HOME/reggie-seg"
+                    else
+                      state_root="$HOME/.local/state/reggie-seg"
+                    fi
+
+                    repo_hash="$(printf '%s' "$repo_root" | cksum | awk '{print $1}')"
+                    printf '%s/mysql-%s' "$state_root" "$repo_hash"
+                  }
+
                   start_docker_mysql() {
                     if ! compose up -d mysql; then
                       return 1
@@ -219,13 +237,15 @@
                   start_local_mysql_fallback() {
                     local repo_root
                     repo_root="$(pwd)"
-                    local base_dir="$repo_root/.nix/mysql"
+                    local base_dir
+                    base_dir="$(fallback_mysql_runtime_dir "$repo_root")"
                     local data_dir="$base_dir/data"
                     local socket_path="$base_dir/mysql.sock"
                     local pid_path="$base_dir/mysqld.pid"
                     local port_path="$base_dir/port"
                     local log_path="$base_dir/mysqld.log"
                     local fallback_port="$FALLBACK_DB_PORT"
+                    LAST_FALLBACK_LOG_PATH="$log_path"
 
                     mkdir -p "$base_dir"
 
@@ -299,6 +319,7 @@ SQL
 
                     set_database_url "$(fallback_database_url_for_port "$fallback_port")"
                     echo "Using local MySQL fallback database at $FALLBACK_DB_HOST:$fallback_port."
+                    echo "Fallback runtime directory: $base_dir"
                     return 0
                   }
 
@@ -325,7 +346,9 @@ SQL
 
                   if ! start_local_mysql_fallback; then
                     echo "❌ Unable to start MySQL via docker or local fallback. Aborting." >&2
-                    echo "Check .nix/mysql/mysqld.log for fallback details." >&2
+                    if [ -n "$LAST_FALLBACK_LOG_PATH" ]; then
+                      echo "Check $LAST_FALLBACK_LOG_PATH for fallback details." >&2
+                    fi
                     exit 1
                   fi
                 }
@@ -363,15 +386,6 @@ SQL
                     DATABASE_URL="$database_url" npm exec prisma generate
                     DATABASE_URL="$database_url" npm exec prisma migrate deploy
                   )
-                }
-
-                run_non_interactive_tests() {
-                  script_out="$(npm pkg get scripts.test:run 2>/dev/null || echo "{}")"
-                  if [ "$script_out" != "{}" ]; then
-                    npm run test:run
-                  else
-                    npm run test
-                  fi
                 }
 
                 ${body}
@@ -470,13 +484,29 @@ SQL
             fi
 
             if [ "$coverage_status" -ne 0 ]; then
-              if [ "$coverage_command_failed" -eq 1 ]; then
-                echo "⚠️ coverage command(s) failed, but reports were generated:"
-                echo "   - apps/api/coverage"
-                echo "   - apps/web/coverage"
-                exit 0
+              api_coverage_generated=0
+              web_coverage_generated=0
+              if [ -d apps/api/coverage ]; then
+                api_coverage_generated=1
               fi
-              echo "❌ tests entrypoint failed: coverage reports were not generated"
+              if [ -d apps/web/coverage ]; then
+                web_coverage_generated=1
+              fi
+
+              if [ "$coverage_command_failed" -eq 1 ]; then
+                echo "❌ coverage command(s) failed."
+                if [ "$api_coverage_generated" -eq 1 ] || [ "$web_coverage_generated" -eq 1 ]; then
+                  echo "Some coverage artifacts were still generated:"
+                  if [ "$api_coverage_generated" -eq 1 ]; then
+                    echo "   - apps/api/coverage"
+                  fi
+                  if [ "$web_coverage_generated" -eq 1 ]; then
+                    echo "   - apps/web/coverage"
+                  fi
+                fi
+              else
+                echo "❌ tests entrypoint failed: coverage reports were not generated"
+              fi
               exit 1
             fi
 
