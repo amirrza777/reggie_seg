@@ -4,7 +4,7 @@ import {
   getProjectQuestionnaireTemplateHandler,
   getQuestionsForProjectHandler,
   serviceMocks,
-} from "./controller.test.shared.js";
+} from "./controller.shared-test-helpers.js";
 
 describe("peerAssessment controller", () => {
   beforeEach(() => {
