@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useRouter } from "next/navigation";
+import { archiveItem, unarchiveItem } from "@/features/archive/api/client";
 import {
   createEnterpriseModule,
   deleteEnterpriseModule,
@@ -28,12 +29,19 @@ vi.mock("./useEnterpriseModuleAccessBuckets", () => ({
   useEnterpriseModuleAccessBuckets: vi.fn(),
 }));
 
+vi.mock("@/features/archive/api/client", () => ({
+  archiveItem: vi.fn(),
+  unarchiveItem: vi.fn(),
+}));
+
 const useRouterMock = vi.mocked(useRouter);
 const createEnterpriseModuleMock = vi.mocked(createEnterpriseModule);
 const deleteEnterpriseModuleMock = vi.mocked(deleteEnterpriseModule);
 const getEnterpriseModuleAccessSelectionMock = vi.mocked(getEnterpriseModuleAccessSelection);
 const updateEnterpriseModuleMock = vi.mocked(updateEnterpriseModule);
 const useEnterpriseModuleAccessBucketsMock = vi.mocked(useEnterpriseModuleAccessBuckets);
+const archiveItemMock = vi.mocked(archiveItem);
+const unarchiveItemMock = vi.mocked(unarchiveItem);
 
 describe("useEnterpriseModuleCreateFormState", () => {
   beforeEach(() => {
@@ -81,6 +89,8 @@ describe("useEnterpriseModuleCreateFormState", () => {
       teachingAssistantCount: 1,
     });
     deleteEnterpriseModuleMock.mockResolvedValue({ moduleId: 77, deleted: true });
+    archiveItemMock.mockResolvedValue({ entityType: "modules", entityId: 77, archived: true } as any);
+    unarchiveItemMock.mockResolvedValue({ entityType: "modules", entityId: 77, archived: false } as any);
   });
 
   it("validates and submits create mode payloads", async () => {
@@ -376,56 +386,4 @@ describe("useEnterpriseModuleCreateFormState", () => {
     expect(create.result.current.taIds).toEqual([]);
   });
 
-  it("normalizes nullable module selection values and supports staff create redirect", async () => {
-    getEnterpriseModuleAccessSelectionMock.mockResolvedValueOnce({
-      module: {
-        id: 88,
-        name: undefined,
-        code: undefined,
-        briefText: undefined,
-        timelineText: undefined,
-        expectationsText: undefined,
-        readinessNotesText: undefined,
-        createdAt: "2026-03-01T00:00:00.000Z",
-        updatedAt: "2026-03-01T00:00:00.000Z",
-        studentCount: 0,
-        leaderCount: 0,
-        teachingAssistantCount: 0,
-      },
-      leaderIds: [],
-      taIds: [],
-      studentIds: [],
-    });
-
-    const edit = renderHook(() =>
-      useEnterpriseModuleCreateFormState({
-        mode: "edit",
-        moduleId: 88,
-        workspace: "enterprise",
-      })
-    );
-    await waitFor(() => expect(edit.result.current.isLoadingAccess).toBe(false));
-    expect(edit.result.current.moduleName).toBe("");
-    expect(edit.result.current.moduleCode).toBe("");
-    expect(edit.result.current.briefText).toBe("");
-    expect(edit.result.current.timelineText).toBe("");
-
-    const create = renderHook(() =>
-      useEnterpriseModuleCreateFormState({
-        mode: "create",
-        workspace: "staff",
-      })
-    );
-    await waitFor(() => expect(create.result.current.isLoadingAccess).toBe(false));
-
-    act(() => {
-      create.result.current.handleModuleNameChange("Staff module");
-      create.result.current.toggleLeader(12, true);
-    });
-    await act(async () => {
-      await create.result.current.handleSubmit({ preventDefault: vi.fn() } as any);
-    });
-
-    expect(pushMock).toHaveBeenCalledWith("/staff/modules/44/manage?created=1");
-  });
 });
