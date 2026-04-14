@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
-import { getFeedbackReview } from "@/features/peerFeedback/api/client";
+import { getFeedbackReviewsForAssessments } from "@/features/peerFeedback/api/client";
 import {
   getPeerAssessmentsForUser,
   getPeerAssessmentsReceivedForUser,
@@ -16,7 +16,7 @@ vi.mock("@/features/staff/projects/lib/staffTeamContext", () => ({
 }));
 
 vi.mock("@/features/peerFeedback/api/client", () => ({
-  getFeedbackReview: vi.fn(),
+  getFeedbackReviewsForAssessments: vi.fn(),
 }));
 
 vi.mock("@/features/peerAssessment/api/client", () => ({
@@ -30,7 +30,7 @@ vi.mock("@/features/staff/projects/components/StaffPeerStudentAssessmentsPanel",
 }));
 
 const getStaffTeamContextMock = vi.mocked(getStaffTeamContext);
-const getFeedbackReviewMock = vi.mocked(getFeedbackReview);
+const getFeedbackReviewsForAssessmentsMock = vi.mocked(getFeedbackReviewsForAssessments);
 const getPeerAssessmentsForUserMock = vi.mocked(getPeerAssessmentsForUser);
 const getPeerAssessmentsReceivedForUserMock = vi.mocked(getPeerAssessmentsReceivedForUser);
 const getQuestionsByProjectMock = vi.mocked(getQuestionsByProject);
@@ -110,6 +110,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
     getPeerAssessmentsForUserMock.mockResolvedValue([
       {
         id: "a1",
+        teamId: 60,
         revieweeUserId: 201,
         firstName: "Peer",
         lastName: "One",
@@ -120,6 +121,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
     getPeerAssessmentsReceivedForUserMock.mockResolvedValue([
       {
         id: "r1",
+        teamId: 60,
         reviewerUserId: 301,
         firstName: "Reviewer",
         lastName: "A",
@@ -128,6 +130,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
       },
       {
         id: "r2",
+        teamId: 60,
         reviewerUserId: 302,
         firstName: "Reviewer",
         lastName: "B",
@@ -138,15 +141,12 @@ describe("StaffPeerAssessmentStudentPage", () => {
     getQuestionsByProjectMock.mockResolvedValue([
       { id: "q1", text: "Communication quality" },
     ] as Awaited<ReturnType<typeof getQuestionsByProject>>);
-    getFeedbackReviewMock.mockImplementation(async (assessmentId: string) => {
-      if (assessmentId === "r1") {
-        return {
-          reviewText: "Staff review",
-          agreementsJson: { q1: { selected: "Reasonable", score: 3 } },
-        } as Awaited<ReturnType<typeof getFeedbackReview>>;
-      }
-      throw new Error("missing review");
-    });
+    getFeedbackReviewsForAssessmentsMock.mockResolvedValue({
+      r1: {
+        reviewText: "Staff review",
+        agreementsJson: { q1: { selected: "Reasonable", score: 3 } },
+      },
+    } as Awaited<ReturnType<typeof getFeedbackReviewsForAssessments>>);
 
     const page = await StaffPeerAssessmentStudentPage({
       params: Promise.resolve({ projectId: "50", teamId: "60", studentId: "101" }),
@@ -156,6 +156,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
 
     expect(studentPanelMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        focusStudentName: "Alice Roe",
         questionLabels: { q1: "Communication quality" },
         expectedPeerReviews: 2,
         initialPeerFocus: { tab: "received", counterpartId: 301 },
@@ -229,6 +230,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
 
     expect(studentPanelMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        focusStudentName: "Student 999",
         questionLabels: {},
         expectedPeerReviews: 0,
       }),
@@ -256,7 +258,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
     expect(studentPanelMock).toHaveBeenCalled();
   });
 
-  it("continues when the optional feedback layer throws at Promise.all level", async () => {
+  it("continues when the optional feedback bulk fetch throws", async () => {
     const context = {
       ...successContext,
       team: {
@@ -266,25 +268,19 @@ describe("StaffPeerAssessmentStudentPage", () => {
     };
     getStaffTeamContextMock.mockResolvedValue(context);
     getPeerAssessmentsForUserMock.mockResolvedValue([] as Awaited<ReturnType<typeof getPeerAssessmentsForUser>>);
-
-    let idReads = 0;
-    const trickyAssessment = {
-      get id() {
-        idReads += 1;
-        if (idReads <= 2) throw new Error("id explosion");
-        return "safe-id";
-      },
-      reviewerUserId: 901,
-      firstName: "Reviewer",
-      lastName: "Edge",
-      submittedAt: "2026-04-04T10:00:00.000Z",
-      answers: {},
-    };
     getPeerAssessmentsReceivedForUserMock.mockResolvedValue([
-      trickyAssessment,
-    ] as unknown as Awaited<ReturnType<typeof getPeerAssessmentsReceivedForUser>>);
+      {
+        id: "edge-1",
+        teamId: 60,
+        reviewerUserId: 901,
+        firstName: "Reviewer",
+        lastName: "Edge",
+        submittedAt: "2026-04-04T10:00:00.000Z",
+        answers: {},
+      },
+    ] as Awaited<ReturnType<typeof getPeerAssessmentsReceivedForUser>>);
     getQuestionsByProjectMock.mockResolvedValue([] as Awaited<ReturnType<typeof getQuestionsByProject>>);
-    getFeedbackReviewMock.mockResolvedValue({ reviewText: null, agreementsJson: null } as Awaited<ReturnType<typeof getFeedbackReview>>);
+    getFeedbackReviewsForAssessmentsMock.mockRejectedValue(new Error("bulk reviews failed"));
 
     const page = await StaffPeerAssessmentStudentPage({
       params: Promise.resolve({ projectId: "50", teamId: "60", studentId: "101" }),
@@ -301,6 +297,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
     getPeerAssessmentsForUserMock.mockResolvedValue([
       {
         id: "g1",
+        teamId: 60,
         revieweeUserId: 777,
         firstName: "",
         lastName: "",
@@ -309,6 +306,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
       },
       {
         id: "g2",
+        teamId: 60,
         revieweeUserId: 777,
         firstName: "",
         lastName: "",
@@ -319,6 +317,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
     getPeerAssessmentsReceivedForUserMock.mockResolvedValue([
       {
         id: "r10",
+        teamId: 60,
         reviewerUserId: 888,
         firstName: "",
         lastName: "",
@@ -327,6 +326,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
       },
       {
         id: "r11",
+        teamId: 60,
         reviewerUserId: 888,
         firstName: "",
         lastName: "",
@@ -335,10 +335,10 @@ describe("StaffPeerAssessmentStudentPage", () => {
       },
     ] as Awaited<ReturnType<typeof getPeerAssessmentsReceivedForUser>>);
     getQuestionsByProjectMock.mockResolvedValue([] as Awaited<ReturnType<typeof getQuestionsByProject>>);
-    getFeedbackReviewMock.mockResolvedValue({
-      reviewText: undefined,
-      agreementsJson: undefined,
-    } as Awaited<ReturnType<typeof getFeedbackReview>>);
+    getFeedbackReviewsForAssessmentsMock.mockResolvedValue({
+      r10: { reviewText: null, agreementsJson: null },
+      r11: { reviewText: null, agreementsJson: null },
+    } as Awaited<ReturnType<typeof getFeedbackReviewsForAssessments>>);
 
     const page = await StaffPeerAssessmentStudentPage({
       params: Promise.resolve({ projectId: "50", teamId: "60", studentId: "101" }),

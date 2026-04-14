@@ -151,6 +151,7 @@ describe("peerAssessment repo", () => {
       where: {
         reviewerUserId: 4,
         projectId: 10,
+        questionnaireTemplate: { purpose: "PEER_ASSESSMENT" },
       },
       include: {
         reviewee: {
@@ -176,6 +177,7 @@ describe("peerAssessment repo", () => {
       where: {
         revieweeUserId: 5,
         projectId: 10,
+        questionnaireTemplate: { purpose: "PEER_ASSESSMENT" },
       },
       include: {
         reviewer: {

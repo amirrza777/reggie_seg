@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../../../shared/db.js";
+import { wherePeerAssessmentIsPeerReview } from "../../peerAssessment/peerAssessmentPurposeWhere.js";
 import { assertProjectMutableForWritesByProjectId } from "../../../shared/projectWriteGuard.js";
 import { assertTemplatePurpose } from "../repo/repo.project-write.js";
 import type { ProjectDeadlineInput } from "../repo/repo.types.js";
@@ -57,7 +58,7 @@ const MANAGE_SUMMARY_SELECT = {
     },
   },
   _count: {
-    select: { peerAssessments: true },
+    select: { peerAssessments: { where: wherePeerAssessmentIsPeerReview } },
   },
 } as const;
 
@@ -241,7 +242,7 @@ export async function patchStaffProjectManage(
   if (hasTemplate) {
     await assertProjectMutableForWritesByProjectId(scope.id);
     const submittedCount = await prisma.peerAssessment.count({
-      where: { projectId: scope.id },
+      where: { projectId: scope.id, ...wherePeerAssessmentIsPeerReview },
     });
     if (submittedCount > 0) {
       throw {

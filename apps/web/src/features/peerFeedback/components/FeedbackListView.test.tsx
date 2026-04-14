@@ -37,8 +37,9 @@ describe("FeedbackAssessmentView", () => {
 
     const { container } = render(<FeedbackAssessmentView feedbacks={feedbacks} projectId="1" />);
 
-    expect(screen.getByText("From: Dan Student")).toBeInTheDocument();
-    expect(screen.getByText("From: Alex User")).toBeInTheDocument();
+    expect(screen.getAllByText("From: Teammate")).toHaveLength(2);
+    expect(screen.queryByText(/Dan Student/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Alex User/)).not.toBeInTheDocument();
     expect(screen.getByText("Submitted")).toBeInTheDocument();
     expect(screen.getByText("Pending")).toBeInTheDocument();
     expect(screen.getByText("Review submitted - click to edit")).toBeInTheDocument();

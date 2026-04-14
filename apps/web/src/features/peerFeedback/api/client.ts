@@ -84,6 +84,39 @@ export async function getFeedbackReview(feedbackId: string) {
   };
 }
 
+export type NormalizedPeerFeedbackReview = {
+  reviewText: string | null;
+  agreementsJson: PeerFeedbackReview["agreementsJson"];
+};
+
+/** Loads normalised review payloads for many peer assessments in one request. */
+export async function getFeedbackReviewsForAssessments(
+  assessmentIds: string[],
+): Promise<Record<string, NormalizedPeerFeedbackReview>> {
+  const numeric = [
+    ...new Set(assessmentIds.map((id) => Number(id)).filter((n) => Number.isInteger(n) && n > 0)),
+  ];
+  if (numeric.length === 0) return {};
+
+  const response = await apiFetch<{ reviews: Record<string, PeerFeedbackReview> }>(
+    "/peer-feedback/feedback/reviews/by-assessments",
+    {
+      method: "POST",
+      body: JSON.stringify({ peerAssessmentIds: numeric }),
+    },
+  );
+  const raw = response.reviews ?? {};
+  return Object.fromEntries(
+    Object.entries(raw).map(([id, rev]) => [
+      id,
+      {
+        reviewText: rev?.reviewText ?? null,
+        agreementsJson: normalizeAgreementsJson(rev?.agreementsJson),
+      },
+    ]),
+  );
+}
+
 export async function getFeedbackReviewStatuses(feedbackIds: string[]) {
   if (feedbackIds.length === 0) return {};
 

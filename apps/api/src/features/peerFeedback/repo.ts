@@ -127,6 +127,21 @@ export function getPeerFeedbackByAssessmentIds(peerAssessmentIds: number[]) {
   });
 }
 
+/** Returns stored review rows for the given peer assessment ids (caller must enforce access). */
+export function listPeerFeedbackReviewsByPeerAssessmentIds(peerAssessmentIds: number[]) {
+  if (peerAssessmentIds.length === 0) {
+    return Promise.resolve([]);
+  }
+  return prisma.peerFeedback.findMany({
+    where: { peerAssessmentId: { in: peerAssessmentIds } },
+    select: {
+      peerAssessmentId: true,
+      reviewText: true,
+      agreementsJson: true,
+    },
+  });
+}
+
 /** Returns the peer assessment by ID. */
 export function getPeerAssessmentById(assessmentId: number) {
   return prisma.peerAssessment.findUnique({

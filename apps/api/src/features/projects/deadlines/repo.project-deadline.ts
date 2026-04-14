@@ -246,32 +246,32 @@ function mapUserProjectDeadline(context: UserTeamDeadlineContext) {
 export async function getUserProjectDeadline(userId: number, projectId: number) {
   const context = await findUserTeamDeadlineContext(userId, projectId);
   if (!context) {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: {
-      deadline: true,
-    },
-  });
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        deadline: true,
+      },
+    });
 
-  if (!project?.deadline) {
-    return null;
+    if (!project?.deadline) {
+      return null;
+    }
+
+    const d = project.deadline;
+
+    return {
+      taskOpenDate: d.taskOpenDate,
+      taskDueDate: d.taskDueDate,
+      assessmentOpenDate: d.assessmentOpenDate,
+      assessmentDueDate: d.assessmentDueDate,
+      feedbackOpenDate: d.feedbackOpenDate,
+      feedbackDueDate: d.feedbackDueDate,
+      teamAllocationQuestionnaireOpenDate: d.teamAllocationQuestionnaireOpenDate ?? null,
+      teamAllocationQuestionnaireDueDate: d.teamAllocationQuestionnaireDueDate ?? null,
+      isOverridden: false,
+      overrideScope: "NONE",
+      deadlineProfile: "STANDARD",
+    };
   }
-
-  const d = project.deadline;
-
-  return {
-    taskOpenDate: d.taskOpenDate,
-    taskDueDate: d.taskDueDate,
-    assessmentOpenDate: d.assessmentOpenDate,
-    assessmentDueDate: d.assessmentDueDate,
-    feedbackOpenDate: d.feedbackOpenDate,
-    feedbackDueDate: d.feedbackDueDate,
-    teamAllocationQuestionnaireOpenDate: d.teamAllocationQuestionnaireOpenDate ?? null,
-    teamAllocationQuestionnaireDueDate: d.teamAllocationQuestionnaireDueDate ?? null,
-    isOverridden: false,
-    overrideScope: "NONE",
-    deadlineProfile: "STANDARD",
-  };
-}
   return mapUserProjectDeadline(context);
 }

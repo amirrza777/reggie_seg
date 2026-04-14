@@ -1,13 +1,19 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
+import { getStaffTeamDeadline } from "@/features/projects/api/client";
+import { formatDate } from "@/shared/lib/formatDate";
 import { getTeamDetails, getStudentDetails } from "@/features/staff/peerAssessments/api/client";
+import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import StaffPeerAssessmentSectionPage from "./page";
 
 const peerGridMock = vi.fn(() => <div data-testid="peer-grid" />);
 
 vi.mock("@/features/staff/projects/lib/staffTeamContext", () => ({
   getStaffTeamContext: vi.fn(),
+}));
+
+vi.mock("@/features/projects/api/client", () => ({
+  getStaffTeamDeadline: vi.fn(),
 }));
 
 vi.mock("@/features/staff/peerAssessments/api/client", () => ({
@@ -20,6 +26,7 @@ vi.mock("@/features/staff/projects/components/StaffPeerMemberDualProgressGrid", 
 }));
 
 const getStaffTeamContextMock = vi.mocked(getStaffTeamContext);
+const getStaffTeamDeadlineMock = vi.mocked(getStaffTeamDeadline);
 const getTeamDetailsMock = vi.mocked(getTeamDetails);
 const getStudentDetailsMock = vi.mocked(getStudentDetails);
 
@@ -36,6 +43,7 @@ const successContext = {
 describe("StaffPeerAssessmentSectionPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getStaffTeamDeadlineMock.mockRejectedValue(new Error("deadline fetch skipped in test"));
   });
 
   it("returns null when context is not ok", async () => {
@@ -123,6 +131,7 @@ describe("StaffPeerAssessmentSectionPage", () => {
             givenExpected: 2,
             receivedSubmitted: 1,
             receivedExpected: 2,
+            deadline: undefined,
             href: "/staff/projects/50/teams/60/peer-assessment/101",
           },
           {
@@ -132,6 +141,7 @@ describe("StaffPeerAssessmentSectionPage", () => {
             givenExpected: 2,
             receivedSubmitted: 0,
             receivedExpected: 2,
+            deadline: undefined,
             href: "/staff/projects/50/teams/60/peer-assessment/102",
           },
           {
@@ -141,11 +151,125 @@ describe("StaffPeerAssessmentSectionPage", () => {
             givenExpected: 2,
             receivedSubmitted: 0,
             receivedExpected: 2,
+            deadline: undefined,
             href: undefined,
           },
         ],
       }),
     );
     expect(screen.getByTestId("peer-grid")).toBeInTheDocument();
+  });
+
+  it("includes team effective assessment deadline on grid items when deadline API succeeds", async () => {
+    getStaffTeamContextMock.mockResolvedValue(successContext);
+    getStaffTeamDeadlineMock.mockResolvedValue({
+      baseDeadline: {
+        taskOpenDate: null,
+        taskDueDate: null,
+        assessmentOpenDate: null,
+        assessmentDueDate: "2026-05-15T16:00:00.000Z",
+        feedbackOpenDate: null,
+        feedbackDueDate: null,
+        isOverridden: false,
+        deadlineProfile: "STANDARD",
+      },
+      effectiveDeadline: {
+        taskOpenDate: null,
+        taskDueDate: null,
+        assessmentOpenDate: null,
+        assessmentDueDate: "2026-05-15T16:00:00.000Z",
+        feedbackOpenDate: null,
+        feedbackDueDate: null,
+        isOverridden: false,
+        deadlineProfile: "STANDARD",
+      },
+      deadlineInputMode: null,
+      shiftDays: null,
+    });
+    getTeamDetailsMock.mockResolvedValue({
+      students: [{ id: 101, title: "Alice Roe", submitted: 0, expected: 1 }],
+    } as Awaited<ReturnType<typeof getTeamDetails>>);
+    getStudentDetailsMock.mockResolvedValue({
+      teamMembers: [
+        { id: 101, reviewedCurrentStudent: false },
+        { id: 201, reviewedCurrentStudent: false },
+      ],
+    } as Awaited<ReturnType<typeof getStudentDetails>>);
+
+    const page = await StaffPeerAssessmentSectionPage({
+      params: Promise.resolve({ projectId: "50", teamId: "60" }),
+    });
+    render(page);
+
+    expect(peerGridMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [
+          expect.objectContaining({
+            id: 101,
+            deadline: {
+              dateLabel: formatDate("2026-05-15T16:00:00.000Z"),
+              profile: "STANDARD",
+            },
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("marks deadline display as MCF when effective profile is MCF", async () => {
+    getStaffTeamContextMock.mockResolvedValue(successContext);
+    getStaffTeamDeadlineMock.mockResolvedValue({
+      baseDeadline: {
+        taskOpenDate: null,
+        taskDueDate: null,
+        assessmentOpenDate: null,
+        assessmentDueDate: "2026-05-20T12:00:00.000Z",
+        assessmentDueDateMcf: "2026-05-27T12:00:00.000Z",
+        feedbackOpenDate: null,
+        feedbackDueDate: null,
+        isOverridden: false,
+        deadlineProfile: "MCF",
+      },
+      effectiveDeadline: {
+        taskOpenDate: null,
+        taskDueDate: null,
+        assessmentOpenDate: null,
+        assessmentDueDate: "2026-05-20T12:00:00.000Z",
+        assessmentDueDateMcf: "2026-05-27T12:00:00.000Z",
+        feedbackOpenDate: null,
+        feedbackDueDate: null,
+        isOverridden: false,
+        deadlineProfile: "MCF",
+      },
+      deadlineInputMode: null,
+      shiftDays: null,
+    });
+    getTeamDetailsMock.mockResolvedValue({
+      students: [{ id: 101, title: "Alice Roe", submitted: 0, expected: 1 }],
+    } as Awaited<ReturnType<typeof getTeamDetails>>);
+    getStudentDetailsMock.mockResolvedValue({
+      teamMembers: [
+        { id: 101, reviewedCurrentStudent: false },
+        { id: 201, reviewedCurrentStudent: false },
+      ],
+    } as Awaited<ReturnType<typeof getStudentDetails>>);
+
+    const page = await StaffPeerAssessmentSectionPage({
+      params: Promise.resolve({ projectId: "50", teamId: "60" }),
+    });
+    render(page);
+
+    expect(peerGridMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [
+          expect.objectContaining({
+            deadline: {
+              dateLabel: formatDate("2026-05-20T12:00:00.000Z"),
+              profile: "MCF",
+            },
+          }),
+        ],
+      }),
+    );
   });
 });

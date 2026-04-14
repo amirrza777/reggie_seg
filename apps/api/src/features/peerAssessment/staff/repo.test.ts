@@ -191,7 +191,13 @@ describe("peerAssessment staff repo", () => {
       mocks.prisma.peerAssessment.findMany.mockResolvedValue([]);
       await findAssessmentsForRevieweeInTeam(5, 3);
       expect(mocks.prisma.peerAssessment.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { teamId: 5, revieweeUserId: 3 } }),
+        expect.objectContaining({
+          where: expect.objectContaining({
+            teamId: 5,
+            revieweeUserId: 3,
+            questionnaireTemplate: { purpose: "PEER_ASSESSMENT" },
+          }),
+        }),
       );
     });
   });

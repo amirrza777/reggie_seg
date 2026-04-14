@@ -11,6 +11,7 @@ import {
   findTemplateWithQuestions,
   getTeamWithAssessments,
 } from "./repo.js";
+import { wherePeerAssessmentIsPeerReview } from "../peerAssessmentPurposeWhere.js";
 import { prisma } from "../../../shared/db.js";
 
 vi.mock("../../../shared/db.js", () => ({
@@ -46,7 +47,9 @@ describe("peerAssessment/staff repo progress/read helpers", () => {
     expect(prisma.userModule.count).toHaveBeenCalledWith({ where: { moduleId: 5 } });
 
     await countSubmittedPAsForModule(5);
-    expect(prisma.peerAssessment.count).toHaveBeenCalledWith({ where: { project: { moduleId: 5 } } });
+    expect(prisma.peerAssessment.count).toHaveBeenCalledWith({
+      where: { project: { moduleId: 5 }, ...wherePeerAssessmentIsPeerReview },
+    });
 
     await findTeamsInModule(7);
     expect(prisma.team.findMany).toHaveBeenCalledWith({
@@ -58,7 +61,9 @@ describe("peerAssessment/staff repo progress/read helpers", () => {
     expect(prisma.teamAllocation.count).toHaveBeenCalledWith({ where: { teamId: 8 } });
 
     await countSubmittedPAsForTeam(8);
-    expect(prisma.peerAssessment.count).toHaveBeenCalledWith({ where: { teamId: 8 } });
+    expect(prisma.peerAssessment.count).toHaveBeenCalledWith({
+      where: { teamId: 8, ...wherePeerAssessmentIsPeerReview },
+    });
   });
 
   it("findTeamByIdAndModule queries team constrained by module", async () => {
@@ -96,7 +101,7 @@ describe("peerAssessment/staff repo progress/read helpers", () => {
     const result = await getTeamWithAssessments(6);
 
     expect(prisma.peerAssessment.findMany).toHaveBeenCalledWith({
-      where: { teamId: 6 },
+      where: { teamId: 6, ...wherePeerAssessmentIsPeerReview },
       select: { reviewerUserId: true, revieweeUserId: true },
     });
     expect(result).toEqual({
@@ -108,7 +113,7 @@ describe("peerAssessment/staff repo progress/read helpers", () => {
   it("findAssessmentsForRevieweeInTeam queries selected reviewer fields", async () => {
     await findAssessmentsForRevieweeInTeam(5, 20);
     expect(prisma.peerAssessment.findMany).toHaveBeenCalledWith({
-      where: { teamId: 5, revieweeUserId: 20 },
+      where: { teamId: 5, revieweeUserId: 20, ...wherePeerAssessmentIsPeerReview },
       select: {
         id: true,
         reviewerUserId: true,

@@ -65,6 +65,12 @@ describe("FeedbackReviewForm", () => {
     submitPeerFeedbackMock.mockResolvedValue({ ok: true } as any);
   });
 
+  it("does not show the reviewer real name in the intro (anonymous Teammate label)", () => {
+    render(<FeedbackReviewForm feedback={makeFeedback()} currentUserId="4" />);
+    expect(screen.getByText(/Share your thoughts about this feedback from Teammate/)).toBeInTheDocument();
+    expect(screen.queryByText(/Dan Student/)).not.toBeInTheDocument();
+  });
+
   it("shows validation message if review text is empty", async () => {
     render(<FeedbackReviewForm feedback={makeFeedback()} currentUserId="4" />);
 

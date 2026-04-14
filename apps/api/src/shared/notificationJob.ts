@@ -1,7 +1,8 @@
 import cron from "node-cron";
+import { wherePeerAssessmentIsPeerReview } from "../features/peerAssessment/peerAssessmentPurposeWhere.js";
+import { evaluateProjectWarningsForAllProjects } from "../features/warnings/service.js";
 import { prisma } from "./db.js";
 import { sendEmail } from "./email.js";
-import { evaluateProjectWarningsForAllProjects } from "../features/warnings/service.js";
 
 type DeadlineWindow = { label: string; offsetDays: number };
 
@@ -212,7 +213,10 @@ export async function sendMissingPeerAssessmentAlerts() {
       allocations: {
         select: { user: { select: { id: true, firstName: true, lastName: true } } },
       },
-      peerAssessments: { select: { reviewerUserId: true } },
+      peerAssessments: {
+        where: wherePeerAssessmentIsPeerReview,
+        select: { reviewerUserId: true },
+      },
     },
   });
 

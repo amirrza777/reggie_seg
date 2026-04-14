@@ -125,10 +125,13 @@ export async function canStaffAccessTeamInProject(userId: number, projectId: num
 type DeadlineSnapshot = {
   taskOpenDate: Date | null;
   taskDueDate: Date | null;
+  taskDueDateMcf: Date | null;
   assessmentOpenDate: Date | null;
   assessmentDueDate: Date | null;
+  assessmentDueDateMcf: Date | null;
   feedbackOpenDate: Date | null;
   feedbackDueDate: Date | null;
+  feedbackDueDateMcf: Date | null;
   isOverridden: boolean;
 };
 
@@ -230,10 +233,13 @@ function mergeDeadlinesForTeam(
   projectDeadline: {
     taskOpenDate: Date;
     taskDueDate: Date;
+    taskDueDateMcf?: Date | null;
     assessmentOpenDate: Date;
     assessmentDueDate: Date;
+    assessmentDueDateMcf?: Date | null;
     feedbackOpenDate: Date;
     feedbackDueDate: Date;
+    feedbackDueDateMcf?: Date | null;
   } | null,
   teamOverride: {
     taskOpenDate: Date | null;
@@ -242,19 +248,34 @@ function mergeDeadlinesForTeam(
     assessmentDueDate: Date | null;
     feedbackOpenDate: Date | null;
     feedbackDueDate: Date | null;
-  } | null
+  } | null,
 ): DeadlineSnapshot | null {
   if (!projectDeadline) return null;
   return {
     taskOpenDate: teamOverride?.taskOpenDate ?? projectDeadline.taskOpenDate,
     taskDueDate: teamOverride?.taskDueDate ?? projectDeadline.taskDueDate,
+    taskDueDateMcf: projectDeadline.taskDueDateMcf ?? null,
     assessmentOpenDate: teamOverride?.assessmentOpenDate ?? projectDeadline.assessmentOpenDate,
     assessmentDueDate: teamOverride?.assessmentDueDate ?? projectDeadline.assessmentDueDate,
+    assessmentDueDateMcf: projectDeadline.assessmentDueDateMcf ?? null,
     feedbackOpenDate: teamOverride?.feedbackOpenDate ?? projectDeadline.feedbackOpenDate,
     feedbackDueDate: teamOverride?.feedbackDueDate ?? projectDeadline.feedbackDueDate,
+    feedbackDueDateMcf: projectDeadline.feedbackDueDateMcf ?? null,
     isOverridden: Boolean(teamOverride),
   };
 }
+
+const PROJECT_DEADLINE_MERGE_SELECT = {
+  taskOpenDate: true,
+  taskDueDate: true,
+  taskDueDateMcf: true,
+  assessmentOpenDate: true,
+  assessmentDueDate: true,
+  assessmentDueDateMcf: true,
+  feedbackOpenDate: true,
+  feedbackDueDate: true,
+  feedbackDueDateMcf: true,
+} as const;
 
 export async function getTeamCurrentDeadlineInProject(projectId: number, teamId: number) {
   const team = await prisma.team.findFirst({
@@ -263,14 +284,7 @@ export async function getTeamCurrentDeadlineInProject(projectId: number, teamId:
       project: {
         select: {
           deadline: {
-            select: {
-              taskOpenDate: true,
-              taskDueDate: true,
-              assessmentOpenDate: true,
-              assessmentDueDate: true,
-              feedbackOpenDate: true,
-              feedbackDueDate: true,
-            },
+            select: PROJECT_DEADLINE_MERGE_SELECT,
           },
         },
       },
@@ -294,17 +308,11 @@ export async function getTeamDeadlineDetailsInProject(projectId: number, teamId:
   const team = await prisma.team.findFirst({
     where: { id: teamId, projectId },
     select: {
+      deadlineProfile: true,
       project: {
         select: {
           deadline: {
-            select: {
-              taskOpenDate: true,
-              taskDueDate: true,
-              assessmentOpenDate: true,
-              assessmentDueDate: true,
-              feedbackOpenDate: true,
-              feedbackDueDate: true,
-            },
+            select: PROJECT_DEADLINE_MERGE_SELECT,
           },
         },
       },
@@ -323,18 +331,26 @@ export async function getTeamDeadlineDetailsInProject(projectId: number, teamId:
   });
   if (!team?.project.deadline) return null;
 
-  const effectiveDeadline = mergeDeadlinesForTeam(team.project.deadline, team.deadlineOverride);
+  const merged = mergeDeadlinesForTeam(team.project.deadline, team.deadlineOverride);
+  if (!merged) return null;
+
+  const profile = team.deadlineProfile === "MCF" ? "MCF" : "STANDARD";
+  const effectiveDeadline = { ...merged, deadlineProfile: profile };
 
   const metadata = parseDeadlineOverrideMetadata(team.deadlineOverride?.reason);
   return {
     baseDeadline: {
       taskOpenDate: team.project.deadline.taskOpenDate,
       taskDueDate: team.project.deadline.taskDueDate,
+      taskDueDateMcf: team.project.deadline.taskDueDateMcf ?? null,
       assessmentOpenDate: team.project.deadline.assessmentOpenDate,
       assessmentDueDate: team.project.deadline.assessmentDueDate,
+      assessmentDueDateMcf: team.project.deadline.assessmentDueDateMcf ?? null,
       feedbackOpenDate: team.project.deadline.feedbackOpenDate,
       feedbackDueDate: team.project.deadline.feedbackDueDate,
+      feedbackDueDateMcf: team.project.deadline.feedbackDueDateMcf ?? null,
       isOverridden: false,
+      deadlineProfile: profile,
     },
     effectiveDeadline,
     deadlineInputMode: metadata?.inputMode ?? null,
@@ -422,12 +438,7 @@ export async function resolveTeamHealthMessageWithDeadlineOverride(
             deadline: {
               select: {
                 id: true,
-                taskOpenDate: true,
-                taskDueDate: true,
-                assessmentOpenDate: true,
-                assessmentDueDate: true,
-                feedbackOpenDate: true,
-                feedbackDueDate: true,
+                ...PROJECT_DEADLINE_MERGE_SELECT,
               },
             },
           },

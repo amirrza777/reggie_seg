@@ -1,0 +1,35 @@
+.agreementTrafficPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: var(--fs-fixed-0-72rem, 0.72rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+
+.agreementTrafficPill--low {
+  color: var(--status-danger-text);
+  background: var(--status-danger-soft);
+  border-color: var(--status-danger-border);
+}
+
+.agreementTrafficPill--mid {
+  color: var(--status-warning-text);
+  background: var(--status-warning-soft);
+  border-color: var(--status-warning-border);
+}
+
+.agreementTrafficPill--high {
+  color: var(--status-success-text);
+  background: var(--status-success-soft);
+  border-color: var(--status-success-border);
+}
