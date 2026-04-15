@@ -9,6 +9,7 @@ import { clearPendingSignup, readPendingSignup } from "@/features/auth/pendingSi
 
 type EnterCodeStatus = "idle" | "loading" | "success" | "error";
 type EnterpriseCodeFormMode = "join" | "signup";
+const RESERVED_ENTERPRISE_CODES = new Set(["DEFAULT", "UNASSIGNED"]);
 
 function StatusMessage({ status, message }: { status: EnterCodeStatus; message: string | null }) {
   if (!message) {
@@ -43,6 +44,11 @@ export function GoogleEnterpriseCodeForm({ mode = "join" }: { mode?: EnterpriseC
     setMessage(null);
     try {
       const enterpriseCode = code.trim().toUpperCase();
+      if (RESERVED_ENTERPRISE_CODES.has(enterpriseCode)) {
+        setStatus("error");
+        setMessage("Please enter the enterprise code provided by your organisation.");
+        return;
+      }
       if (mode === "signup") {
         const pendingSignup = readPendingSignup();
         if (!pendingSignup) {

@@ -100,3 +100,13 @@ it("falls back to generic ApiError message when empty", async () => {
   enterCodeAndSubmit("ENT2");
   await waitFor(() => expect(screen.getByText("Something went wrong. Please try again.")).toBeInTheDocument());
 });
+
+it("rejects reserved enterprise codes before API call", async () => {
+  render(<GoogleEnterpriseCodeForm />);
+  enterCodeAndSubmit("default");
+  await waitFor(() =>
+    expect(screen.getByText("Please enter the enterprise code provided by your organisation.")).toBeInTheDocument(),
+  );
+  expect(joinEnterpriseByCodeMock).not.toHaveBeenCalled();
+  expect(signupMock).not.toHaveBeenCalled();
+});
