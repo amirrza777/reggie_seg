@@ -31,7 +31,6 @@ const USER_PROJECT_DEADLINE_SELECT = {
               feedbackDueDateMcf: true,
               teamAllocationQuestionnaireOpenDate: true,
               teamAllocationQuestionnaireDueDate: true,
-              teamAllocationInviteDueDate: true,
               studentOverrides: {
                 take: 1,
                 select: {
@@ -238,7 +237,6 @@ function mapUserProjectDeadline(context: UserTeamDeadlineContext) {
     ...feedbackDates,
     teamAllocationQuestionnaireOpenDate: projectDeadline?.teamAllocationQuestionnaireOpenDate ?? null,
     teamAllocationQuestionnaireDueDate: projectDeadline?.teamAllocationQuestionnaireDueDate ?? null,
-    teamAllocationInviteDueDate: projectDeadline?.teamAllocationInviteDueDate ?? null,
     isOverridden: hasStudentOverride || hasTeamOverride,
     overrideScope: resolveOverrideScope(hasStudentOverride, hasTeamOverride),
     deadlineProfile: context.team.deadlineProfile,
@@ -270,7 +268,6 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
       feedbackDueDate: d.feedbackDueDate,
       teamAllocationQuestionnaireOpenDate: d.teamAllocationQuestionnaireOpenDate ?? null,
       teamAllocationQuestionnaireDueDate: d.teamAllocationQuestionnaireDueDate ?? null,
-      teamAllocationInviteDueDate: d.teamAllocationInviteDueDate ?? null,
       isOverridden: false,
       overrideScope: "NONE",
       deadlineProfile: "STANDARD",

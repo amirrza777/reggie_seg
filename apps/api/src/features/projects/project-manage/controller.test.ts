@@ -28,6 +28,7 @@ const manageRow = {
   moduleId: 5,
   informationText: null,
   questionnaireTemplateId: 10,
+  teamAllocationQuestionnaireTemplateId: null as number | null,
   questionnaireTemplate: { id: 10, templateName: "Peer form" },
   projectStudents: [] as { userId: number }[],
   module: {

@@ -220,6 +220,7 @@ describe("EnterpriseManagementTable", () => {
     const user = userEvent.setup();
     render(<EnterpriseManagementTable isSuperAdmin />);
     await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+    await screen.findByText("King's College London");
     await user.click(screen.getByRole("button", { name: /manage accounts/i }));
     await waitFor(() =>
       expect(searchEnterpriseUsersMock).toHaveBeenCalledWith("ent_1", { q: undefined, page: 1, pageSize: 10 }),
@@ -237,6 +238,7 @@ describe("EnterpriseManagementTable", () => {
     const user = userEvent.setup();
     render(<EnterpriseManagementTable isSuperAdmin />);
     await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+    await screen.findByText("King's College London");
     await user.click(screen.getByRole("button", { name: /manage accounts/i }));
 
     await waitFor(() =>
@@ -286,6 +288,7 @@ describe("EnterpriseManagementTable", () => {
     const user = userEvent.setup();
     render(<EnterpriseManagementTable isSuperAdmin />);
     await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+    await screen.findByText("King's College London");
 
     await user.click(screen.getByRole("button", { name: /^Delete$/i }));
     expect(screen.getByRole("dialog", { name: /delete enterprise/i })).toBeInTheDocument();
@@ -316,6 +319,8 @@ describe("EnterpriseManagementTable", () => {
 
     render(<EnterpriseManagementTable isSuperAdmin />);
     await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+    await screen.findByText("King's College London");
+
     await user.click(screen.getByRole("button", { name: /manage accounts/i }));
 
     await waitFor(() =>

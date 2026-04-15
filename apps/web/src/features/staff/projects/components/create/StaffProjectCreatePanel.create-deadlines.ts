@@ -4,7 +4,6 @@ import type { DeadlineState } from "./StaffProjectCreatePanel.deadlines";
 export type CreateProjectDeadlineState = DeadlineState & {
   teamAllocationQuestionnaireOpenDate: string;
   teamAllocationQuestionnaireDueDate: string;
-  teamAllocationInviteDueDate: string;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -25,7 +24,6 @@ export function buildDefaultCreateProjectDeadlineState(): CreateProjectDeadlineS
   const feedbackDue = new Date(feedbackOpen.getTime() + 4 * 24 * 60 * 60 * 1000);
   const questionnaireDue = new Date(taskOpen.getTime() - DAY_MS);
   const questionnaireOpen = new Date(taskOpen.getTime() - 8 * DAY_MS);
-  const inviteDue = new Date(taskOpen.getTime());
   return {
     taskOpenDate: toLocalDateTimeInputValue(taskOpen),
     taskDueDate: toLocalDateTimeInputValue(taskDue),
@@ -38,7 +36,6 @@ export function buildDefaultCreateProjectDeadlineState(): CreateProjectDeadlineS
     feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDue.getTime() + 7 * DAY_MS)),
     teamAllocationQuestionnaireOpenDate: toLocalDateTimeInputValue(questionnaireOpen),
     teamAllocationQuestionnaireDueDate: toLocalDateTimeInputValue(questionnaireDue),
-    teamAllocationInviteDueDate: toLocalDateTimeInputValue(inviteDue),
   };
 }
 
@@ -65,7 +62,6 @@ export function buildPresetCreateProjectDeadlineState(totalWeeks: number): Creat
     feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDue.getTime() + 7 * DAY_MS)),
     teamAllocationQuestionnaireOpenDate: toLocalDateTimeInputValue(questionnaireOpen),
     teamAllocationQuestionnaireDueDate: toLocalDateTimeInputValue(questionnaireDue),
-    teamAllocationInviteDueDate: "",
   };
 }
 
@@ -106,10 +102,8 @@ export function shiftCreateProjectDeadlineForCustomAllocation(
   if (shiftedTaskOpen) {
     const questionnaireDue = new Date(shiftedTaskOpen.getTime() - DAY_MS);
     const questionnaireOpen = new Date(shiftedTaskOpen.getTime() - 6 * DAY_MS);
-    const inviteDue = new Date(shiftedTaskOpen.getTime());
     next.teamAllocationQuestionnaireOpenDate = toLocalDateTimeInputValue(questionnaireOpen);
     next.teamAllocationQuestionnaireDueDate = toLocalDateTimeInputValue(questionnaireDue);
-    next.teamAllocationInviteDueDate = toLocalDateTimeInputValue(inviteDue);
   }
 
   return next;

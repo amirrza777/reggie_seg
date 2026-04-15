@@ -53,7 +53,6 @@ const CREATED_PROJECT_SELECT = {
       feedbackDueDateMcf: true,
       teamAllocationQuestionnaireOpenDate: true,
       teamAllocationQuestionnaireDueDate: true,
-      teamAllocationInviteDueDate: true,
     },
   },
 } as const;
@@ -197,7 +196,6 @@ function projectDeadlineCreateInput(deadline: ProjectDeadlineInput) {
     feedbackDueDateMcf: deadline.feedbackDueDateMcf,
     teamAllocationQuestionnaireOpenDate: deadline.teamAllocationQuestionnaireOpenDate ?? null,
     teamAllocationQuestionnaireDueDate: deadline.teamAllocationQuestionnaireDueDate ?? null,
-    teamAllocationInviteDueDate: deadline.teamAllocationInviteDueDate ?? null,
   };
 }
 

@@ -4,7 +4,7 @@ import localFont from "next/font/local";
 import RootLayout, { metadata, viewport } from "./layout";
 
 vi.mock("next/font/local", () => ({
-  default: vi.fn(() => ({ className: "font-sf" })),
+  default: vi.fn(() => ({ className: "font-sf", variable: "font-sf" })),
 }));
 
 vi.mock("./providers", () => ({
@@ -26,10 +26,11 @@ describe("RootLayout", () => {
     expect(localFontMock).toHaveBeenCalledTimes(1);
     expect(tree.type).toBe("html");
     expect(tree.props.lang).toBe("en");
+    expect(tree.props.className).toBe("font-sf");
 
     const body = tree.props.children as ReactElement;
     expect(body.type).toBe("body");
-    expect(body.props.className).toBe("font-sf");
+    expect(body.props.className).toBeUndefined();
 
     const providers = body.props.children as ReactElement;
     expect(typeof providers.type).toBe("function");

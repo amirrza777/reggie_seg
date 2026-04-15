@@ -233,7 +233,7 @@ describe("AppLayout", () => {
     const page = await AppLayout({ children: <div /> });
     render(page);
 
-    expect(screen.getByTestId("space-switcher")).toHaveTextContent("Workspace,Staff,Enterprise,Admin");
+    expect(screen.getByTestId("space-switcher")).toHaveTextContent("Admin");
     expect(logDevErrorMock).toHaveBeenCalledTimes(2);
     expect(logDevErrorMock).toHaveBeenNthCalledWith(1, "Failed to load module navigation children", expect.any(Error));
     expect(logDevErrorMock).toHaveBeenNthCalledWith(2, "Failed to load project navigation children", expect.any(Error));

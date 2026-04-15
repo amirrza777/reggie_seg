@@ -59,7 +59,6 @@ export default async function DeadlinesPage({ params }: DeadlinesPageProps) {
     feedbackDueDate: null,
     teamAllocationQuestionnaireOpenDate: null,
     teamAllocationQuestionnaireDueDate: null,
-    teamAllocationInviteDueDate: null,
     isOverridden: false,
   };
   try {

@@ -33,6 +33,6 @@ describe("ResetPasswordForm", () => {
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "superpass" } });
     fireEvent.click(screen.getByRole("button", { name: /reset password/i }));
     await waitFor(() => expect(resetMock).toHaveBeenCalledWith({ token: "abc123", newPassword: "superpass" }));
-    expect(screen.getByText(/password has been updated/i)).toBeInTheDocument();
+    expect(await screen.findByText(/password has been updated/i)).toBeInTheDocument();
   });
 });

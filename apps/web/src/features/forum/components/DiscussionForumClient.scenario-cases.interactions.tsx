@@ -163,8 +163,10 @@ describe("DiscussionForumClient", () => {
       expect(reactToDiscussionPostMock).toHaveBeenCalledWith(1, 9, 202, "LIKE");
     });
 
-    const firstReplyBody = screen.getAllByText(/scored reply$/i)[0];
-    expect(firstReplyBody).toHaveTextContent("Lower scored reply");
+    await waitFor(() => {
+      const firstReplyBody = screen.getAllByText(/scored reply$/i)[0];
+      expect(firstReplyBody).toHaveTextContent("Lower scored reply");
+    });
   });
 
   it("expands the replied thread and shows a newly posted reply", async () => {

@@ -57,9 +57,6 @@ export async function createTeamInviteHandler(req: AuthRequest, res: Response) {
     if (error?.code === "INVITEE_NOT_ELIGIBLE_FOR_PROJECT") {
       return res.status(400).json({ error: "Only students assigned to this module can be invited" });
     }
-    if (error?.code === "TEAM_INVITE_DEADLINE_PASSED") {
-      return res.status(409).json({ error: "The deadline for sending team invites has passed" });
-    }
     console.error("Error creating team invite:", error);
     return res.status(500).json({ error: "Internal server error" });
   }

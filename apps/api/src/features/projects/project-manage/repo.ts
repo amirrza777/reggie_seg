@@ -14,6 +14,7 @@ const MANAGE_SUMMARY_SELECT = {
   moduleId: true,
   informationText: true,
   questionnaireTemplateId: true,
+  teamAllocationQuestionnaireTemplateId: true,
   questionnaireTemplate: {
     select: { id: true, templateName: true },
   },
@@ -55,7 +56,6 @@ const MANAGE_SUMMARY_SELECT = {
       feedbackDueDateMcf: true,
       teamAllocationQuestionnaireOpenDate: true,
       teamAllocationQuestionnaireDueDate: true,
-      teamAllocationInviteDueDate: true,
     },
   },
   _count: {
@@ -216,7 +216,6 @@ function projectDeadlineUpdateData(deadline: ProjectDeadlineInput): Prisma.Proje
     feedbackDueDateMcf: deadline.feedbackDueDateMcf,
     teamAllocationQuestionnaireOpenDate: deadline.teamAllocationQuestionnaireOpenDate ?? null,
     teamAllocationQuestionnaireDueDate: deadline.teamAllocationQuestionnaireDueDate ?? null,
-    teamAllocationInviteDueDate: deadline.teamAllocationInviteDueDate ?? null,
   };
 }
 

@@ -139,7 +139,7 @@ describe("StaffProjectPeerAssessmentsPage", () => {
     expect(screen.getByRole("button", { name: "Change template" })).toBeDisabled();
     expect(screen.getByText("Locked after peer assessments have been submitted.")).toBeInTheDocument();
     expect(screen.getByTestId("progress-grid")).toHaveAttribute("data-first-href", "/staff/projects/22/teams/58/peer-assessment");
-    expect(getStaffTeamDeadlineMock).toHaveBeenCalledWith(11, 22, 58);
+    expect(getStaffTeamDeadlineMock).toHaveBeenCalledWith(99, 22, 58);
     expect(buildDeadlineDisplayMock).toHaveBeenCalled();
   });
 
@@ -171,7 +171,7 @@ describe("StaffProjectPeerAssessmentsPage", () => {
     );
     expect(screen.getByTestId("progress-grid")).toHaveAttribute("data-first-href", "");
     expect(screen.getByTestId("progress-grid")).toHaveAttribute("data-count", "2");
-    expect(getStaffTeamDeadlineMock).toHaveBeenNthCalledWith(1, 11, 22, null);
-    expect(getStaffTeamDeadlineMock).toHaveBeenNthCalledWith(2, 11, 22, 40);
+    expect(getStaffTeamDeadlineMock).toHaveBeenNthCalledWith(1, 99, 22, null);
+    expect(getStaffTeamDeadlineMock).toHaveBeenNthCalledWith(2, 99, 22, 40);
   });
 });

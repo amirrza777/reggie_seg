@@ -88,6 +88,7 @@ export function mapStaffProjectManageRowToJson(row: StaffProjectManageSummaryRow
     informationText: row.informationText,
     moduleArchivedAt: row.module.archivedAt ? new Date(row.module.archivedAt).toISOString() : null,
     questionnaireTemplateId: row.questionnaireTemplateId,
+    teamAllocationQuestionnaireTemplateId: row.teamAllocationQuestionnaireTemplateId ?? null,
     questionnaireTemplate: row.questionnaireTemplate
       ? { id: row.questionnaireTemplate.id, templateName: row.questionnaireTemplate.templateName }
       : null,
@@ -104,7 +105,6 @@ export function mapStaffProjectManageRowToJson(row: StaffProjectManageSummaryRow
           feedbackDueDateMcf: iso(dl.feedbackDueDateMcf),
           teamAllocationQuestionnaireOpenDate: iso(dl.teamAllocationQuestionnaireOpenDate),
           teamAllocationQuestionnaireDueDate: iso(dl.teamAllocationQuestionnaireDueDate),
-          teamAllocationInviteDueDate: iso(dl.teamAllocationInviteDueDate),
         }
       : null,
     hasSubmittedPeerAssessments: row._count.peerAssessments > 0,
