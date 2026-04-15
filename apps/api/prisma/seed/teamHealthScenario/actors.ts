@@ -25,7 +25,7 @@ export async function resolveScenarioActors(context: SeedContext) {
     (user) => user.role === "STUDENT" && user.email.toLowerCase() === seedAssessmentStudentEmail,
   )?.id;
   const scenarioStudents = context.usersByRole.students.slice(-4);
-  const fallbackRequester = assessmentStudentId ?? scenarioStudents[0]?.id ?? context.usersByRole.students[0]?.id ?? null;
+  const fallbackRequester = assessmentStudentId ?? scenarioStudents[0]?.id ?? null;
   const fallbackReviewer = context.usersByRole.adminOrStaff[0]?.id ?? null;
   return {
     enterpriseAdmins,

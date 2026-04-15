@@ -31,6 +31,11 @@ import {
   ASSESSMENT_STUDENT_PROJECTS,
   seedAssessmentStudentScenario,
 } from "../../../prisma/seed/assessmentStudentScenario";
+import { resolveAssessmentStudentActors } from "../../../prisma/seed/assessmentStudentScenario/actors";
+import { seedAssessmentStudentMarks } from "../../../prisma/seed/assessmentStudentScenario/marks";
+import { seedAssessmentStudentMeetings } from "../../../prisma/seed/assessmentStudentScenario/meetings";
+import { syncAssessmentStudentTeamMembers } from "../../../prisma/seed/assessmentStudentScenario/membership";
+import { ensureAssessmentStudentModules, ensureAssessmentStudentProjects } from "../../../prisma/seed/assessmentStudentScenario/setup";
 import type { SeedContext, SeedUser } from "../../../prisma/seed/types";
 
 function buildUser(id: number, role: SeedUser["role"], email: string): SeedUser {
@@ -65,10 +70,12 @@ function setupPrismaMocks() {
 
   prismaMock.module.findFirst.mockResolvedValue(null);
   prismaMock.module.create.mockImplementation(async () => ({ id: moduleId++ }));
+  prismaMock.module.update.mockImplementation(async ({ where }: { where: { id: number } }) => ({ id: where.id }));
   prismaMock.moduleLead.createMany.mockImplementation(async ({ data }) => ({ count: data.length }));
   prismaMock.userModule.createMany.mockImplementation(async ({ data }) => ({ count: data.length }));
   prismaMock.project.findFirst.mockResolvedValue(null);
   prismaMock.project.create.mockImplementation(async () => ({ id: projectId++ }));
+  prismaMock.project.update.mockImplementation(async ({ where }: { where: { id: number } }) => ({ id: where.id }));
   prismaMock.team.upsert.mockImplementation(async () => ({ id: teamId++ }));
   prismaMock.teamAllocation.findMany.mockResolvedValue([]);
   prismaMock.teamAllocation.createMany.mockImplementation(async ({ data }) => ({ count: data.length }));
@@ -153,5 +160,57 @@ describe("seedAssessmentStudentScenario", () => {
 
     expect(result).toBeUndefined();
     expect(prismaMock.module.create).not.toHaveBeenCalled();
+  });
+
+  it("covers actor guard when fewer than two teammates remain", () => {
+    const context = buildContext();
+    context.standardUsers = [buildUser(1, "STUDENT", "onlyone@example.com")];
+    expect(resolveAssessmentStudentActors(context)).toBeNull();
+  });
+
+  it("covers setup branches for missing module index and update paths", async () => {
+    prismaMock.module.findFirst.mockResolvedValue({ id: 100 });
+    prismaMock.project.findFirst.mockResolvedValue({ id: 200 });
+
+    const modules = await ensureAssessmentStudentModules({ id: "ent-1", code: "ENT", name: "Enterprise" });
+    expect(modules).toHaveLength(2);
+    expect(prismaMock.module.update).toHaveBeenCalled();
+
+    const projects = await ensureAssessmentStudentProjects(
+      "ent-1",
+      [{ id: modules[0]!.id }],
+      { id: 30, questionLabels: ["Q1"] },
+    );
+    expect(projects.length).toBeGreaterThan(0);
+    expect(prismaMock.project.update).toHaveBeenCalled();
+  });
+
+  it("covers membership no-op branch when all team allocations already exist", async () => {
+    prismaMock.teamAllocation.findMany.mockResolvedValue([{ userId: 10 }, { userId: 11 }]);
+    const rows = await syncAssessmentStudentTeamMembers(
+      [{ id: 1, moduleId: 1, templateId: 1, teamId: 99, teamName: "T", state: "assessment-open" }],
+      [10, 11],
+    );
+    expect(rows).toBe(0);
+  });
+
+  it("covers meeting comment skip branch when author/mention is missing", async () => {
+    prismaMock.meeting.findMany.mockResolvedValue([{ id: 500, date: new Date(Date.now() - 86_400_000) }]);
+    const seeded = await seedAssessmentStudentMeetings(
+      [{ id: 1, moduleId: 1, templateId: 1, teamId: 99, teamName: "T", state: "assessment-open" }],
+      [1],
+    );
+    expect(seeded.comments).toBe(0);
+    expect(seeded.mentions).toBe(0);
+  });
+
+  it("covers marks skip branch for falsy student ids", async () => {
+    const seeded = await seedAssessmentStudentMarks(
+      [{ id: 1, moduleId: 1, templateId: 1, teamId: 77, teamName: "T", state: "completed-marked" }],
+      [1, 0],
+      20,
+    );
+    expect(seeded.teamMarks).toBe(1);
+    expect(seeded.studentMarks).toBe(1);
   });
 });

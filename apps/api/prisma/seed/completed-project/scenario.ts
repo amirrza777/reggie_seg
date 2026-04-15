@@ -33,7 +33,7 @@ export async function runCompletedProjectScenario(context: SeedContext): Promise
     context.usersByRole.students.map((student) => student.id),
     setup.adminMemberIds,
   );
-  const meetingResult = await ensureScenarioMeetings(setup.team.id, setup.memberIds[0] ?? setup.marker.id, setup.memberIds);
+  const meetingResult = await ensureScenarioMeetings(setup.team.id, setup.memberIds[0]!, setup.memberIds);
 
   const rows = setup.createdProject + setup.createdTeam + allocationsCreated + deadlineCreated + assessmentResult.rows + markingResult.rows + meetingResult.createdMeetings + meetingResult.createdMinutes + meetingResult.createdAttendances;
   return { rows, details: `project=${setup.project.id}, team=${setup.team.id}, members=${setup.memberIds.length}` };
@@ -187,7 +187,6 @@ async function createScenarioAssessments(
   let createdAssessments = 0;
   let createdFeedbacks = 0;
   for (const reviewerId of memberIds) {
-    if (!reviewerId) continue;
     for (let questionIndex = 0; questionIndex < memberIds.length; questionIndex += 1) {
       const revieweeId = memberIds[questionIndex];
       if (!revieweeId || reviewerId === revieweeId) continue;
