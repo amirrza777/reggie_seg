@@ -12,7 +12,6 @@ export type EnterpriseModuleRecord = {
   teachingAssistantCount: number;
   canManageAccess?: boolean;
   briefText?: string;
-  timelineText?: string;
   expectationsText?: string;
   readinessNotesText?: string;
 };
@@ -197,7 +196,6 @@ export type CreateEnterpriseModulePayload = {
   name: string;
   code?: string;
   briefText?: string;
-  timelineText?: string;
   expectationsText?: string;
   readinessNotesText?: string;
   leaderIds?: number[];
@@ -224,7 +222,6 @@ export type UpdateEnterpriseModulePayload = {
   name: string;
   code?: string;
   briefText?: string;
-  timelineText?: string;
   expectationsText?: string;
   readinessNotesText?: string;
   leaderIds?: number[];

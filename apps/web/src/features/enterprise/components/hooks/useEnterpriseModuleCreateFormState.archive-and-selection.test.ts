@@ -65,7 +65,6 @@ describe("useEnterpriseModuleCreateFormState (archive + selection)", () => {
         name: "Existing module",
         code: "old77",
         briefText: "Old brief",
-        timelineText: "Old timeline",
         expectationsText: "Old expectations",
         readinessNotesText: "Old readiness",
         createdAt: "2026-03-01T00:00:00.000Z",
@@ -100,7 +99,6 @@ describe("useEnterpriseModuleCreateFormState (archive + selection)", () => {
         name: undefined,
         code: undefined,
         briefText: undefined,
-        timelineText: undefined,
         expectationsText: undefined,
         readinessNotesText: undefined,
         createdAt: "2026-03-01T00:00:00.000Z",
@@ -125,7 +123,6 @@ describe("useEnterpriseModuleCreateFormState (archive + selection)", () => {
     expect(edit.result.current.moduleName).toBe("");
     expect(edit.result.current.moduleCode).toBe("");
     expect(edit.result.current.briefText).toBe("");
-    expect(edit.result.current.timelineText).toBe("");
 
     const create = renderHook(() =>
       useEnterpriseModuleCreateFormState({
@@ -285,7 +282,6 @@ describe("useEnterpriseModuleCreateFormState (archive + selection)", () => {
         name: "Archived module",
         code: "MOD77",
         briefText: "",
-        timelineText: "",
         expectationsText: "",
         readinessNotesText: "",
         archivedAt: "2026-03-10T00:00:00.000Z",

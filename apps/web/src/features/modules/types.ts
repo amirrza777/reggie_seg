@@ -4,7 +4,6 @@ export type Module = {
   title: string;
   description?: string;
   briefText?: string;
-  timelineText?: string;
   expectationsText?: string;
   readinessNotesText?: string;
   leaderCount?: number;

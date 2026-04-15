@@ -44,7 +44,6 @@ function expectMultiEnterpriseArtifacts(prismaMock: ReturnType<typeof buildPrism
       data: expect.arrayContaining([
         expect.objectContaining({
           briefText: expect.any(String),
-          timelineText: expect.any(String),
           expectationsText: expect.any(String),
           readinessNotesText: expect.any(String),
         }),

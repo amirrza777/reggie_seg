@@ -96,7 +96,6 @@ describe("enterpriseAdmin service.module-management", () => {
     const result = await createModule(enterpriseUser as any, {
       name: "Duplicate",
       briefText: null,
-      timelineText: null,
       expectationsText: null,
       readinessNotesText: null,
       leaderIds: [11],
@@ -114,7 +113,6 @@ describe("enterpriseAdmin service.module-management", () => {
     const result = await createModule(enterpriseUser as any, {
       name: "Module A",
       briefText: null,
-      timelineText: null,
       expectationsText: null,
       readinessNotesText: null,
       leaderIds: [11],
@@ -134,7 +132,6 @@ describe("enterpriseAdmin service.module-management", () => {
     const result = await updateModule(enterpriseUser as any, 7, {
       name: "X",
       briefText: null,
-      timelineText: null,
       expectationsText: null,
       readinessNotesText: null,
       leaderIds: [11],
@@ -168,7 +165,6 @@ describe("enterpriseAdmin service.module-management", () => {
     const result = await updateModule(enterpriseUser as any, 7, {
       name: "X",
       briefText: null,
-      timelineText: null,
       expectationsText: null,
       readinessNotesText: null,
       leaderIds: [],
@@ -187,7 +183,6 @@ describe("enterpriseAdmin service.module-management", () => {
       name: "X",
       code: null,
       briefText: null,
-      timelineText: null,
       expectationsText: null,
       readinessNotesText: null,
       leaderIds: [11],

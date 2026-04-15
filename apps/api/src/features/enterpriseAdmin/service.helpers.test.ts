@@ -32,7 +32,6 @@ describe("enterpriseAdmin service.helpers", () => {
     const parsed = parseModulePayload({
       name: "  Module A ",
       briefText: "  Brief ",
-      timelineText: "",
       expectationsText: null,
       readinessNotesText: " Notes ",
       leaderIds: [11, 11],
@@ -46,7 +45,6 @@ describe("enterpriseAdmin service.helpers", () => {
         name: "Module A",
         code: null,
         briefText: "Brief",
-        timelineText: null,
         expectationsText: null,
         readinessNotesText: "Notes",
         leaderIds: [11],
@@ -71,7 +69,6 @@ describe("enterpriseAdmin service.helpers", () => {
         name: "Module B",
         code: "CS101",
         briefText: null,
-        timelineText: null,
         expectationsText: null,
         readinessNotesText: null,
         leaderIds: [],
@@ -96,7 +93,6 @@ describe("enterpriseAdmin service.helpers", () => {
         name: "Module C",
         code: null,
         briefText: null,
-        timelineText: null,
         expectationsText: null,
         readinessNotesText: null,
         leaderIds: [],
@@ -123,11 +119,6 @@ describe("enterpriseAdmin service.helpers", () => {
     expect(parseModulePayload({ name: "X", readinessNotesText: "a".repeat(8001) })).toEqual({
       ok: false,
       error: "Readiness notes must be 8000 characters or fewer",
-    });
-
-    expect(parseModulePayload({ name: "X", timelineText: 42 })).toEqual({
-      ok: false,
-      error: "Timeline must be a string",
     });
 
     expect(parseModulePayload({ name: "X", expectationsText: 42 })).toEqual({

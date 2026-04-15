@@ -40,7 +40,7 @@ function isStandaloneProps(props: ModuleGuidanceSectionProps): props is ModuleGu
 }
 
 /**
- * Module title plus brief, timeline, expectations, and readiness notes.
+ * Module title plus brief, expectations, and readiness notes.
  */
 export function ModuleGuidanceSection(props: ModuleGuidanceSectionProps) {
   if (isStandaloneProps(props)) {
@@ -156,18 +156,16 @@ function ModuleGuidanceSectionContent({
 
       {!state.isEditMode ? (
         <p className="ui-note ui-note--muted">
-          You can define module brief, timeline, expectations, teaching assistants, and student enrollment after creating the module.
+          You can define module brief, expectations, teaching assistants, and student enrollment after creating the module.
         </p>
       ) : (
         <ModuleGuidanceTextFields
           key={guidanceFieldsKey ?? "module-guidance-text"}
           briefText={state.briefText}
-          timelineText={state.timelineText}
           expectationsText={state.expectationsText}
           readinessNotesText={state.readinessNotesText}
           maxLength={MODULE_SECTION_MAX_LENGTH}
           onBriefTextChange={state.setBriefText}
-          onTimelineTextChange={state.setTimelineText}
           onExpectationsTextChange={state.setExpectationsText}
           onReadinessNotesTextChange={state.setReadinessNotesText}
         />

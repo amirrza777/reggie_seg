@@ -6,81 +6,89 @@ vi.mock("@/features/enterprise/api/client", () => ({
   getEnterpriseModuleAccessSelection: vi.fn(),
 }));
 
-const getSelectionMock = vi.mocked(getEnterpriseModuleAccessSelection);
+const getEnterpriseModuleAccessSelectionMock = vi.mocked(getEnterpriseModuleAccessSelection);
 
 describe("loadModuleSetupInitialSelection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("returns null when the enterprise API fails", async () => {
-    getSelectionMock.mockRejectedValue(new Error("boom"));
-    await expect(loadModuleSetupInitialSelection(1)).resolves.toBeNull();
-  });
-
-  it("returns enterprise payload unchanged when no staff row is provided", async () => {
-    const payload = {
+  it("returns enterprise selection when no staff row is provided", async () => {
+    const selection = {
       module: {
+        id: 1,
         name: "API",
-        briefText: "b",
-        timelineText: "t",
-        expectationsText: "e",
-        readinessNotesText: "r",
+        briefText: "api brief",
+        expectationsText: "api exp",
+        readinessNotesText: "api ready",
       },
+      leaderIds: [1],
+      taIds: [],
+      studentIds: [],
     } as Awaited<ReturnType<typeof getEnterpriseModuleAccessSelection>>;
-    getSelectionMock.mockResolvedValue(payload);
-    await expect(loadModuleSetupInitialSelection(2)).resolves.toEqual(payload);
+    getEnterpriseModuleAccessSelectionMock.mockResolvedValueOnce(selection);
+
+    const merged = await loadModuleSetupInitialSelection(1);
+    expect(merged).toEqual(selection);
   });
 
-  it("merges empty API guidance strings from the staff module row", async () => {
-    getSelectionMock.mockResolvedValue({
+  it("merges empty API guidance strings from the staff module list row", async () => {
+    getEnterpriseModuleAccessSelectionMock.mockResolvedValueOnce({
       module: {
+        id: 2,
         name: "",
         briefText: "",
-        timelineText: "",
         expectationsText: "",
         readinessNotesText: "",
       },
+      leaderIds: [],
+      taIds: [],
+      studentIds: [],
     } as Awaited<ReturnType<typeof getEnterpriseModuleAccessSelection>>);
 
-    const merged = await loadModuleSetupInitialSelection(3, {
+    const merged = await loadModuleSetupInitialSelection(2, {
       title: "Row title",
       briefText: "row brief",
-      timelineText: "row time",
       expectationsText: "row exp",
       readinessNotesText: "row ready",
     });
 
     expect(merged?.module.name).toBe("Row title");
     expect(merged?.module.briefText).toBe("row brief");
-    expect(merged?.module.timelineText).toBe("row time");
     expect(merged?.module.expectationsText).toBe("row exp");
     expect(merged?.module.readinessNotesText).toBe("row ready");
   });
 
-  it("keeps non-empty API values over staff row values", async () => {
-    getSelectionMock.mockResolvedValue({
+  it("prefers non-empty API values over staff row", async () => {
+    getEnterpriseModuleAccessSelectionMock.mockResolvedValueOnce({
       module: {
-        name: " API Name ",
+        id: 3,
+        name: "API name",
         briefText: "api brief",
-        timelineText: "api time",
         expectationsText: "api exp",
         readinessNotesText: "api ready",
       },
+      leaderIds: [],
+      taIds: [],
+      studentIds: [],
     } as Awaited<ReturnType<typeof getEnterpriseModuleAccessSelection>>);
 
-    const merged = await loadModuleSetupInitialSelection(4, {
+    const merged = await loadModuleSetupInitialSelection(3, {
       title: "Row title",
       briefText: "row brief",
-      timelineText: "row time",
       expectationsText: "row exp",
       readinessNotesText: "row ready",
     });
 
-    expect(merged?.module.name).toBe(" API Name ");
+    expect(merged?.module.name).toBe("API name");
     expect(merged?.module.briefText).toBe("api brief");
-    expect(merged?.module.timelineText).toBe("api time");
     expect(merged?.module.expectationsText).toBe("api exp");
     expect(merged?.module.readinessNotesText).toBe("api ready");
+  });
+
+  it("returns null when the enterprise fetch fails", async () => {
+    getEnterpriseModuleAccessSelectionMock.mockRejectedValueOnce(new Error("Forbidden"));
+    const merged = await loadModuleSetupInitialSelection(9);
+    expect(merged).toBeNull();
   });
 });

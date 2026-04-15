@@ -6,7 +6,6 @@ export type ModuleUpdatePayload = {
   name: string;
   code?: string;
   briefText?: string;
-  timelineText?: string;
   expectationsText?: string;
   readinessNotesText?: string;
   leaderIds: number[];
@@ -27,18 +26,16 @@ export function applyModuleSelection(
     setModuleName: (value: string) => void;
     setModuleCode: (value: string) => void;
     setBriefText: (value: string) => void;
-    setTimelineText: (value: string) => void;
     setExpectationsText: (value: string) => void;
     setReadinessNotesText: (value: string) => void;
     setLeaderIds: (value: number[]) => void;
     setTaIds: (value: number[]) => void;
     setStudentIds: (value: number[]) => void;
-  }
+  },
 ) {
   setters.setModuleName(selection.module.name ?? "");
   setters.setModuleCode(selection.module.code ?? "");
   setters.setBriefText(selection.module.briefText ?? "");
-  setters.setTimelineText(selection.module.timelineText ?? "");
   setters.setExpectationsText(selection.module.expectationsText ?? "");
   setters.setReadinessNotesText(selection.module.readinessNotesText ?? "");
   setters.setLeaderIds(selection.leaderIds);
@@ -69,7 +66,6 @@ export function buildModuleUpdatePayload(input: {
   name: string;
   code: string;
   briefText: string;
-  timelineText: string;
   expectationsText: string;
   readinessNotesText: string;
   leaderIds: number[];
@@ -80,7 +76,6 @@ export function buildModuleUpdatePayload(input: {
     name: input.name,
     code: normalizeOptionalModuleCode(input.code),
     briefText: normalizeOptionalMultilineText(input.briefText),
-    timelineText: normalizeOptionalMultilineText(input.timelineText),
     expectationsText: normalizeOptionalMultilineText(input.expectationsText),
     readinessNotesText: normalizeOptionalMultilineText(input.readinessNotesText),
     leaderIds: input.leaderIds,

@@ -19,9 +19,6 @@ export function parseModulePayload(body: unknown): { ok: true; value: ParsedModu
   const briefText = parseOptionalTextField((body as any)?.briefText, "Module brief");
   if (!briefText.ok) return { ok: false, error: briefText.error };
 
-  const timelineText = parseOptionalTextField((body as any)?.timelineText, "Timeline");
-  if (!timelineText.ok) return { ok: false, error: timelineText.error };
-
   const expectationsText = parseOptionalTextField((body as any)?.expectationsText, "Module expectations");
   if (!expectationsText.ok) return { ok: false, error: expectationsText.error };
 
@@ -43,7 +40,6 @@ export function parseModulePayload(body: unknown): { ok: true; value: ParsedModu
       name,
       code: code.value,
       briefText: briefText.value,
-      timelineText: timelineText.value,
       expectationsText: expectationsText.value,
       readinessNotesText: readinessNotesText.value,
       leaderIds: leaderIds.value,
