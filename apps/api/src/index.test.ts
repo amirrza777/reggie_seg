@@ -120,10 +120,15 @@ describe("index.ts", () => {
 
     await bootstrap();
 
-    expect(upsertMock).toHaveBeenCalledWith({
+    expect(upsertMock).toHaveBeenNthCalledWith(1, {
       where: { code: "DEFAULT" },
       update: {},
       create: { code: "DEFAULT", name: "Default Enterprise" },
+    });
+    expect(upsertMock).toHaveBeenNthCalledWith(2, {
+      where: { code: "LOCALDEV" },
+      update: {},
+      create: { code: "LOCALDEV", name: "Local Development Enterprise" },
     });
     expect(enterpriseFindUniqueMock).not.toHaveBeenCalled();
     expect(userFindFirstMock).not.toHaveBeenCalled();
@@ -200,5 +205,39 @@ describe("index.ts", () => {
     expect(consoleErrorSpy).toHaveBeenCalledWith("Bootstrap failed:", expect.any(Error));
     expect(processExitSpy).toHaveBeenCalledWith(1);
     expect(listenMock).not.toHaveBeenCalled();
+  });
+
+  it("bootstrap only creates the holding enterprise in production", async () => {
+    process.env.NODE_ENV = "production";
+    delete process.env.ADMIN_BOOTSTRAP_EMAIL;
+    delete process.env.ADMIN_BOOTSTRAP_PASSWORD;
+    vi.resetModules();
+    const { bootstrap } = await import("./index.ts");
+
+    await bootstrap();
+
+    expect(upsertMock).toHaveBeenCalled();
+    expect(upsertMock.mock.calls).toEqual(
+      expect.arrayContaining([
+        [
+          {
+            where: { code: "DEFAULT" },
+            update: {},
+            create: { code: "DEFAULT", name: "Default Enterprise" },
+          },
+        ],
+      ]),
+    );
+    expect(upsertMock.mock.calls).not.toEqual(
+      expect.arrayContaining([
+        [
+          {
+            where: { code: "LOCALDEV" },
+            update: {},
+            create: { code: "LOCALDEV", name: "Local Development Enterprise" },
+          },
+        ],
+      ]),
+    );
   });
 });
