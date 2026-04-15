@@ -224,15 +224,15 @@ describe("admin router middleware and user management", () => {
     expect(next).toHaveBeenCalled();
   });
 
-  it("ensureSuperAdmin allows only admin@kcl.ac.uk", () => {
+  it("ensureSuperAdmin allows platform admin users", () => {
     const next = vi.fn() as NextFunction;
 
-    const deniedReq: any = { adminUser: { email: "manager@kcl.ac.uk" } };
+    const deniedReq: any = { adminUser: { email: "manager@kcl.ac.uk", role: "STAFF" } };
     const deniedRes = mockRes();
     ensureSuperAdmin(deniedReq, deniedRes, next);
     expect((deniedRes.status as any)).toHaveBeenCalledWith(403);
 
-    const allowedReq: any = { adminUser: { email: "ADMIN@KCL.AC.UK" } };
+    const allowedReq: any = { adminUser: { email: "global_admin.assessment@example.com", role: "ADMIN" } };
     const allowedRes = mockRes();
     ensureSuperAdmin(allowedReq, allowedRes, next);
     expect(next).toHaveBeenCalled();
