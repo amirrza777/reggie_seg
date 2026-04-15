@@ -58,6 +58,7 @@ export async function middleware(req: NextRequest) {
         ...(tfAccessToken ? { Authorization: `Bearer ${tfAccessToken}` } : {}),
       },
       credentials: "include",
+      cache: "no-store",
     });
 
     if (!meRes.ok) {

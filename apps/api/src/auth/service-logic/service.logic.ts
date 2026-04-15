@@ -10,6 +10,7 @@ export {
   refreshTokens,
   logout,
   signUpWithProvider,
+  hasAccountWithEmail,
 } from "./service.logic.auth-flows.js";
 export {
   requestPasswordReset,
@@ -29,3 +30,4 @@ export {
   validateRefreshTokenSession,
   verifyRefreshToken,
 } from "./service.logic.tokens.js";
+export { needsEnterpriseCodeEntry } from "./service.logic.enterprise.js";

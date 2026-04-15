@@ -6,6 +6,10 @@ import { startAuditRetentionJob } from "./features/audit/retentionJob.js";
 
 dotenv.config();
 
+const BOOTSTRAP_ENTERPRISES = [
+  { code: "DEFAULT", name: "Default Enterprise" },
+] as const;
+
 export function resolveServerAddress() {
   const port = Number(process.env.PORT) || 3000;
   const host = process.env.HOST || "0.0.0.0";
@@ -13,11 +17,13 @@ export function resolveServerAddress() {
 }
 
 export async function bootstrap() {
-  await prisma.enterprise.upsert({
-    where: { code: "DEFAULT" },
-    update: {},
-    create: { code: "DEFAULT", name: "Default Enterprise" },
-  });
+  for (const enterprise of BOOTSTRAP_ENTERPRISES) {
+    await prisma.enterprise.upsert({
+      where: { code: enterprise.code },
+      update: {},
+      create: { code: enterprise.code, name: enterprise.name },
+    });
+  }
 
   const adminEmail = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
   const adminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;

@@ -16,9 +16,9 @@ function GoogleSuccessContent() {
       setAccessToken(token);
     }
 
-    // Full page reload ensures the cookie is included in the server request
-    // so getCurrentUser() can authenticate the user server-side
-    window.location.href = redirect;
+    // Replace history entry so browser Back from bridge pages skips this transient callback page.
+    // Full page navigation ensures the cookie is included in the server request.
+    window.location.replace(redirect);
   }, [searchParams]);
 
   return (
