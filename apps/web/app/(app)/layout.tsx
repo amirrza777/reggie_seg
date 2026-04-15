@@ -221,24 +221,38 @@ function shouldDefaultExpandProjects(projects: Awaited<ReturnType<typeof getUser
 }
 
 function filterAccessibleNavLinks(navLinks: NavLink[], user: AuthenticatedUser) {
+  if (isAdmin(user)) {
+    return navLinks.filter((link) => link.space === "admin");
+  }
+
   const limitedStaffUser = isModuleScopedStaff(user);
-  const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
+  const isStaffOnlyAccount = user.isStaff && !isEnterpriseAdmin(user);
 
   return navLinks.filter((link) => {
     if (link.space === "workspace" && isStaffOnlyAccount) return false;
     if (link.space === "staff") {
-      if (!(user.isStaff || isAdmin(user))) return false;
+      if (!user.isStaff) return false;
       if (limitedStaffUser && !moduleScopedStaffLinks.has(link.href)) return false;
     }
-    if (link.space === "admin" && !isAdmin(user)) return false;
+    if (link.space === "admin") return false;
     return true;
   });
 }
 
 function buildSpaceLinks(user: AuthenticatedUser): SpaceLink[] {
   const links: SpaceLink[] = [];
-  const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
   const profileSpaceHref = getDefaultSpaceOverviewPath(user);
+
+  if (isAdmin(user)) {
+    links.push({
+      href: "/admin",
+      label: "Admin",
+      activePaths: appendProfileAlias(["/admin"], profileSpaceHref === "/admin"),
+    });
+    return links;
+  }
+
+  const isStaffOnlyAccount = user.isStaff && !isEnterpriseAdmin(user);
 
   if (!isStaffOnlyAccount) {
     links.push({
@@ -247,25 +261,18 @@ function buildSpaceLinks(user: AuthenticatedUser): SpaceLink[] {
       activePaths: appendProfileAlias(workspaceAliases, profileSpaceHref === "/dashboard"),
     });
   }
-  if (user.isStaff || isAdmin(user)) {
+  if (user.isStaff) {
     links.push({
       href: "/staff/dashboard",
       label: "Staff",
       activePaths: appendProfileAlias(["/staff"], profileSpaceHref === "/staff/dashboard"),
     });
   }
-  if (isEnterpriseAdmin(user) || isAdmin(user)) {
+  if (isEnterpriseAdmin(user)) {
     links.push({
       href: "/enterprise",
       label: "Enterprise",
       activePaths: appendProfileAlias(["/enterprise"], profileSpaceHref === "/enterprise"),
-    });
-  }
-  if (isAdmin(user)) {
-    links.push({
-      href: "/admin",
-      label: "Admin",
-      activePaths: appendProfileAlias(["/admin"], profileSpaceHref === "/admin"),
     });
   }
 
