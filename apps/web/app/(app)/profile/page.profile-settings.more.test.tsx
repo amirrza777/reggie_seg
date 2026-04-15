@@ -78,6 +78,15 @@ function makeUser() {
   };
 }
 
+async function renderProfilePage() {
+  const rendered = render(<ProfilePage />);
+  await waitFor(() => {
+    expect(getMyTrelloProfileMock).toHaveBeenCalled();
+    expect(getGithubConnectionStatusMock).toHaveBeenCalled();
+  });
+  return rendered;
+}
+
 describe("ProfilePage (profile-settings) - additional", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -114,7 +123,7 @@ describe("ProfilePage (profile-settings) - additional", () => {
   });
 
   it("validates email code flows and surfaces send/confirm fallback errors", async () => {
-    render(<ProfilePage />);
+    await renderProfilePage();
 
     fireEvent.click(screen.getByRole("button", { name: "Change email" }));
     fireEvent.click(screen.getByRole("button", { name: "Send code" }));
@@ -153,7 +162,7 @@ describe("ProfilePage (profile-settings) - additional", () => {
     getGithubConnectionStatusMock.mockRejectedValueOnce(new Error("status failed"));
     window.history.replaceState({}, "", "http://localhost:3000/profile?github=connected");
 
-    render(<ProfilePage />);
+    await renderProfilePage();
 
     expect(await screen.findByText("GitHub account connected successfully.")).toBeInTheDocument();
     await waitFor(() => {
@@ -167,7 +176,7 @@ describe("ProfilePage (profile-settings) - additional", () => {
       throw new Error("quota");
     });
 
-    render(<ProfilePage />);
+    await renderProfilePage();
     fireEvent.click(await screen.findByRole("button", { name: "Link Trello account" }));
 
     await waitFor(() => expect(getLinkTokenMock).toHaveBeenCalledTimes(1));
@@ -178,7 +187,7 @@ describe("ProfilePage (profile-settings) - additional", () => {
     setItemSpy.mockRestore();
   });
 
-  it("resets workspace scroll and tolerates scrollTo option errors", () => {
+  it("resets workspace scroll and tolerates scrollTo option errors", async () => {
     const workspace = document.createElement("div");
     workspace.className = "app-shell__workspace";
     workspace.scrollTop = 123;
@@ -188,7 +197,7 @@ describe("ProfilePage (profile-settings) - additional", () => {
       throw new Error("unsupported");
     });
 
-    render(<ProfilePage />);
+    await renderProfilePage();
     expect(workspace.scrollTop).toBe(0);
 
     scrollToSpy.mockRestore();
@@ -197,13 +206,13 @@ describe("ProfilePage (profile-settings) - additional", () => {
 
   it("shows generic github callback failure message when reason is missing", async () => {
     window.history.replaceState({}, "", "http://localhost:3000/profile?github=error");
-    render(<ProfilePage />);
+    await renderProfilePage();
     expect(await screen.findByText("GitHub connection failed.")).toBeInTheDocument();
   });
 
   it("surfaces Error-object messages for github connect and disconnect actions", async () => {
     getGithubConnectUrlMock.mockRejectedValueOnce(new Error("connect exploded"));
-    const { unmount } = render(<ProfilePage />);
+    const { unmount } = await renderProfilePage();
     fireEvent.click(await screen.findByRole("button", { name: "Connect GitHub" }));
     expect(await screen.findByText("connect exploded")).toBeInTheDocument();
 
@@ -216,7 +225,7 @@ describe("ProfilePage (profile-settings) - additional", () => {
     } as any);
     disconnectGithubAccountMock.mockRejectedValueOnce(new Error("disconnect exploded"));
 
-    render(<ProfilePage />);
+    await renderProfilePage();
     fireEvent.click(await screen.findByRole("button", { name: "Disconnect GitHub" }));
     expect(await screen.findByText("disconnect exploded")).toBeInTheDocument();
   });
@@ -234,7 +243,7 @@ describe("ProfilePage (profile-settings) - additional", () => {
       loading: false,
     });
 
-    const { rerender } = render(<ProfilePage />);
+    const { rerender } = await renderProfilePage();
     expect(screen.getByText("ZZ")).toBeInTheDocument();
 
     useUserMock.mockReturnValue({
@@ -248,6 +257,7 @@ describe("ProfilePage (profile-settings) - additional", () => {
       loading: false,
     });
     rerender(<ProfilePage />);
+    await waitFor(() => expect(getMyTrelloProfileMock).toHaveBeenCalled());
 
     expect(screen.getByAltText("Avatar")).toHaveAttribute("src", "data:image/png;base64,YWJj");
   });
@@ -276,7 +286,7 @@ describe("ProfilePage (profile-settings) - additional", () => {
       writable: true,
     });
 
-    render(<ProfilePage />);
+    await renderProfilePage();
     const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
     expect(fileInput).toBeTruthy();
     fireEvent.change(fileInput as HTMLInputElement, {
@@ -293,7 +303,7 @@ describe("ProfilePage (profile-settings) - additional", () => {
   });
 
   it("shows Error-object fallback messages for email send and confirm failures", async () => {
-    render(<ProfilePage />);
+    await renderProfilePage();
 
     fireEvent.click(screen.getByRole("button", { name: "Change email" }));
     fireEvent.change(screen.getByLabelText("New email"), { target: { value: "new.ayan@example.com" } });

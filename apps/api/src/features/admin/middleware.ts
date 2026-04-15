@@ -42,7 +42,9 @@ export async function ensureAdmin(req: AdminRequest, res: Response, next: NextFu
 
 export function ensureSuperAdmin(req: AdminRequest, res: Response, next: NextFunction) {
   const adminUser = req.adminUser;
-  if (!adminUser || !isSuperAdminEmail(adminUser.email)) {
+  const hasPlatformAdminRole = adminUser?.role === "ADMIN";
+  const hasSuperAdminEmail = Boolean(adminUser?.email && isSuperAdminEmail(adminUser.email));
+  if (!adminUser || (!hasPlatformAdminRole && !hasSuperAdminEmail)) {
     return res.status(403).json({ error: "Forbidden" });
   }
   return next();

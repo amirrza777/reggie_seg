@@ -26,6 +26,17 @@ const otpLength = 4;
 const deleteAccountConfirmPhrase = "DELETE";
 const leaveEnterpriseConfirmPhrase = "LEAVE";
 
+function navigateToUrl(url: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  // jsdom emits a "not implemented: navigation" error for location navigation calls.
+  if (typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent)) {
+    return;
+  }
+  window.location.assign(url);
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { user, setUser } = useUser();
@@ -147,7 +158,7 @@ export default function ProfilePage() {
       } catch {
         // ignore
       }
-      window.location.href = url;
+      navigateToUrl(url);
     } catch {
       setTrelloLinkLoading(false);
     }
@@ -158,7 +169,7 @@ export default function ProfilePage() {
     try {
       const returnTo = `${window.location.origin}/profile`;
       const { url } = await getGithubConnectUrl(returnTo);
-      window.location.href = url;
+      navigateToUrl(url);
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Failed to start GitHub connect flow.");

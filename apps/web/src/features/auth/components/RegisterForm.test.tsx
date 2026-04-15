@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { RegisterForm } from "./RegisterForm";
-import { PENDING_SIGNUP_STORAGE_KEY } from "../pendingSignup";
+import * as pendingSignup from "../pendingSignup";
 
 const push = vi.fn();
 const originalLocation = window.location;
@@ -50,7 +50,7 @@ it("stores signup payload and redirects to enterprise code bridge", async () => 
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/google/enterprise-code?mode=signup"));
     expect(screen.getByText(/continue with your enterprise code/i)).toBeInTheDocument();
-    expect(window.sessionStorage.getItem(PENDING_SIGNUP_STORAGE_KEY)).toBe(
+    expect(window.sessionStorage.getItem(pendingSignup.PENDING_SIGNUP_STORAGE_KEY)).toBe(
       JSON.stringify({
         email: "ada@example.com",
         password: "supersecure",
@@ -82,13 +82,13 @@ it("shows validation error and does not call signup when passwords do not match"
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
-      expect(window.sessionStorage.getItem(PENDING_SIGNUP_STORAGE_KEY)).toBeNull();
+      expect(window.sessionStorage.getItem(pendingSignup.PENDING_SIGNUP_STORAGE_KEY)).toBeNull();
       expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
     });
 });
 
 it("shows fallback error when pending signup cannot be saved", async () => {
-  vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
+  vi.spyOn(pendingSignup, "savePendingSignup").mockImplementationOnce(() => {
     throw "no-storage";
   });
   render(<RegisterForm />);
@@ -104,7 +104,7 @@ it("shows fallback error when pending signup cannot be saved", async () => {
 });
 
 it("shows thrown Error message when pending signup save fails", async () => {
-  vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
+  vi.spyOn(pendingSignup, "savePendingSignup").mockImplementationOnce(() => {
     throw new Error("Storage blocked");
   });
   render(<RegisterForm />);

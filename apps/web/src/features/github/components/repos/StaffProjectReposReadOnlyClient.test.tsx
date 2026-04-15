@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { StaffProjectReposReadOnlyClient } from "./StaffProjectReposReadOnlyClient";
 import type { ProjectGithubRepoLink } from "../../types";
@@ -210,6 +211,7 @@ describe("StaffProjectReposReadOnlyClient", () => {
   });
 
   it("lets staff switch repository scope when multiple links exist", async () => {
+    const user = userEvent.setup();
     listProjectGithubRepoLinksMock.mockResolvedValue([makeLink(3, "org/r1"), makeLink(4, "org/r2")]);
     getProjectGithubMappingCoverageMock.mockResolvedValue({
       linkId: 3,
@@ -247,8 +249,9 @@ describe("StaffProjectReposReadOnlyClient", () => {
     );
 
     expect(await screen.findByLabelText("Repository scope")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Repository scope"), { target: { value: "4" } });
+    await user.selectOptions(screen.getByLabelText("Repository scope"), "4");
     expect(screen.getByTestId("staff-repo-card")).toHaveTextContent("org/r2");
+    await waitFor(() => expect(listLiveProjectGithubRepoBranchesMock).toHaveBeenCalledWith(4));
   });
 
   it("loads branch commits and updates when branch changes", async () => {

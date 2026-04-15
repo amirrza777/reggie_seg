@@ -38,7 +38,7 @@ export const ASSESSMENT_STUDENT_PROJECTS: AssessmentStudentProjectDefinition[] =
   },
   {
     moduleIndex: 1,
-    name: "Demo Completed Project",
+    name: "Demo Completed Project 2",
     teamName: "Assessment Student Demo Team 4",
     state: "completed-marked",
   },

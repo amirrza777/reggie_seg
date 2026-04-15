@@ -10,8 +10,6 @@ import "../styles/global-app-shell.css";
 
 export const dynamic = "force-dynamic";
 
-const SUPER_ADMIN_EMAIL = (process.env.SUPER_ADMIN_EMAIL ?? "admin@kcl.ac.uk").toLowerCase();
-
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
 
@@ -23,11 +21,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect("/dashboard");
   }
 
-  const isSuperAdmin = user.email.toLowerCase() === SUPER_ADMIN_EMAIL;
   const adminNav = [
     { href: "/admin", label: "Admin dashboard", space: "admin" as const },
-    { href: "/enterprise/modules", label: "Module management", space: "admin" as const },
-    ...(isSuperAdmin ? [{ href: "/admin/enterprises", label: "Enterprises", space: "admin" as const }] : []),
+    { href: "/admin/enterprises", label: "Enterprises", space: "admin" as const },
   ];
 
   const spaceLinks: SpaceLink[] = [

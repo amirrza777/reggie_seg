@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@/features/auth/useUser";
 import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
@@ -15,7 +15,7 @@ const AuthHeader = () => (
   </div>
 );
 
-export default function GoogleEnterpriseCodePage() {
+function GoogleEnterpriseCodeContent() {
   const { user, loading } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -38,5 +38,13 @@ export default function GoogleEnterpriseCodePage() {
       <AuthHeader />
       <GoogleEnterpriseCodeForm mode={formMode} />
     </div>
+  );
+}
+
+export default function GoogleEnterpriseCodePage() {
+  return (
+    <Suspense>
+      <GoogleEnterpriseCodeContent />
+    </Suspense>
   );
 }

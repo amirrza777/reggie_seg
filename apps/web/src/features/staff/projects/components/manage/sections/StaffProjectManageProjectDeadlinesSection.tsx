@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { patchStaffProjectManage } from "@/features/projects/api/client";
@@ -16,7 +17,7 @@ type RowProps = {
   label: string;
   name: keyof LocalDeadlineFields;
   value: string;
-  onChange: (v: string) => void;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   disabled: boolean;
 };
 
@@ -30,39 +31,35 @@ function DeadlineRow({ label, name, value, onChange, disabled }: RowProps) {
         className="staff-projects__input"
         value={value}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={onChange}
       />
     </label>
   );
 }
 
-export function StaffProjectManageProjectDeadlinesSection() {
+function StaffProjectManageProjectDeadlinesSectionForm({
+  projectId,
+  snapshot,
+  detailsDisabled,
+}: {
+  projectId: number;
+  snapshot: NonNullable<ReturnType<typeof useStaffProjectManageSetup>["initial"]["projectDeadline"]>;
+  detailsDisabled: boolean;
+}) {
   const router = useRouter();
-  const { projectId, initial, detailsDisabled } = useStaffProjectManageSetup();
-  const [fields, setFields] = useState<LocalDeadlineFields | null>(null);
+  const [fields, setFields] = useState<LocalDeadlineFields>(() => deadlineSnapshotToLocal(snapshot));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState<string | null>(null);
 
-  const snapshot = initial.projectDeadline;
-
   useEffect(() => {
-    if (snapshot) {
-      setFields(deadlineSnapshotToLocal(snapshot));
-    } else {
-      setFields(null);
-    }
+    setFields(deadlineSnapshotToLocal(snapshot));
   }, [snapshot]);
 
-  const disabled = detailsDisabled || saving || !fields;
+  const disabled = detailsDisabled || saving;
 
   const setField = useCallback((key: keyof LocalDeadlineFields, value: string) => {
-    setFields((prev) => {
-      if (!prev) {
-        return prev;
-      }
-      return { ...prev, [key]: value };
-    });
+    setFields((prev) => ({ ...prev, [key]: value }));
   }, []);
 
   const onDeadlineFieldChange = useCallback(
@@ -74,9 +71,6 @@ export function StaffProjectManageProjectDeadlinesSection() {
   );
 
   const onSave = useCallback(async () => {
-    if (!fields) {
-      return;
-    }
     const payload = deadlineBuildPayload(fields);
     if (!payload) {
       setSaveError("Each required deadline must have a valid date and time.");
@@ -106,49 +100,41 @@ export function StaffProjectManageProjectDeadlinesSection() {
     [],
   );
 
-  if (!snapshot || !fields) {
-    return (
-      <StaffProjectManageFormCollapsible title="Project deadlines" defaultOpen={false}>
-        <p className="muted">No project deadline record is available for this project.</p>
-      </StaffProjectManageFormCollapsible>
-    );
-  }
-
   return (
     <StaffProjectManageFormCollapsible title="Project deadlines" defaultOpen={false}>
       <p className="ui-note ui-note--muted">{hint}</p>
 
       <fieldset className="staff-projects__deadline" style={{ marginTop: 12 }}>
         <legend className="staff-projects__field-label">Standard timeline</legend>
-        <DeadlineRow label="Task opens" name="taskOpenDate" value={fields.taskOpenDate} disabled={disabled} onChange={(v) => setField("taskOpenDate", v)} />
-        <DeadlineRow label="Task due" name="taskDueDate" value={fields.taskDueDate} disabled={disabled} onChange={(v) => setField("taskDueDate", v)} />
+        <DeadlineRow label="Task opens" name="taskOpenDate" value={fields.taskOpenDate} disabled={disabled} onChange={onDeadlineFieldChange} />
+        <DeadlineRow label="Task due" name="taskDueDate" value={fields.taskDueDate} disabled={disabled} onChange={onDeadlineFieldChange} />
         <DeadlineRow
           label="Assessment opens"
           name="assessmentOpenDate"
           value={fields.assessmentOpenDate}
           disabled={disabled}
-          onChange={(v) => setField("assessmentOpenDate", v)}
+          onChange={onDeadlineFieldChange}
         />
         <DeadlineRow
           label="Assessment due"
           name="assessmentDueDate"
           value={fields.assessmentDueDate}
           disabled={disabled}
-          onChange={(v) => setField("assessmentDueDate", v)}
+          onChange={onDeadlineFieldChange}
         />
         <DeadlineRow
           label="Feedback opens"
           name="feedbackOpenDate"
           value={fields.feedbackOpenDate}
           disabled={disabled}
-          onChange={(v) => setField("feedbackOpenDate", v)}
+          onChange={onDeadlineFieldChange}
         />
         <DeadlineRow
           label="Feedback due"
           name="feedbackDueDate"
           value={fields.feedbackDueDate}
           disabled={disabled}
-          onChange={(v) => setField("feedbackDueDate", v)}
+          onChange={onDeadlineFieldChange}
         />
       </fieldset>
 
@@ -159,21 +145,21 @@ export function StaffProjectManageProjectDeadlinesSection() {
           name="taskDueDateMcf"
           value={fields.taskDueDateMcf}
           disabled={disabled}
-          onChange={(v) => setField("taskDueDateMcf", v)}
+          onChange={onDeadlineFieldChange}
         />
         <DeadlineRow
           label="Assessment due (MCF)"
           name="assessmentDueDateMcf"
           value={fields.assessmentDueDateMcf}
           disabled={disabled}
-          onChange={(v) => setField("assessmentDueDateMcf", v)}
+          onChange={onDeadlineFieldChange}
         />
         <DeadlineRow
           label="Feedback due (MCF)"
           name="feedbackDueDateMcf"
           value={fields.feedbackDueDateMcf}
           disabled={disabled}
-          onChange={(v) => setField("feedbackDueDateMcf", v)}
+          onChange={onDeadlineFieldChange}
         />
       </fieldset>
 
@@ -184,14 +170,14 @@ export function StaffProjectManageProjectDeadlinesSection() {
           name="teamAllocationQuestionnaireOpenDate"
           value={fields.teamAllocationQuestionnaireOpenDate}
           disabled={disabled}
-          onChange={(v) => setField("teamAllocationQuestionnaireOpenDate", v)}
+          onChange={onDeadlineFieldChange}
         />
         <DeadlineRow
           label="Due"
           name="teamAllocationQuestionnaireDueDate"
           value={fields.teamAllocationQuestionnaireDueDate}
           disabled={disabled}
-          onChange={(v) => setField("teamAllocationQuestionnaireDueDate", v)}
+          onChange={onDeadlineFieldChange}
         />
       </fieldset>
 
@@ -203,4 +189,18 @@ export function StaffProjectManageProjectDeadlinesSection() {
       {saveError ? <p className="staff-projects__error">{saveError}</p> : null}
     </StaffProjectManageFormCollapsible>
   );
+}
+
+export function StaffProjectManageProjectDeadlinesSection() {
+  const { projectId, initial, detailsDisabled } = useStaffProjectManageSetup();
+  const snapshot = initial.projectDeadline;
+  if (!snapshot) {
+    return (
+      <StaffProjectManageFormCollapsible title="Project deadlines" defaultOpen={false}>
+        <p className="muted">No project deadline record is available for this project.</p>
+      </StaffProjectManageFormCollapsible>
+    );
+  }
+
+  return <StaffProjectManageProjectDeadlinesSectionForm projectId={projectId} snapshot={snapshot} detailsDisabled={detailsDisabled} />;
 }

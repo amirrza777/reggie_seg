@@ -110,11 +110,12 @@ describe("seedAssessmentStudentScenario", () => {
     setupPrismaMocks();
   });
 
-  it("defines two modules and three projects per module with scoped duplicate names", () => {
+  it("defines two modules and three projects per module with expected names", () => {
     expect(ASSESSMENT_STUDENT_MODULE_NAMES).toHaveLength(2);
     expect(ASSESSMENT_STUDENT_PROJECTS.filter((project) => project.moduleIndex === 0)).toHaveLength(3);
     expect(ASSESSMENT_STUDENT_PROJECTS.filter((project) => project.moduleIndex === 1)).toHaveLength(3);
-    expect(ASSESSMENT_STUDENT_PROJECTS.filter((project) => project.name === "Demo Completed Project")).toHaveLength(2);
+    expect(ASSESSMENT_STUDENT_PROJECTS.filter((project) => project.name === "Demo Completed Project")).toHaveLength(1);
+    expect(ASSESSMENT_STUDENT_PROJECTS.filter((project) => project.name === "Demo Completed Project 2")).toHaveLength(1);
   });
 
   it("seeds scenario projects by moduleId and never allocates assessment admin accounts as students", async () => {
