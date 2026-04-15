@@ -4,11 +4,7 @@ import { StaffProjectNavFlagsPanel } from "../../navigation/StaffProjectNavFlags
 import { StaffProjectManageFormCollapsible } from "../../StaffProjectManageFormCollapsible";
 import { useStaffProjectManageSetup } from "../StaffProjectManageSetupContext";
 
-type StaffProjectManageFeatureFlagsSectionProps = {
-  globalFeatureFlags: Record<string, boolean>;
-};
-
-export function StaffProjectManageFeatureFlagsSection({ globalFeatureFlags }: StaffProjectManageFeatureFlagsSectionProps) {
+export function StaffProjectManageFeatureFlagsSection() {
   const { projectId, detailsDisabled } = useStaffProjectManageSetup();
 
   return (
@@ -17,11 +13,7 @@ export function StaffProjectManageFeatureFlagsSection({ globalFeatureFlags }: St
         Choose which tabs students can open while the project is active versus completed. Peer assessment and peer
         feedback can follow deadlines automatically or be controlled manually.
       </p>
-      <StaffProjectNavFlagsPanel
-        projectId={projectId}
-        globalFeatureFlags={globalFeatureFlags}
-        readOnly={detailsDisabled}
-      />
+      <StaffProjectNavFlagsPanel projectId={projectId} readOnly={detailsDisabled} />
     </StaffProjectManageFormCollapsible>
   );
 }

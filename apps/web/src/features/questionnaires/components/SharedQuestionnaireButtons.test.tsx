@@ -40,7 +40,9 @@ describe("SharedQuestionnaireButtons", () => {
     await user.click(screen.getByRole("button", { name: /About private and public questionnaire visibility/i }));
     const dialog = screen.getByRole("dialog", { name: /Questionnaire visibility/i });
     expect(dialog).toBeInTheDocument();
-    expect(screen.getByText(/Private templates appear only under My Questionnaires/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Private templates are only visible to your account/i),
+    ).toBeInTheDocument();
     fireEvent.click(dialog);
 
     fireEvent.click(screen.getByRole("button", { name: "Public" }));

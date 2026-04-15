@@ -24,6 +24,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/features/modules/staffModuleWorkspaceLayoutData", () => ({
   loadStaffModuleWorkspaceContext: vi.fn(),
   resolveStaffModuleWorkspaceAccess: vi.fn(),
+  canOpenStaffModuleManagePage: vi.fn(() => false),
 }));
 
 vi.mock("@/shared/auth/session", () => ({

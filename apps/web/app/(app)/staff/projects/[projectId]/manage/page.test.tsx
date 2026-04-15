@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getStaffProjectManage } from "@/features/projects/api/client";
 import { getProjectWarningsConfig } from "@/features/staff/projects/warnings/api/client";
-import { getFeatureFlagMap } from "@/shared/featureFlags";
 import StaffProjectManagePage from "./page";
 
 vi.mock("@/features/projects/api/client", () => ({
@@ -13,10 +12,6 @@ vi.mock("@/features/staff/projects/warnings/api/client", () => ({
   getProjectWarningsConfig: vi.fn(),
 }));
 
-vi.mock("@/shared/featureFlags", () => ({
-  getFeatureFlagMap: vi.fn(),
-}));
-
 vi.mock("@/features/staff/projects/components/manage/StaffProjectManageSetupSections", () => ({
   StaffProjectManageSetupSections: (props: { projectId: number; warningsOk: boolean }) => (
     <div data-testid="sections" data-project={String(props.projectId)} data-warnings={String(props.warningsOk)} />
@@ -24,7 +19,6 @@ vi.mock("@/features/staff/projects/components/manage/StaffProjectManageSetupSect
 }));
 
 const getManageMock = vi.mocked(getStaffProjectManage);
-const getFlagsMock = vi.mocked(getFeatureFlagMap);
 const getWarningsMock = vi.mocked(getProjectWarningsConfig);
 
 describe("StaffProjectManagePage", () => {
@@ -35,11 +29,10 @@ describe("StaffProjectManagePage", () => {
       name: "Proj",
       canMutateProjectSettings: true,
     } as Awaited<ReturnType<typeof getStaffProjectManage>>);
-    getFlagsMock.mockResolvedValue({});
     getWarningsMock.mockResolvedValue({ warningsConfig: {} } as Awaited<ReturnType<typeof getProjectWarningsConfig>>);
   });
 
-  it("parses project id and passes flags into setup sections", async () => {
+  it("parses project id and renders setup sections", async () => {
     const page = await StaffProjectManagePage({ params: Promise.resolve({ projectId: "8" }) });
     render(page);
     expect(screen.getByTestId("sections")).toHaveAttribute("data-project", "8");

@@ -147,7 +147,7 @@ describe("EnterpriseModuleManager", () => {
       expect(searchEnterpriseModulesMock).toHaveBeenCalledWith({ q: undefined, page: 1, pageSize: 10 }),
     );
 
-    expect(screen.getByText("Leader only")).toBeInTheDocument();
+    expect(await screen.findByText("Leader only")).toBeInTheDocument();
     expect(screen.getByText("-")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Edit module" })).not.toBeInTheDocument();
   });
