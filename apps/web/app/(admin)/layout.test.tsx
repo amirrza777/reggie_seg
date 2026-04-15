@@ -81,7 +81,7 @@ describe("AdminLayout", () => {
     expect(redirectMock).toHaveBeenCalledWith("/dashboard");
   });
 
-  it("renders admin shell with super-admin enterprise navigation", async () => {
+  it("renders admin shell with consistent admin navigation", async () => {
     getCurrentUserMock.mockResolvedValue({ email: "admin@kcl.ac.uk" } as Awaited<ReturnType<typeof getCurrentUser>>);
     isAdminMock.mockReturnValue(true);
 
@@ -95,12 +95,11 @@ describe("AdminLayout", () => {
     const desktopSidebar = sidebarCalls.find((entry) => entry.mode === "desktop");
     expect(desktopSidebar?.links).toEqual([
       { href: "/admin", label: "Admin dashboard", space: "admin" },
-      { href: "/enterprise/modules", label: "Module management", space: "admin" },
       { href: "/admin/enterprises", label: "Enterprises", space: "admin" },
     ]);
   });
 
-  it("omits enterprise navigation for non-super admins", async () => {
+  it("uses the same admin navigation for non-super admins", async () => {
     getCurrentUserMock.mockResolvedValue({ email: "admin+staff@kcl.ac.uk" } as Awaited<ReturnType<typeof getCurrentUser>>);
     isAdminMock.mockReturnValue(true);
 
@@ -111,7 +110,7 @@ describe("AdminLayout", () => {
     const desktopSidebar = sidebarCalls.find((entry) => entry.mode === "desktop");
     expect(desktopSidebar?.links).toEqual([
       { href: "/admin", label: "Admin dashboard", space: "admin" },
-      { href: "/enterprise/modules", label: "Module management", space: "admin" },
+      { href: "/admin/enterprises", label: "Enterprises", space: "admin" },
     ]);
   });
 });

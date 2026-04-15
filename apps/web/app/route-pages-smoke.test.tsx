@@ -168,13 +168,15 @@ describe("route pages smoke tests", () => {
     expect(screen.getByTestId("enterprise-module-create-form")).toBeInTheDocument();
   });
 
-  it("redirects non-super-admin users from admin enterprises page", async () => {
+  it("redirects non-admin users from admin enterprises page", async () => {
     getCurrentUserMock.mockResolvedValue({ id: 6, email: "staff@kcl.ac.uk" });
+    isAdminMock.mockReturnValue(false);
     await expect(AdminEnterprisesPage()).rejects.toMatchObject({ path: "/admin" });
   });
 
-  it("renders admin enterprises page for super admin email", async () => {
+  it("renders admin enterprises page for admin users", async () => {
     getCurrentUserMock.mockResolvedValue({ id: 7, email: "admin@kcl.ac.uk" });
+    isAdminMock.mockReturnValue(true);
     const view = await AdminEnterprisesPage();
     render(view);
     expect(screen.getByTestId("enterprise-management-table")).toHaveTextContent("true");
