@@ -30,4 +30,26 @@ describe("ForgotPasswordForm", () => {
     expect(submit).toBeDisabled();
     await waitFor(() => expect(screen.getByText(/reset link has been sent/i)).toBeInTheDocument());
   });
+
+  it("shows error alert class and API error message when reset request fails", async () => {
+    resetMock.mockRejectedValueOnce(new Error("Email service unavailable"));
+    render(<ForgotPasswordForm />);
+
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "user@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
+
+    const alertText = await screen.findByText("Email service unavailable");
+    expect(alertText).toBeInTheDocument();
+    expect(alertText.closest(".auth-alert")).toHaveClass("status-alert--error");
+  });
+
+  it("uses fallback error copy for non-Error rejection values", async () => {
+    resetMock.mockRejectedValueOnce("x");
+    render(<ForgotPasswordForm />);
+
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "user@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
+
+    expect(await screen.findByText("Failed to send reset email")).toBeInTheDocument();
+  });
 });

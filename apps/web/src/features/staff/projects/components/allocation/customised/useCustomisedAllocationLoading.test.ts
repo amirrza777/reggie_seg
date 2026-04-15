@@ -90,6 +90,16 @@ describe("useCustomisedAllocationLoading", () => {
     expect(result.current.selectedQuestionnaire).toBeNull();
   });
 
+  it("returns null selectedQuestionnaire for non-integer templateId", async () => {
+    getQuestionnairesMock.mockResolvedValue({ questionnaires: [eligible] } as any);
+    const { result } = renderHook(() =>
+      useCustomisedAllocationLoading({ projectId: 9, selectedTemplateId: "not-a-number" }),
+    );
+    await waitFor(() => expect(result.current.isLoadingQuestionnaires).toBe(false));
+    expect(result.current.selectedQuestionnaire).toBeNull();
+    expect(getCoverageMock).not.toHaveBeenCalled();
+  });
+
   it("fetches coverage when a valid templateId is provided", async () => {
     getQuestionnairesMock.mockResolvedValue({ questionnaires: [eligible] } as any);
     const coverageData = {
@@ -118,6 +128,17 @@ describe("useCustomisedAllocationLoading", () => {
     expect(result.current.coverage).toBeNull();
   });
 
+  it("uses fallback coverageError for non-Error coverage failures", async () => {
+    getQuestionnairesMock.mockResolvedValue({ questionnaires: [eligible] } as any);
+    getCoverageMock.mockRejectedValue("oops");
+    const { result } = renderHook(() =>
+      useCustomisedAllocationLoading({ projectId: 9, selectedTemplateId: "101" }),
+    );
+    await waitFor(() => {
+      expect(result.current.coverageError).toBe("Failed to load response coverage.");
+    });
+  });
+
   it("clears coverage when selectedTemplateId is reset to empty", async () => {
     getQuestionnairesMock.mockResolvedValue({ questionnaires: [eligible] } as any);
     getCoverageMock.mockResolvedValue({ responseRate: 80 } as any);
@@ -130,5 +151,53 @@ describe("useCustomisedAllocationLoading", () => {
     act(() => { rerender({ templateId: "" }); });
     await waitFor(() => expect(result.current.coverage).toBeNull());
     expect(result.current.coverageError).toBe("");
+  });
+
+  it("does not update questionnaire state after unmount", async () => {
+    let resolveQuestionnaires: ((value: unknown) => void) | null = null;
+    getQuestionnairesMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveQuestionnaires = resolve;
+        }) as any
+    );
+
+    const { unmount } = renderHook(() =>
+      useCustomisedAllocationLoading({ projectId: 9, selectedTemplateId: "" }),
+    );
+    unmount();
+
+    await act(async () => {
+      resolveQuestionnaires?.({ questionnaires: [eligible] });
+      await Promise.resolve();
+    });
+  });
+
+  it("does not update coverage state after unmount", async () => {
+    let resolveCoverage: ((value: unknown) => void) | null = null;
+    getQuestionnairesMock.mockResolvedValue({ questionnaires: [eligible] } as any);
+    getCoverageMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCoverage = resolve;
+        }) as any
+    );
+
+    const { unmount } = renderHook(() =>
+      useCustomisedAllocationLoading({ projectId: 9, selectedTemplateId: "101" }),
+    );
+    await waitFor(() => expect(getCoverageMock).toHaveBeenCalledWith(9, 101));
+    unmount();
+
+    await act(async () => {
+      resolveCoverage?.({
+        totalAvailableStudents: 1,
+        respondingStudents: 1,
+        nonRespondingStudents: 0,
+        responseRate: 100,
+        responseThreshold: 80,
+      });
+      await Promise.resolve();
+    });
   });
 });

@@ -94,4 +94,49 @@ describe("GithubProjectReposMyCommitsTab", () => {
     rerender(<GithubProjectReposMyCommitsTab {...props} />);
     expect(screen.getByText("Link a repository first to view your commits.")).toBeInTheDocument();
   });
+
+  it("renders loading, error, and empty commit states", () => {
+    const props = makeProps();
+    props.myCommitsByLinkId = { 1: { page: 1, hasNextPage: false, totals: null, commits: [] } };
+    props.myCommitsLoadingByLinkId = { 1: true };
+    props.myCommitsErrorByLinkId = { 1: "failed loading commits" };
+
+    const { rerender } = render(<GithubProjectReposMyCommitsTab {...props} />);
+    expect(screen.getByText("Loading your commits...")).toBeInTheDocument();
+    expect(screen.getByText("Failed to load commits: failed loading commits")).toBeInTheDocument();
+
+    props.myCommitsLoadingByLinkId = { 1: false };
+    props.myCommitsErrorByLinkId = { 1: null };
+    rerender(<GithubProjectReposMyCommitsTab {...props} />);
+    expect(screen.getByText("No commits found for your GitHub account in this repository.")).toBeInTheDocument();
+  });
+
+  it("falls back commit identity/date rendering and disables pager edges", () => {
+    const props = makeProps();
+    props.connection = { connected: true, account: null };
+    props.myCommitsByLinkId = {
+      1: {
+        page: 1,
+        hasNextPage: false,
+        totals: null,
+        commits: [
+          {
+            sha: "abcdef123456",
+            message: "",
+            authorLogin: null,
+            authorEmail: null,
+            date: null,
+            isMergePullRequest: false,
+            htmlUrl: "https://github.com/team/repo/commit/abcdef123456",
+          },
+        ],
+      },
+    };
+
+    render(<GithubProjectReposMyCommitsTab {...props} />);
+    expect(screen.getByText(/Showing your commits/)).toBeInTheDocument();
+    expect(screen.getAllByText("-").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+  });
 });

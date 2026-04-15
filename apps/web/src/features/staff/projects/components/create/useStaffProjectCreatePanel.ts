@@ -179,16 +179,7 @@ export function useStaffProjectCreatePanel({ modules, initialModuleId = null }: 
   const hasSelectedAllocationTemplate = allocationTemplateId.trim().length > 0;
 
   useEffect(() => {
-    const hadSelected = previousHasSelectedAllocationTemplateRef.current;
     previousHasSelectedAllocationTemplateRef.current = hasSelectedAllocationTemplate;
-
-    if (!hadSelected && hasSelectedAllocationTemplate) {
-      setDeadline((prev) => shiftCreateProjectDeadlineForCustomAllocation(prev, 7));
-      setDeadlinePresetError(null);
-      setDeadlinePresetStatus(
-        "Shifted the timeline by 1 week for custom allocation. Questionnaire now opens before project start.",
-      );
-    }
   }, [hasSelectedAllocationTemplate]);
 
   const selectedModule = useMemo(
@@ -255,26 +246,22 @@ export function useStaffProjectCreatePanel({ modules, initialModuleId = null }: 
   function applySchedulePreset(totalWeeks: number) {
     const preset = buildPresetCreateProjectDeadlineState(totalWeeks);
     setDeadline(
-      hasSelectedAllocationTemplate ? shiftCreateProjectDeadlineForCustomAllocation(preset, 7) : preset,
+      shiftCreateProjectDeadlineForCustomAllocation(preset, 7),
     );
     setDeadlinePresetError(null);
     setDeadlinePresetStatus(
-      hasSelectedAllocationTemplate
-        ? `Applied ${totalWeeks}-week schedule and shifted for custom allocation.`
-        : `Applied ${totalWeeks}-week project schedule.`,
+      `Applied ${totalWeeks}-week schedule and shifted for team allocation.`,
     );
   }
 
   function resetSchedulePreset() {
     const preset = buildDefaultCreateProjectDeadlineState();
     setDeadline(
-      hasSelectedAllocationTemplate ? shiftCreateProjectDeadlineForCustomAllocation(preset, 7) : preset,
+      shiftCreateProjectDeadlineForCustomAllocation(preset, 7),
     );
     setDeadlinePresetError(null);
     setDeadlinePresetStatus(
-      hasSelectedAllocationTemplate
-        ? "Reset to default schedule and shifted for custom allocation."
-        : "Reset to default project schedule.",
+      "Reset to default schedule and shifted for team allocation.",
     );
   }
 

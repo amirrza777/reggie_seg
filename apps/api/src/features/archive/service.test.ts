@@ -131,6 +131,27 @@ describe("archive service", () => {
     expect(repo.setModuleArchived).toHaveBeenCalledWith(1, null);
   });
 
+  it("unarchiveModule returns null when actor is inactive or module is out of scope", async () => {
+    (repo.findArchiveActor as any).mockResolvedValue(null);
+    await expect(unarchiveModule(1, 1)).resolves.toBeNull();
+    (repo.findArchiveActor as any).mockResolvedValue({
+      id: 1,
+      role: "STAFF",
+      enterpriseId: "e",
+      active: false,
+    });
+    await expect(unarchiveModule(1, 1)).resolves.toBeNull();
+    (repo.findArchiveActor as any).mockResolvedValue({
+      id: 1,
+      role: "STAFF",
+      enterpriseId: "e",
+      active: true,
+    });
+    (repo.findModuleIdForArchiveActorIfScoped as any).mockResolvedValue(null);
+    await expect(unarchiveModule(1, 1)).resolves.toBeNull();
+    expect(repo.setModuleArchived).not.toHaveBeenCalled();
+  });
+
   it("archiveProject calls setProjectArchived when scoped", async () => {
     const actor = { id: 1, role: "STAFF", enterpriseId: "e", active: true };
     (repo.findArchiveActor as any).mockResolvedValue(actor);
@@ -141,6 +162,27 @@ describe("archive service", () => {
     expect(repo.setProjectArchived).toHaveBeenCalledWith(2, expect.any(Date));
   });
 
+  it("archiveProject returns null when actor is inactive or project is out of scope", async () => {
+    (repo.findArchiveActor as any).mockResolvedValue(null);
+    await expect(archiveProject(1, 2)).resolves.toBeNull();
+    (repo.findArchiveActor as any).mockResolvedValue({
+      id: 1,
+      role: "STAFF",
+      enterpriseId: "e",
+      active: false,
+    });
+    await expect(archiveProject(1, 2)).resolves.toBeNull();
+    (repo.findArchiveActor as any).mockResolvedValue({
+      id: 1,
+      role: "STAFF",
+      enterpriseId: "e",
+      active: true,
+    });
+    (repo.findProjectIdForArchiveActorIfScoped as any).mockResolvedValue(null);
+    await expect(archiveProject(1, 2)).resolves.toBeNull();
+    expect(repo.setProjectArchived).not.toHaveBeenCalled();
+  });
+
   it("unarchiveProject calls setProjectArchived with null when scoped", async () => {
     const actor = { id: 1, role: "STAFF", enterpriseId: "e", active: true };
     (repo.findArchiveActor as any).mockResolvedValue(actor);
@@ -148,5 +190,26 @@ describe("archive service", () => {
     (repo.setProjectArchived as any).mockResolvedValue({ id: 2 });
     await unarchiveProject(1, 2);
     expect(repo.setProjectArchived).toHaveBeenCalledWith(2, null);
+  });
+
+  it("unarchiveProject returns null when actor is inactive or project is out of scope", async () => {
+    (repo.findArchiveActor as any).mockResolvedValue(null);
+    await expect(unarchiveProject(1, 2)).resolves.toBeNull();
+    (repo.findArchiveActor as any).mockResolvedValue({
+      id: 1,
+      role: "STAFF",
+      enterpriseId: "e",
+      active: false,
+    });
+    await expect(unarchiveProject(1, 2)).resolves.toBeNull();
+    (repo.findArchiveActor as any).mockResolvedValue({
+      id: 1,
+      role: "STAFF",
+      enterpriseId: "e",
+      active: true,
+    });
+    (repo.findProjectIdForArchiveActorIfScoped as any).mockResolvedValue(null);
+    await expect(unarchiveProject(1, 2)).resolves.toBeNull();
+    expect(repo.setProjectArchived).not.toHaveBeenCalled();
   });
 });

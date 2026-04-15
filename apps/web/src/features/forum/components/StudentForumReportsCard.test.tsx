@@ -156,4 +156,61 @@ describe("StudentForumReportsCard", () => {
     await waitFor(() => expect(ignoreStudentForumReportMock).toHaveBeenCalledWith(5, 99, 19));
     expect(await screen.findByText("Ignore failed")).toBeInTheDocument();
   });
+
+  it("shows singular report text, handles conversation load errors, and allows hiding conversation", async () => {
+    useUserMock.mockReturnValue({
+      user: {
+        id: 5,
+        firstName: "Staff",
+        lastName: "Member",
+        role: "STAFF",
+        isStaff: true,
+        isAdmin: false,
+        isEnterpriseAdmin: false,
+      },
+      loading: false,
+    } as ReturnType<typeof useUser>);
+
+    getStudentForumReportsMock.mockResolvedValueOnce([
+      {
+        ...report,
+        reportCount: 1,
+        reason: "",
+      },
+    ]);
+    getStaffForumConversationMock
+      .mockRejectedValueOnce("bad")
+      .mockResolvedValueOnce({
+        focusPostId: 33,
+        missingPost: false,
+        thread: {
+          id: 33,
+          parentPostId: null,
+          title: "Thread",
+          body: "Body",
+          createdAt: "2026-04-12T09:00:00.000Z",
+          updatedAt: "2026-04-12T09:00:00.000Z",
+          author: {
+            id: 7,
+            firstName: "Post",
+            lastName: "Author",
+            role: "STUDENT",
+          },
+          replies: [],
+        },
+      });
+
+    render(<StudentForumReportsCard projectId={99} />);
+    expect(await screen.findByText("Reported by 1 student")).toBeInTheDocument();
+    expect(screen.queryByText(/Reason:/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "View conversation" }));
+    expect(await screen.findByText("Could not load conversation.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "View conversation" }));
+    expect(await screen.findByText("Forum thread 33")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide conversation" }));
+    expect(screen.queryByText("Forum thread 33")).not.toBeInTheDocument();
+  });
 });

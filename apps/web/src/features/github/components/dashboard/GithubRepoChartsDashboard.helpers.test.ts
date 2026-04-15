@@ -1,11 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildBranchScopeCommitShareSeries,
   buildCommitTimelineSeries,
+  buildContributorMiniSeries,
+  buildContributorRows,
+  buildCoverageShareSeries,
   buildLineChangesByDaySeries,
+  buildPersonalShareSeries,
+  buildTopContributorBarSeries,
   buildWeeklyCommitSeries,
+  findPersonalStat,
+  formatDateRange,
+  formatPercent,
+  formatShortDate,
   formatWeekRangeLabel,
+  getChartMinWidth,
+  getContributorAxisWidth,
   getContributorWeeklyActivity,
+  getDateTickInterval,
+  getLineChangeDomain,
+  getCommitsByDaySeries,
   getSnapshotRepoTotals,
+  isoWeekKey,
 } from "./GithubRepoChartsDashboard.helpers";
 import type { GithubLatestSnapshot } from "../types";
 
@@ -116,6 +132,8 @@ describe("GithubRepoChartsDashboard.helpers", () => {
   it("formats weekly labels as readable date ranges", () => {
     expect(formatWeekRangeLabel("2026-03-02", "2026-03-08")).toBe("Mar 2-8");
     expect(formatWeekRangeLabel("2026-03-30", "2026-04-05")).toBe("Mar 30 - Apr 5");
+    expect(formatWeekRangeLabel("not-a-date", "still-not-a-date")).toBe("not-a-date - still-not-a-date");
+    expect(formatWeekRangeLabel("2025-12-30", "2026-01-02")).toContain("2025");
   });
 
   it("keeps zero-commit weeks when daily data spans that week", () => {
@@ -225,4 +243,127 @@ describe("GithubRepoChartsDashboard.helpers", () => {
       totalContributors: 2,
     });
   });
+
+  it("formats date and percent helper values across edge cases", () => {
+    expect(formatShortDate("not-a-date")).toBe("not-a-date");
+    expect(formatDateRange("", "2026-03-01")).toBe("");
+    expect(formatDateRange("2026-03-01", "2026-03-01")).toContain("Mar");
+    expect(formatDateRange("2026-03-01", "2026-03-03")).toContain("-");
+    expect(formatPercent(3, 0)).toBe("0%");
+    expect(formatPercent(1, 4)).toBe("25.0%");
+    expect(isoWeekKey("invalid-date")).toBeNull();
+  });
+
+  it("builds commit/day and contributor helper series", () => {
+    expect(getCommitsByDaySeries(null)).toEqual([]);
+    expect(buildContributorMiniSeries(null)).toEqual([]);
+    expect(buildContributorMiniSeries({ "2026-03-01": 1, "2026-03-02": 2 })).toEqual([
+      { date: "2026-03-01", commits: 1 },
+      { date: "2026-03-02", commits: 2 },
+    ]);
+
+    const snapshot = makeSnapshot({
+      userStats: [
+        {
+          id: 1,
+          mappedUserId: 7,
+          githubLogin: "alice",
+          isMatched: true,
+          commits: 5,
+          additions: 10,
+          deletions: 2,
+          commitsByDay: { "2026-03-02": 5 },
+        },
+        {
+          id: 2,
+          mappedUserId: null,
+          githubLogin: null,
+          isMatched: false,
+          commits: 2,
+          additions: 4,
+          deletions: 1,
+          commitsByDay: {},
+        },
+        {
+          id: 3,
+          mappedUserId: 9,
+          githubLogin: "no-commits",
+          isMatched: true,
+          commits: 0,
+          additions: 0,
+          deletions: 0,
+          commitsByDay: {},
+        },
+      ],
+    });
+
+    const contributors = buildContributorRows(snapshot);
+    expect(contributors).toHaveLength(2);
+    expect(contributors[0].rank).toBe(1);
+    expect(contributors[1].name).toBe("Unknown / Unmatched");
+    expect(buildTopContributorBarSeries(contributors)).toEqual([
+      { contributor: "alice", commits: 5 },
+      { contributor: "Unknown / Unmatched", commits: 2 },
+    ]);
+  });
+
+  it("finds personal stats case-insensitively and builds share slices", () => {
+    const snapshot = makeSnapshot({
+      userStats: [
+        {
+          id: 1,
+          mappedUserId: 3,
+          githubLogin: "AliceDev",
+          isMatched: true,
+          commits: 4,
+          additions: 20,
+          deletions: 10,
+          commitsByDay: { "2026-03-01": 4 },
+        },
+      ],
+      repoStats: [
+        {
+          totalCommits: 10,
+          totalAdditions: 100,
+          totalDeletions: 40,
+          totalContributors: 1,
+          matchedContributors: 1,
+          unmatchedContributors: 0,
+          unmatchedCommits: 0,
+          commitsByDay: {
+            "2026-03-01": 10,
+          },
+        },
+      ],
+    });
+
+    expect(findPersonalStat(snapshot, "  alicedev ")).toEqual(expect.objectContaining({ commits: 4 }));
+    expect(findPersonalStat(snapshot, null)).toBeNull();
+    expect(findPersonalStat(snapshot, "missing-user")).toBeNull();
+
+    expect(
+      buildPersonalShareSeries({
+        snapshot,
+        currentGithubLogin: "alicedev",
+      })
+    ).toEqual(
+      expect.objectContaining({
+        personalCommits: 4,
+        totalCommits: 10,
+      })
+    );
+
+    expect(
+      buildPersonalShareSeries({
+        snapshot: makeSnapshot({ userStats: [], repoStats: [] }),
+        currentGithubLogin: "missing",
+      })
+    ).toEqual(
+      expect.objectContaining({
+        commitShare: [],
+        lineShare: [],
+      })
+    );
+  });
+
 });

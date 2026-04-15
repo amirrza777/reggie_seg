@@ -73,6 +73,65 @@ describe("shared/auth/session", () => {
     });
   });
 
+  it("falls back to API_BASE_URL and omits auth headers when cookies/tokens are missing", async () => {
+    cookiesMock.mockResolvedValue({
+      getAll: () => [],
+      get: () => undefined,
+    });
+    headersMock.mockResolvedValue({
+      get: (name: string) => {
+        if (name === "x-forwarded-host") return null;
+        if (name === "host") return "localhost:3001";
+        if (name === "x-forwarded-proto") return null;
+        return null;
+      },
+    });
+    getApiBaseForRequestMock.mockReturnValue("");
+    apiFetchMock.mockResolvedValue({
+      id: 8,
+      email: "staff@example.com",
+      firstName: "Sam",
+      lastName: "Staff",
+      isStaff: true,
+    });
+
+    const session = await loadSessionModule();
+    const user = await session.getCurrentUser();
+
+    expect(getApiBaseForRequestMock).toHaveBeenCalledWith("localhost:3001", "http");
+    expect(apiFetchMock).toHaveBeenCalledWith("/auth/me", {
+      baseUrl: "https://api.default.test",
+      headers: {},
+    });
+    expect(user).toMatchObject({
+      id: 8,
+      role: "STAFF",
+      active: true,
+      isUnassigned: false,
+    });
+  });
+
+  it("preserves explicit role and flags from API response", async () => {
+    apiFetchMock.mockResolvedValue({
+      id: 10,
+      email: "enterprise@example.com",
+      firstName: "E",
+      lastName: "Admin",
+      isStaff: false,
+      role: "ENTERPRISE_ADMIN",
+      active: false,
+      isUnassigned: true,
+    });
+    const session = await loadSessionModule();
+
+    const user = await session.getCurrentUser();
+    expect(user).toMatchObject({
+      role: "ENTERPRISE_ADMIN",
+      active: false,
+      isUnassigned: true,
+    });
+  });
+
   it("returns suspended pseudo-user when auth endpoint indicates suspension", async () => {
     apiFetchMock.mockRejectedValueOnce({ status: 403, message: "Account suspended" });
     const session = await loadSessionModule();
@@ -99,6 +158,13 @@ describe("shared/auth/session", () => {
     await expect(session.getCurrentUser()).resolves.toBeNull();
   });
 
+  it("returns null when session error is a primitive", async () => {
+    apiFetchMock.mockRejectedValueOnce("failed");
+    const session = await loadSessionModule();
+
+    await expect(session.getCurrentUser()).resolves.toBeNull();
+  });
+
   it("evaluates role helper guards", async () => {
     const session = await loadSessionModule();
 
@@ -117,5 +183,6 @@ describe("shared/auth/session", () => {
     expect(session.isElevatedStaff({ role: "ADMIN", isStaff: false } as any)).toBe(true);
     expect(session.isElevatedStaff({ role: "STUDENT", isAdmin: true, isStaff: false } as any)).toBe(true);
     expect(session.isElevatedStaff({ role: "STUDENT", isStaff: false } as any)).toBe(false);
+    expect(session.isElevatedStaff(undefined)).toBe(false);
   });
 });

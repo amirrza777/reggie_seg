@@ -33,9 +33,27 @@ describe("questionnaires api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/questionnaires/mine");
   });
 
+  it("applies query and purpose filters when listing my questionnaires", async () => {
+    await getMyQuestionnaires({
+      query: "  peer feedback  ",
+      purpose: "PEER_FEEDBACK",
+    });
+    expect(apiFetchMock).toHaveBeenCalledWith("/questionnaires/mine?q=peer+feedback&purpose=PEER_FEEDBACK");
+  });
+
+  it("ignores blank query values", async () => {
+    await getMyQuestionnaires({ query: "   " });
+    expect(apiFetchMock).toHaveBeenCalledWith("/questionnaires/mine");
+  });
+
   it("gets public questionnaires from other users", async () => {
     await getPublicQuestionnairesFromOthers();
     expect(apiFetchMock).toHaveBeenCalledWith("/questionnaires/public/others");
+  });
+
+  it("applies encoded purpose when listing public questionnaires", async () => {
+    await getPublicQuestionnairesFromOthers({ purpose: "PEER_FEEDBACK" });
+    expect(apiFetchMock).toHaveBeenCalledWith("/questionnaires/public/others?purpose=PEER_FEEDBACK");
   });
 
   it("gets questionnaire by id", async () => {
@@ -95,4 +113,3 @@ describe("questionnaires api client", () => {
     expect(publicOthers).toEqual([{ id: 2 }]);
   });
 });
-

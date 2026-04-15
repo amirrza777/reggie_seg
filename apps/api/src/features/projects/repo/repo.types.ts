@@ -10,6 +10,7 @@ export type ProjectDeadlineInput = {
   feedbackDueDateMcf: Date;
   teamAllocationQuestionnaireOpenDate?: Date | null;
   teamAllocationQuestionnaireDueDate?: Date | null;
+  teamAllocationInviteDueDate?: Date | null;
 };
 
 export type StudentDeadlineOverrideInput = {

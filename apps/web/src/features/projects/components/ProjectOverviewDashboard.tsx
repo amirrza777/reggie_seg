@@ -39,15 +39,50 @@ function getDeadlineStateLabel(value: string | null | undefined): {
   return { label: "Upcoming", tone: "upcoming" };
 }
 
-function buildDeadlineItems(deadline: ProjectDeadline): DeadlineItem[] {
-  return [
+function buildDeadlineItems(project: Project, deadline: ProjectDeadline): DeadlineItem[] {
+  const items: DeadlineItem[] = [];
+
+  // Add team allocation deadlines first (chronologically before task opens)
+  const hasQuestionnaireTemplate = project.teamAllocationQuestionnaireTemplateId != null;
+
+  if (hasQuestionnaireTemplate) {
+    // Questionnaire path: show questionnaire dates
+    if (deadline.teamAllocationQuestionnaireOpenDate) {
+      items.push({
+        label: "Team questionnaire opens",
+        value: deadline.teamAllocationQuestionnaireOpenDate,
+        group: "Team formation",
+      });
+    }
+    if (deadline.teamAllocationQuestionnaireDueDate) {
+      items.push({
+        label: "Team questionnaire deadline",
+        value: deadline.teamAllocationQuestionnaireDueDate,
+        group: "Team formation",
+      });
+    }
+  } else {
+    // Self-organization path: show invite deadline
+    if (deadline.teamAllocationInviteDueDate) {
+      items.push({
+        label: "Team invite deadline",
+        value: deadline.teamAllocationInviteDueDate,
+        group: "Team formation",
+      });
+    }
+  }
+
+  // Then add project deadlines
+  items.push(
     { label: "Task opens", value: deadline.taskOpenDate, group: "Project" },
     { label: "Project deadline", value: deadline.taskDueDate, group: "Project" },
     { label: "Assessment opens", value: deadline.assessmentOpenDate, group: "Peer assessment" },
     { label: "Assessment deadline", value: deadline.assessmentDueDate, group: "Peer assessment" },
     { label: "Feedback opens", value: deadline.feedbackOpenDate, group: "Feedback" },
     { label: "Feedback deadline", value: deadline.feedbackDueDate, group: "Feedback" },
-  ];
+  );
+
+  return items;
 }
 
 function ProjectOverviewHero({
@@ -129,13 +164,15 @@ function DeadlinesScheduleCard({ items, emphasize = false }: { items: DeadlineIt
 
 /** Same schedule card as the student project overview (base project dates). */
 export function ProjectDeadlinesScheduleCard({
+  project,
   deadline,
   emphasize = false,
 }: {
+  project: Project;
   deadline: ProjectDeadline;
   emphasize?: boolean;
 }) {
-  return <DeadlinesScheduleCard items={buildDeadlineItems(deadline)} emphasize={emphasize} />;
+  return <DeadlinesScheduleCard items={buildDeadlineItems(project, deadline)} emphasize={emphasize} />;
 }
 
 export function InformationBoardCard({
@@ -260,7 +297,7 @@ export function ProjectOverviewDashboard({
   team,
   teamFormationMode,
 }: ProjectOverviewDashboardProps) {
-  const deadlineItems = buildDeadlineItems(deadline);
+  const deadlineItems = buildDeadlineItems(project, deadline);
   const projectState = resolveProjectWorkflowState({
     project,
     deadline,
@@ -275,7 +312,7 @@ export function ProjectOverviewDashboard({
 
       <div className="stack project-overview-layout project-overview-layout--overview">
         <InformationBoardCard informationText={project.informationText} largeText />
-        {!completed ? <ProjectDeadlinesScheduleCard deadline={deadline} emphasize /> : null}
+        {!completed ? <ProjectDeadlinesScheduleCard project={project} deadline={deadline} emphasize /> : null}
       </div>
 
       {projectState === "completed_marked" ? (

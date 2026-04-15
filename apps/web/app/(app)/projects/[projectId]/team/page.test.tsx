@@ -10,6 +10,7 @@ import {
   getTeamByUserAndProject,
 } from "@/features/projects/api/client";
 import { apiFetch } from "@/shared/api/http";
+import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
 import ProjectTeamPage from "./page";
 
 vi.mock("@/shared/auth/session", () => ({
@@ -28,6 +29,10 @@ vi.mock("@/shared/api/http", () => ({
   apiFetch: vi.fn(),
 }));
 
+vi.mock("@/shared/auth/redirectOnUnauthorized", () => ({
+  redirectOnUnauthorized: vi.fn(),
+}));
+
 vi.mock("@/shared/ui/Card", () => ({
   Card: ({ children }: { children: ReactNode }) => <div data-testid="card">{children}</div>,
 }));
@@ -38,11 +43,13 @@ vi.mock("@/features/projects/components/TeamFormationPanel", () => ({
     projectId,
     initialInvites,
     teamFormationMode,
+    questionnaireWindowOpen,
   }: {
     team: { id: number; teamName?: string } | null;
     projectId: number;
     initialInvites: unknown[];
     teamFormationMode?: "self" | "custom" | "staff";
+    questionnaireWindowOpen?: boolean;
   }) => (
     <div
       data-testid="team-formation-panel"
@@ -51,6 +58,7 @@ vi.mock("@/features/projects/components/TeamFormationPanel", () => ({
       data-team-name={team?.teamName ?? ""}
       data-invite-count={initialInvites.length}
       data-team-mode={teamFormationMode ?? ""}
+      data-questionnaire-window-open={String(Boolean(questionnaireWindowOpen))}
     />
   ),
 }));
@@ -78,6 +86,7 @@ const getProjectMarkingMock = vi.mocked(getProjectMarking);
 const getTeamAllocationQuestionnaireStatusForProjectMock = vi.mocked(getTeamAllocationQuestionnaireStatusForProject);
 const getTeamByUserAndProjectMock = vi.mocked(getTeamByUserAndProject);
 const apiFetchMock = vi.mocked(apiFetch);
+const redirectOnUnauthorizedMock = vi.mocked(redirectOnUnauthorized);
 
 describe("ProjectTeamPage", () => {
   beforeEach(() => {
@@ -182,5 +191,78 @@ describe("ProjectTeamPage", () => {
     expect(getTeamAllocationQuestionnaireStatusForProjectMock).toHaveBeenCalledWith(7);
     expect(screen.getByTestId("allocation-questionnaire")).toHaveAttribute("data-template-id", "501");
     expect(screen.getByTestId("allocation-questionnaire")).toHaveAttribute("data-submitted", "false");
+  });
+
+  it("continues when project marking lookup fails", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 17 } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getTeamByUserAndProjectMock.mockResolvedValue({ id: 5, teamName: "Beta" } as Awaited<ReturnType<typeof getTeamByUserAndProject>>);
+    getProjectMarkingMock.mockRejectedValueOnce(new Error("mark lookup failed"));
+
+    const page = await ProjectTeamPage({ params: Promise.resolve({ projectId: "4" }) });
+    render(page);
+
+    expect(redirectOnUnauthorizedMock).toHaveBeenCalled();
+    expect(screen.getByTestId("team-formation-panel")).toHaveAttribute("data-team-id", "5");
+  });
+
+  it("falls back gracefully when project load fails", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 8 } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getTeamByUserAndProjectMock.mockResolvedValue({ id: 9, teamName: "Gamma" } as Awaited<ReturnType<typeof getTeamByUserAndProject>>);
+    getProjectMock.mockRejectedValueOnce(new Error("project failed"));
+
+    const page = await ProjectTeamPage({ params: Promise.resolve({ projectId: "6" }) });
+    render(page);
+
+    expect(redirectOnUnauthorizedMock).toHaveBeenCalled();
+    expect(screen.getByTestId("team-formation-panel")).toHaveAttribute("data-team-id", "9");
+  });
+
+  it("shows waiting card when custom allocation window is closed", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 5 } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getTeamByUserAndProjectMock.mockResolvedValue(null);
+    getProjectMock.mockResolvedValue({
+      id: "7",
+      name: "Project 7",
+      informationText: "Info text",
+      questionnaireTemplateId: 1,
+      teamAllocationQuestionnaireTemplateId: 77,
+    });
+    getTeamAllocationQuestionnaireStatusForProjectMock.mockResolvedValueOnce({
+      questionnaireTemplate: {
+        id: 501,
+        purpose: "CUSTOMISED_ALLOCATION",
+        questions: [],
+      },
+      hasSubmitted: false,
+      teamAllocationQuestionnaireOpenDate: "2026-03-01T00:00:00.000Z",
+      teamAllocationQuestionnaireDueDate: "2026-04-01T00:00:00.000Z",
+      windowIsOpen: false,
+    });
+
+    const page = await ProjectTeamPage({ params: Promise.resolve({ projectId: "7" }) });
+    render(page);
+
+    expect(screen.getByText("Please wait for staff to add you to a team for this project.")).toBeInTheDocument();
+  });
+
+  it("shows unavailable questionnaire copy when status fetch fails", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 5 } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getTeamByUserAndProjectMock.mockResolvedValue(null);
+    getProjectMock.mockResolvedValue({
+      id: "7",
+      name: "Project 7",
+      informationText: "Info text",
+      questionnaireTemplateId: 1,
+      teamAllocationQuestionnaireTemplateId: 77,
+    });
+    getTeamAllocationQuestionnaireStatusForProjectMock.mockRejectedValueOnce(new Error("status failed"));
+
+    const page = await ProjectTeamPage({ params: Promise.resolve({ projectId: "7" }) });
+    render(page);
+
+    expect(redirectOnUnauthorizedMock).toHaveBeenCalled();
+    expect(
+      screen.getByText("Allocation questionnaire is not available right now. Please try again shortly."),
+    ).toBeInTheDocument();
   });
 });

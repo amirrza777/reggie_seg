@@ -85,7 +85,7 @@ describe("EnterpriseModuleManager", () => {
     await waitFor(() =>
       expect(searchEnterpriseModulesMock).toHaveBeenCalledWith({ q: undefined, page: 1, pageSize: 10 }),
     );
-    expect(screen.getByText("Module 1")).toBeInTheDocument();
+    await screen.findByText("Module 1");
     expect(screen.queryByText("Module 11")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
