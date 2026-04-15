@@ -28,11 +28,11 @@ function buildScenarioMeetingSeeds(input: SeedScenarioPastAndUpcomingMeetingsInp
   const upcomingOffset = input.upcomingOffsetDays ?? 3;
   return [
     {
-      title: `[SEED] ${input.titlePrefix} Previous Meeting`,
+      title: `${input.titlePrefix} Previous Meeting`,
       date: new Date(now - previousOffset * DAY_MS),
     },
     {
-      title: `[SEED] ${input.titlePrefix} Upcoming Meeting`,
+      title: `${input.titlePrefix} Upcoming Meeting`,
       date: new Date(now + upcomingOffset * DAY_MS),
     },
   ];

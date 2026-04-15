@@ -17,7 +17,7 @@ export async function ensureScenarioMeetings(teamId: number, organiserId: number
 }
 
 async function upsertScenarioMeeting(teamId: number, organiserId: number, index: number, date: Date) {
-  const title = `[SEED] Completed Check-in ${index + 1}`;
+  const title = `Completed Check-in ${index + 1}`;
   const existing = await prisma.meeting.findFirst({ where: { teamId, title }, select: { id: true } });
   if (existing) {
     const meeting = await prisma.meeting.findUnique({ where: { id: existing.id }, select: { id: true } });
