@@ -31,9 +31,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   ];
 
   const spaceLinks: SpaceLink[] = [
-    { href: "/dashboard", label: "Workspace" },
-    { href: "/staff/dashboard", label: "Staff" },
-    { href: "/enterprise", label: "Enterprise" },
     { href: "/admin", label: "Admin" },
   ];
 

@@ -37,4 +37,11 @@ describe("ModuleWorkspaceNav", () => {
     render(<ModuleWorkspaceNav moduleId="a b" basePath="/staff/modules/" />);
     expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/staff/modules/a%20b/manage");
   });
+
+  it("hides Settings when showSettingsLink is false", () => {
+    pathnameRef.current = "/staff/modules/12";
+    render(<ModuleWorkspaceNav moduleId="12" basePath="/staff/modules" showSettingsLink={false} />);
+    expect(screen.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Student Members" })).toBeInTheDocument();
+  });
 });

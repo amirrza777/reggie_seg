@@ -30,7 +30,11 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
     redirect("/login");
   }
 
-  const canAccessEnterpriseAdmin = isEnterpriseAdmin(user) || isAdmin(user);
+  if (isAdmin(user)) {
+    redirect("/admin");
+  }
+
+  const canAccessEnterpriseAdmin = isEnterpriseAdmin(user);
   const canAccessModuleManagement = canAccessEnterpriseAdmin || user.role === "STAFF";
 
   if (!canAccessModuleManagement) {
@@ -44,7 +48,7 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
     "/staff/modules",
     "/staff/questionnaires",
   ];
-  const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
+  const isStaffOnlyAccount = user.isStaff && !isEnterpriseAdmin(user);
 
   const spaceLinks: SpaceLink[] = [];
   if (!isStaffOnlyAccount) {
@@ -52,7 +56,6 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
   }
   spaceLinks.push({ href: "/staff/dashboard", label: "Staff" });
   spaceLinks.push({ href: enterpriseHomeHref, label: "Enterprise" });
-  if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin" });
 
   return (
     <AppShell

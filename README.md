@@ -269,6 +269,17 @@ At the time of writing, no substantial external source files are being declared 
 
 ### AI Use
 
-AI tools were used as development support during the project, including help with debugging, syntax checking, test-case ideas, documentation/report wording and structure, and some deployment/setup troubleshooting.
-
+AI tools were used as development support during the project, including help with debugging, syntax checking, and some deployment/setup troubleshooting. The largest use of AI was in the tedious and repetitive task of getting test coverage up - which enabled faster development whilst maintaining a comprehensive test suite.
+Additionally, AI assisted with documentation/report wording and structure, generating and debugging the Nix flake, and for the screencast voiceover. 
 All AI-assisted output was reviewed, edited, and validated by team members before being committed or included in the final submission.
+
+Codex + Claude 
+
+Voiceover: 
+OpenAI gpt-4o-mini-tts
+Shimmer - global admin
+Alloy - entp admin
+Echo - staff module lead
+Nova - student
+Fable - second student
+

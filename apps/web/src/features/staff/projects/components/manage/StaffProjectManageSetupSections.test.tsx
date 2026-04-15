@@ -75,6 +75,7 @@ const baseInitial: StaffProjectManageSummary = {
     moduleMemberDirectory: [],
     projectStudentIds: [],
   },
+  canMutateProjectSettings: true,
 };
 
 describe("StaffProjectManageSetupSections", () => {

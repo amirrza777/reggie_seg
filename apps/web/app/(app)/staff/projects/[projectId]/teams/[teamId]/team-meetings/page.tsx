@@ -75,14 +75,18 @@ export default async function StaffTeamMeetingsSectionPage({ params }: PageProps
   }
 
   const meetingsState = await loadTeamMeetings(parsed.teamId);
-  const count = meetingsState.meetings.length;
   return (
     <>
       <section className="staff-projects__team-card" aria-label="Team meetings analytics and history">
         {meetingsState.error ? (
           <p className="muted">{meetingsState.error}</p>
         ) : (
-          <StaffMeetingsView meetings={meetingsState.meetings} absenceThreshold={meetingsState.absenceThreshold} />
+          <StaffMeetingsView
+            meetings={meetingsState.meetings}
+            absenceThreshold={meetingsState.absenceThreshold}
+            projectId={parsed.projectId}
+            teamId={parsed.teamId}
+          />
         )}
       </section>
     </>

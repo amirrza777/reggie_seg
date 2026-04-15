@@ -34,7 +34,7 @@ vi.mock("@/features/projects/workspace/ProjectWorkspaceCanEditContext", () => ({
   useProjectWorkspaceCanEdit: () => ({ canEdit: canEditValue, workspaceArchived: archivedValue }),
 }));
 
-const baseTeam = { id: 10, teamName: "Blue", moduleId: 1, projectId: 2, members: [] };
+const baseTeam = { id: 10, teamName: "Blue", moduleId: 1, projectId: 2, members: [], allocations: [] };
 const received = {
   id: "inv-1",
   status: "PENDING" as const,
@@ -252,6 +252,50 @@ describe("TeamFormationPanel", () => {
       await screen.findByText("aya@example.com");
       fireEvent.change(input, { target: { value: "zzz@example.com" } });
       expect(await screen.findByText(/No matching module students found/i)).toBeInTheDocument();
+    });
+
+    it("hides invite section for staff-allocated projects after team is created", () => {
+      render(<TeamFormationPanel team={baseTeam as any} projectId={2} initialInvites={[]} teamFormationMode="staff" />);
+      expect(screen.getByTestId("team-list")).toBeInTheDocument();
+      expect(screen.queryByText("Invite a teammate")).not.toBeInTheDocument();
+    });
+
+    it("hides invite section for custom-allocated projects after team is created", () => {
+      render(<TeamFormationPanel team={baseTeam as any} projectId={2} initialInvites={[]} teamFormationMode="custom" />);
+      expect(screen.getByTestId("team-list")).toBeInTheDocument();
+      expect(screen.queryByText("Invite a teammate")).not.toBeInTheDocument();
+    });
+
+    it("disables invites when teamAllocationInviteDueDate has passed", () => {
+      const pastDate = new Date(Date.now() - 3600000).toISOString();
+      getTeamInviteEligibleStudentsMock.mockResolvedValue([]);
+      render(
+        <TeamFormationPanel
+          team={baseTeam as any}
+          projectId={2}
+          initialInvites={[]}
+          teamAllocationInviteDueDate={pastDate}
+        />
+      );
+      expect(screen.getByTestId("team-list")).toBeInTheDocument();
+      expect(screen.queryByText("Invite a teammate")).not.toBeInTheDocument();
+    });
+
+    it("enables invites when teamAllocationInviteDueDate is in the future", async () => {
+      const futureDate = new Date(Date.now() + 3600000).toISOString();
+      getTeamInviteEligibleStudentsMock.mockResolvedValue([
+        { id: 5, firstName: "Aya", lastName: "Tanaka", email: "aya@example.com" },
+      ]);
+      render(
+        <TeamFormationPanel
+          team={baseTeam as any}
+          projectId={2}
+          initialInvites={[]}
+          teamAllocationInviteDueDate={futureDate}
+        />
+      );
+      await waitFor(() => expect(getTeamInviteEligibleStudentsMock).toHaveBeenCalled());
+      expect(screen.getByText("Invite a teammate")).toBeInTheDocument();
     });
   });
 });

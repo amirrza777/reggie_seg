@@ -137,6 +137,7 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
       viewerAccessLabel,
       canManageProjectSettings,
       informationText: project.informationText,
+      teamAllocationQuestionnaireTemplateId: project.teamAllocationQuestionnaireTemplateId,
     },
     projectStudentCount,
     unassignedProjectStudentCount,

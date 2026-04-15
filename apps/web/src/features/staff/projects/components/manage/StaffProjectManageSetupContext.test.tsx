@@ -48,6 +48,7 @@ const initial: StaffProjectManageSummary = {
     moduleMemberDirectory: [],
     projectStudentIds: [],
   },
+  canMutateProjectSettings: true,
 };
 
 function wrapper({ children }: { children: ReactNode }) {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ApiError } from "@/shared/api/errors";
 import { Button } from "@/shared/ui/Button";
 import { ConfirmationModal } from "@/shared/ui/modal/ConfirmationModal";
+import { InfoIconModal } from "@/shared/ui/modal/InfoIconModal";
 import { deleteQuestionnaire } from "../api/client";
 import type { QuestionnairePurpose } from "../types";
 import { QUESTIONNAIRE_PURPOSE_OPTIONS } from "../purpose";
@@ -26,6 +27,11 @@ type QuestionnairePurposeButtonsProps = {
   purpose: QuestionnairePurpose;
   onChange: (next: QuestionnairePurpose) => void;
 };
+
+const QUESTIONNAIRE_VISIBILITY_INFO_PARAGRAPHS = [
+  "Private templates are only visible to your account. Only you can view, edit, rename, or delete them.",
+  "Public templates are visible to every staff member. Other users can preview your structure and save their own copy to adapt (your original stays under your account).",
+];
 
 export function QuestionnaireVisibilityButtons({
   isPublic,
@@ -50,6 +56,11 @@ export function QuestionnaireVisibilityButtons({
       >
         Private
       </Button>
+      <InfoIconModal
+        buttonLabel="About private and public questionnaire visibility"
+        modalTitle="Questionnaire visibility"
+        paragraphs={QUESTIONNAIRE_VISIBILITY_INFO_PARAGRAPHS}
+      />
     </div>
   );
 }
