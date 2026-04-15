@@ -53,6 +53,7 @@ const initial: StaffProjectManageSummary = {
     moduleMemberDirectory: [],
     projectStudentIds: [],
   },
+  canMutateProjectSettings: true,
 };
 
 describe("StaffProjectManageProjectNameSection", () => {

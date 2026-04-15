@@ -7,17 +7,19 @@ export type ModuleWorkspaceNavProps = {
   moduleId: string;
   /** e.g. `/staff/modules` for staff workspace */
   basePath: string;
+  showSettingsLink?: boolean;  // false = hides the Settings tab (TAs).
+
 };
 
 const navLabel = "Module sections";
 
-export function ModuleWorkspaceNav({ moduleId, basePath }: ModuleWorkspaceNavProps) {
+export function ModuleWorkspaceNav({ moduleId, basePath, showSettingsLink = true }: ModuleWorkspaceNavProps) {
   const pathname = usePathname();
   const enc = encodeURIComponent(moduleId);
   const root = basePath.replace(/\/$/, "");
   const base = `${root}/${enc}`;
 
-  const links: { href: string; label: string; match: (path: string | null) => boolean }[] = [
+  const allLinks: { href: string; label: string; match: (path: string | null) => boolean }[] = [
     {
       href: base,
       label: "Overview",
@@ -44,6 +46,8 @@ export function ModuleWorkspaceNav({ moduleId, basePath }: ModuleWorkspaceNavPro
       match: (path) => path === `${base}/manage` || Boolean(path?.startsWith(`${base}/manage/`)),
     },
   ];
+
+  const links = showSettingsLink ? allLinks : allLinks.filter((link) => link.label !== "Settings");
 
   return (
     <nav className="pill-nav module-workspace__tabs" aria-label={navLabel}>

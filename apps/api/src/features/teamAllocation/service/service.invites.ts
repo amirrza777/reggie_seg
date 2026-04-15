@@ -15,6 +15,7 @@ import {
   updateInviteStatusFromPending,
 } from "../repo/repo.js";
 import { buildProjectTeamWorkspaceUrl } from "./service.drafts.helpers.js";
+import { getUserProjectDeadline } from "../../projects/deadlines/repo.project-deadline.js";
 
 const defaultFrontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
@@ -33,7 +34,7 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
 
   const teamRecord = await prisma.team.findUnique({
     where: { id: params.teamId },
-    select: { archivedAt: true, allocationLifecycle: true },
+    select: { archivedAt: true, allocationLifecycle: true, projectId: true },
   });
   if (!teamRecord) throw { code: "TEAM_NOT_FOUND" };
   if (teamRecord.archivedAt) throw { code: "TEAM_ARCHIVED" };
@@ -44,6 +45,15 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
     select: { teamId: true },
   });
   if (!inviterAllocation) throw { code: "TEAM_ACCESS_FORBIDDEN" };
+
+  // Check team invite deadline
+  const deadline = await getUserProjectDeadline(params.inviterId, teamRecord.projectId);
+  if (deadline?.teamAllocationInviteDueDate) {
+    const now = new Date();
+    if (now > deadline.teamAllocationInviteDueDate) {
+      throw { code: "TEAM_INVITE_DEADLINE_PASSED" };
+    }
+  }
 
   const eligibleInvitee = await findInviteEligibleStudentForTeamByEmail(params.teamId, normalizedEmail);
   if (!eligibleInvitee) throw { code: "INVITEE_NOT_ELIGIBLE_FOR_PROJECT" };

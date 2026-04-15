@@ -35,6 +35,7 @@ function manageDeadlineToProjectDeadline(snapshot: StaffProjectManageDeadlineSna
     feedbackDueDateMcf: snapshot.feedbackDueDateMcf,
     teamAllocationQuestionnaireOpenDate: snapshot.teamAllocationQuestionnaireOpenDate,
     teamAllocationQuestionnaireDueDate: snapshot.teamAllocationQuestionnaireDueDate,
+    teamAllocationInviteDueDate: snapshot.teamAllocationInviteDueDate,
     isOverridden: false,
   };
 }
@@ -58,7 +59,7 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
             Edit text
           </Link>
         </div>
-        <ProjectDeadlinesScheduleCard deadline={projectDeadline} emphasize />
+        <ProjectDeadlinesScheduleCard project={data.project} deadline={projectDeadline} emphasize />
         <div className="staff-projects__overview-info-actions">
           <Link href={`/staff/projects/${encodeURIComponent(projectId)}/manage`} className="btn btn--sm btn--primary">
             Adjust deadlines

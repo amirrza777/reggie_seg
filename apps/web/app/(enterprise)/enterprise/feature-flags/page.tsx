@@ -12,7 +12,10 @@ export default async function EnterpriseFeatureFlagsPage() {
     <div className="ui-page enterprise-overview-page">
       <header className="ui-page__header">
         <h1 className="overview-title ui-page__title">Enterprise feature flags</h1>
-        <p className="ui-page__description">Enable or disable features for users in this enterprise workspace.</p>
+        <p className="ui-page__description">
+          Enable or disable features by default, for users in this enterprise workspace.
+          Note module leads can still choose to enable or hide project tabs per project.
+        </p>
       </header>
       <EnterpriseFeatureFlagsCard />
     </div>

@@ -30,7 +30,11 @@ const getWarningsMock = vi.mocked(getProjectWarningsConfig);
 describe("StaffProjectManagePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getManageMock.mockResolvedValue({ id: 8, name: "Proj" } as Awaited<ReturnType<typeof getStaffProjectManage>>);
+    getManageMock.mockResolvedValue({
+      id: 8,
+      name: "Proj",
+      canMutateProjectSettings: true,
+    } as Awaited<ReturnType<typeof getStaffProjectManage>>);
     getFlagsMock.mockResolvedValue({});
     getWarningsMock.mockResolvedValue({ warningsConfig: {} } as Awaited<ReturnType<typeof getProjectWarningsConfig>>);
   });
