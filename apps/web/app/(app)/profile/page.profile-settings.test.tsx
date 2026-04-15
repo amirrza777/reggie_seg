@@ -78,6 +78,15 @@ function makeUser() {
   };
 }
 
+async function renderProfilePage() {
+  const rendered = render(<ProfilePage />);
+  await waitFor(() => {
+    expect(getMyTrelloProfileMock).toHaveBeenCalled();
+    expect(getGithubConnectionStatusMock).toHaveBeenCalled();
+  });
+  return rendered;
+}
+
 describe("ProfilePage (profile-settings)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -114,7 +123,7 @@ describe("ProfilePage (profile-settings)", () => {
   });
 
   it("renders profile card and integration status from loaded sources", async () => {
-    render(<ProfilePage />);
+    await renderProfilePage();
 
     expect(screen.getByRole("heading", { name: "Profile" })).toBeInTheDocument();
     expect(screen.getByDisplayValue("Ayan")).toBeInTheDocument();
@@ -140,7 +149,7 @@ describe("ProfilePage (profile-settings)", () => {
       loading: false,
     });
 
-    render(<ProfilePage />);
+    await renderProfilePage();
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
@@ -156,7 +165,7 @@ describe("ProfilePage (profile-settings)", () => {
   });
 
   it("runs the request+confirm email change flow and redirects to login", async () => {
-    render(<ProfilePage />);
+    await renderProfilePage();
 
     fireEvent.click(screen.getByRole("button", { name: "Change email" }));
     fireEvent.change(screen.getByLabelText("New email"), { target: { value: "new.ayan@example.com" } });
@@ -195,7 +204,7 @@ describe("ProfilePage (profile-settings)", () => {
         account: null,
       });
 
-    render(<ProfilePage />);
+    await renderProfilePage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Disconnect GitHub" }));
 
@@ -206,7 +215,7 @@ describe("ProfilePage (profile-settings)", () => {
     expect(await screen.findByText("GitHub account disconnected.")).toBeInTheDocument();
   });
 
-  it("returns null when no profile is available", () => {
+  it("returns null when no profile is available", async () => {
     useUserMock.mockReturnValue({
       user: null,
       setUser: vi.fn(),
@@ -214,14 +223,14 @@ describe("ProfilePage (profile-settings)", () => {
       loading: false,
     } as any);
 
-    const { container } = render(<ProfilePage />);
+    const { container } = await renderProfilePage();
     expect(container).toBeEmptyDOMElement();
   });
 
   it("handles GitHub callback query error state from URL", async () => {
     window.history.replaceState({}, "", "http://localhost:3000/profile?github=error&reason=denied");
 
-    render(<ProfilePage />);
+    await renderProfilePage();
 
     expect(await screen.findByText("GitHub connection failed: denied")).toBeInTheDocument();
   });
@@ -229,7 +238,7 @@ describe("ProfilePage (profile-settings)", () => {
   it("shows fallback error messaging for failed Trello and GitHub connect/disconnect actions", async () => {
     getLinkTokenMock.mockRejectedValueOnce("link failed" as never);
     getGithubConnectUrlMock.mockRejectedValueOnce("connect failed" as never);
-    const { unmount } = render(<ProfilePage />);
+    const { unmount } = await renderProfilePage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Link Trello account" }));
     await waitFor(() => expect(getLinkTokenMock).toHaveBeenCalled());
@@ -246,7 +255,7 @@ describe("ProfilePage (profile-settings)", () => {
       account: { id: 11, login: "ayan-dev", avatarUrl: null },
     } as any);
 
-    render(<ProfilePage />);
+    await renderProfilePage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Disconnect GitHub" }));
     expect(await screen.findByText("Failed to disconnect GitHub.")).toBeInTheDocument();
@@ -277,7 +286,7 @@ describe("ProfilePage (profile-settings)", () => {
       writable: true,
     });
 
-    render(<ProfilePage />);
+    await renderProfilePage();
 
     fireEvent.change(screen.getByLabelText("First name"), { target: { value: "Ali" } });
     fireEvent.change(screen.getByLabelText("Last name"), { target: { value: "Zed" } });
