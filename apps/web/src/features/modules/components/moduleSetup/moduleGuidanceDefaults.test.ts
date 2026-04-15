@@ -18,7 +18,6 @@ function makeSelection(): EnterpriseModuleAccessSelectionResponse {
       leaderCount: 0,
       teachingAssistantCount: 0,
       briefText: "Brief",
-      timelineText: "Timeline",
       expectationsText: "Expectations",
       readinessNotesText: "Readiness",
     },
@@ -37,14 +36,12 @@ describe("moduleGuidanceDefaults helpers", () => {
         ...selection.module,
         name: 123 as unknown as string,
         briefText: true as unknown as string,
-        timelineText: null as unknown as string,
       },
     });
 
     expect(defaults).toEqual({
       moduleName: "123",
       briefText: "true",
-      timelineText: "",
       expectationsText: "Expectations",
       readinessNotesText: "Readiness",
     });
@@ -61,23 +58,20 @@ describe("moduleGuidanceDefaults helpers", () => {
       {
         moduleName: "",
         briefText: " ",
-        timelineText: "",
         expectationsText: "API value",
         readinessNotesText: "",
       },
       {
         title: "Fallback title",
         briefText: "Fallback brief",
-        timelineText: undefined,
         expectationsText: "Fallback expectations",
         readinessNotesText: "Fallback readiness",
-      }
+      },
     );
 
     expect(merged).toEqual({
       moduleName: "Fallback title",
       briefText: "Fallback brief",
-      timelineText: "",
       expectationsText: "API value",
       readinessNotesText: "Fallback readiness",
     });
@@ -88,17 +82,15 @@ describe("moduleGuidanceDefaults helpers", () => {
       {
         moduleName: "Already set",
         briefText: "Brief",
-        timelineText: "Timeline",
         expectationsText: "Expectations",
         readinessNotesText: "Readiness",
       },
       {
         title: "Ignored title",
         briefText: "Ignored brief",
-        timelineText: "Ignored timeline",
         expectationsText: "Ignored expectations",
         readinessNotesText: "Ignored readiness",
-      }
+      },
     );
     expect(keepDefaultName.moduleName).toBe("Already set");
 
@@ -106,17 +98,15 @@ describe("moduleGuidanceDefaults helpers", () => {
       {
         moduleName: "",
         briefText: "",
-        timelineText: "",
         expectationsText: "",
         readinessNotesText: "",
       },
       {
         title: undefined,
         briefText: undefined,
-        timelineText: undefined,
         expectationsText: undefined,
         readinessNotesText: undefined,
-      }
+      },
     );
     expect(missingTitleFallback.moduleName).toBe("");
   });
@@ -125,8 +115,6 @@ describe("moduleGuidanceDefaults helpers", () => {
     const selection = makeSelection();
     const defaults = guidanceDefaultsFromAccessSelection(selection);
     expect(moduleGuidanceApplyToken(selection)).toBe("9\u001f2026-01-02T00:00:00.000Z");
-    expect(guidanceDefaultsSignature(defaults)).toBe(
-      "Module A\u0000Brief\u0000Timeline\u0000Expectations\u0000Readiness"
-    );
+    expect(guidanceDefaultsSignature(defaults)).toBe("Module A\u0000Brief\u0000Expectations\u0000Readiness");
   });
 });

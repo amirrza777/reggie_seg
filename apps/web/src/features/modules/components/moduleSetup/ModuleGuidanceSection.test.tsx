@@ -13,7 +13,7 @@ import { useEnterpriseModuleCreateFormState } from "@/features/enterprise/compon
 const useEnterpriseModuleCreateFormStateMock = vi.mocked(useEnterpriseModuleCreateFormState);
 
 function makeAccessSelection(
-  overrides: Partial<EnterpriseModuleAccessSelectionResponse> = {}
+  overrides: Partial<EnterpriseModuleAccessSelectionResponse> = {},
 ): EnterpriseModuleAccessSelectionResponse {
   return {
     module: {
@@ -25,7 +25,6 @@ function makeAccessSelection(
       leaderCount: 1,
       teachingAssistantCount: 2,
       briefText: "API brief",
-      timelineText: "API timeline",
       expectationsText: "API expectations",
       readinessNotesText: "API readiness",
     },
@@ -49,11 +48,9 @@ function makeState(overrides: Record<string, unknown> = {}) {
     handleModuleNameChange: vi.fn(),
     isEditMode: false,
     briefText: "Brief",
-    timelineText: "Timeline",
     expectationsText: "Expectations",
     readinessNotesText: "Readiness",
     setBriefText: vi.fn(),
-    setTimelineText: vi.fn(),
     setExpectationsText: vi.fn(),
     setReadinessNotesText: vi.fn(),
     applyGuidanceDefaults: vi.fn(),
@@ -71,7 +68,6 @@ describe("ModuleGuidanceSection", () => {
     const defaults = {
       moduleName: "SE A",
       briefText: "Brief A",
-      timelineText: "Timeline A",
       expectationsText: "Expectations A",
       readinessNotesText: "Readiness A",
     };
@@ -91,11 +87,10 @@ describe("ModuleGuidanceSection", () => {
         defaultGuidance={{
           moduleName: "SE A",
           briefText: "Brief A",
-          timelineText: "Timeline A",
           expectationsText: "Expectations A",
           readinessNotesText: "Readiness A",
         }}
-      />
+      />,
     );
 
     expect(state.applyGuidanceDefaults).toHaveBeenCalledTimes(1);
@@ -107,12 +102,10 @@ describe("ModuleGuidanceSection", () => {
     render(<ModuleGuidanceSection state={state} guidanceFieldsKey="k1" />);
 
     fireEvent.change(screen.getByLabelText("Module brief"), { target: { value: "B2" } });
-    fireEvent.change(screen.getByLabelText("Timeline"), { target: { value: "T2" } });
     fireEvent.change(screen.getByLabelText("Module expectations"), { target: { value: "E2" } });
     fireEvent.change(screen.getByLabelText("Readiness notes"), { target: { value: "R2" } });
 
     expect(state.setBriefText).toHaveBeenCalledWith("B2");
-    expect(state.setTimelineText).toHaveBeenCalledWith("T2");
     expect(state.setExpectationsText).toHaveBeenCalledWith("E2");
     expect(state.setReadinessNotesText).toHaveBeenCalledWith("R2");
   });
@@ -121,9 +114,7 @@ describe("ModuleGuidanceSection", () => {
     const selection = makeAccessSelection();
     useEnterpriseModuleCreateFormStateMock.mockReturnValueOnce(makeState({ isLoadingAccess: true }));
 
-    const { rerender } = render(
-      <ModuleGuidanceSection moduleId={selection.module.id} initialAccessSelection={selection} />
-    );
+    const { rerender } = render(<ModuleGuidanceSection moduleId={selection.module.id} initialAccessSelection={selection} />);
 
     expect(screen.getByText("Loading module…")).toBeInTheDocument();
 
@@ -132,7 +123,7 @@ describe("ModuleGuidanceSection", () => {
         isLoadingAccess: false,
         canEditModule: false,
         errorMessage: "Custom forbidden message.",
-      })
+      }),
     );
 
     rerender(<ModuleGuidanceSection moduleId={selection.module.id} initialAccessSelection={selection} />);
@@ -146,7 +137,7 @@ describe("ModuleGuidanceSection", () => {
         isLoadingAccess: false,
         canEditModule: false,
         errorMessage: null,
-      })
+      }),
     );
     render(<ModuleGuidanceSection moduleId={selection.module.id} initialAccessSelection={selection} />);
     expect(screen.getByText("Only module owners/leaders can edit this module.")).toBeInTheDocument();
@@ -158,7 +149,6 @@ describe("ModuleGuidanceSection", () => {
         ...makeAccessSelection().module,
         name: "",
         briefText: "",
-        timelineText: "",
         expectationsText: "",
         readinessNotesText: "",
       },
@@ -177,11 +167,10 @@ describe("ModuleGuidanceSection", () => {
         staffModuleRow={{
           title: "Fallback module title",
           briefText: "Fallback brief",
-          timelineText: "Fallback timeline",
           expectationsText: "Fallback expectations",
           readinessNotesText: "Fallback readiness",
         }}
-      />
+      />,
     );
 
     expect(useEnterpriseModuleCreateFormStateMock).toHaveBeenCalledWith(
@@ -195,7 +184,6 @@ describe("ModuleGuidanceSection", () => {
     expect(state.applyGuidanceDefaults).toHaveBeenCalledWith({
       moduleName: "Fallback module title",
       briefText: "Fallback brief",
-      timelineText: "Fallback timeline",
       expectationsText: "Fallback expectations",
       readinessNotesText: "Fallback readiness",
     });

@@ -9,12 +9,10 @@ type CharacterCountProps = {
 
 export type ModuleGuidanceTextFieldsProps = {
   briefText: string;
-  timelineText: string;
   expectationsText: string;
   readinessNotesText: string;
   maxLength: number;
   onBriefTextChange: (value: string) => void;
-  onTimelineTextChange: (value: string) => void;
   onExpectationsTextChange: (value: string) => void;
   onReadinessNotesTextChange: (value: string) => void;
 };
@@ -31,7 +29,7 @@ type ModuleTextareaFieldProps = {
   onChange: (value: string) => void;
 };
 
-/** Brief, timeline, expectations, and readiness — module dashboard copy. */
+/** Brief, expectations, and readiness — module dashboard copy. */
 export function ModuleGuidanceTextFields(props: ModuleGuidanceTextFieldsProps) {
   const fields = buildGuidanceFieldConfigs(props);
 
@@ -56,17 +54,6 @@ function buildGuidanceFieldConfigs(props: ModuleGuidanceTextFieldsProps): Module
       placeholder: "Add the key context that should appear under Module brief.",
       ariaLabel: "Module brief",
       onChange: props.onBriefTextChange,
-    },
-    {
-      id: "module-timeline-input",
-      label: "Timeline",
-      fieldClassName: "enterprise-module-create__field--timeline",
-      value: props.timelineText,
-      maxLength: props.maxLength,
-      rows: 5,
-      placeholder: "One line per event. Format: YYYY-MM-DD HH:mm | Project | Activity\n2026-09-15 09:00 | Foundation sprint | Project start",
-      ariaLabel: "Timeline",
-      onChange: props.onTimelineTextChange,
     },
     {
       id: "module-expectations-input",

@@ -5,7 +5,6 @@ model Module {
   joinCode           String
   name               String
   briefText          String?    @db.Text
-  timelineText       String?    @db.Text
   expectationsText   String?    @db.Text
   readinessNotesText String?    @db.Text
   createdAt          DateTime   @default(now())

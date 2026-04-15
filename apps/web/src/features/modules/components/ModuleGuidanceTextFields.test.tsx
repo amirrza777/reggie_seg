@@ -5,31 +5,26 @@ import { CharacterCount, ModuleGuidanceTextFields } from "./ModuleGuidanceTextFi
 describe("ModuleGuidanceTextFields", () => {
   it("wires text updates for all guidance fields", () => {
     const onBriefTextChange = vi.fn();
-    const onTimelineTextChange = vi.fn();
     const onExpectationsTextChange = vi.fn();
     const onReadinessNotesTextChange = vi.fn();
 
     render(
       <ModuleGuidanceTextFields
         briefText="Brief"
-        timelineText="Timeline"
         expectationsText="Expectations"
         readinessNotesText="Readiness"
         maxLength={120}
         onBriefTextChange={onBriefTextChange}
-        onTimelineTextChange={onTimelineTextChange}
         onExpectationsTextChange={onExpectationsTextChange}
         onReadinessNotesTextChange={onReadinessNotesTextChange}
       />,
     );
 
     fireEvent.change(screen.getByLabelText("Module brief"), { target: { value: "Updated brief" } });
-    fireEvent.change(screen.getByLabelText("Timeline"), { target: { value: "Updated timeline" } });
     fireEvent.change(screen.getByLabelText("Module expectations"), { target: { value: "Updated expectations" } });
     fireEvent.change(screen.getByLabelText("Readiness notes"), { target: { value: "Updated readiness" } });
 
     expect(onBriefTextChange).toHaveBeenCalledWith("Updated brief");
-    expect(onTimelineTextChange).toHaveBeenCalledWith("Updated timeline");
     expect(onExpectationsTextChange).toHaveBeenCalledWith("Updated expectations");
     expect(onReadinessNotesTextChange).toHaveBeenCalledWith("Updated readiness");
   });

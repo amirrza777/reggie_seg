@@ -2,18 +2,9 @@ import { randParagraph, randSentence } from "@ngneat/falso";
 
 type SeedModuleContent = {
   briefText: string;
-  timelineText: string;
   expectationsText: string;
   readinessNotesText: string;
 };
-
-const timelineActivities = [
-  "Kick-off workshop and scope alignment",
-  "Requirements review and backlog shaping",
-  "Architecture checkpoint and implementation planning",
-  "Progress review with evidence of delivery",
-  "Demo preparation and reflection hand-in",
-];
 
 const expectationRows = [
   {
@@ -33,10 +24,9 @@ const expectationRows = [
   },
 ];
 
-export function buildSeedModuleContent(moduleName: string, index: number): SeedModuleContent {
+export function buildSeedModuleContent(moduleName: string, _index: number): SeedModuleContent {
   return {
     briefText: buildBriefText(moduleName),
-    timelineText: buildTimelineText(moduleName, index),
     expectationsText: buildExpectationsText(),
     readinessNotesText: buildReadinessNotesText(moduleName),
   };
@@ -49,19 +39,6 @@ function buildBriefText(moduleName: string) {
     `${moduleName} is seeded as a collaborative, project-based module where students are expected to plan work clearly, share responsibility across the team, and evidence progress through regular delivery checkpoints.`,
     supportingParagraph,
   ].join("\n\n");
-}
-
-function buildTimelineText(moduleName: string, index: number) {
-  const rowCount = 3 + (index % 3);
-  const startMonth = 9 + (index % 2);
-  const label = `${moduleName} Project`;
-
-  return Array.from({ length: rowCount }, (_, rowIndex) => {
-    const occursAt = new Date(Date.UTC(2026, startMonth, 5 + rowIndex * 9, 9, 0, 0));
-    const activityLead = timelineActivities[rowIndex % timelineActivities.length];
-    const activityTail = normalizeSentenceBlock(randSentence()).replace(/[.?!]+$/, "");
-    return `${occursAt.toISOString()} | ${label} | ${activityLead}: ${activityTail}`;
-  }).join("\n");
 }
 
 function buildExpectationsText() {

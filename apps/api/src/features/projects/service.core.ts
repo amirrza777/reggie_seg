@@ -147,7 +147,6 @@ export async function fetchModulesForUser(
       code: "code" in module ? module.code ?? undefined : undefined,
       title: module.name,
       briefText: "briefText" in module ? module.briefText ?? undefined : undefined,
-      timelineText: "timelineText" in module ? module.timelineText ?? undefined : undefined,
       expectationsText: "expectationsText" in module ? module.expectationsText ?? undefined : undefined,
       readinessNotesText: "readinessNotesText" in module ? module.readinessNotesText ?? undefined : undefined,
       moduleLeadNames: "moduleLeadNames" in module ? module.moduleLeadNames : [],

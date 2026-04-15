@@ -65,7 +65,6 @@ describe("useEnterpriseModuleCreateFormState", () => {
         name: "Existing module",
         code: "old77",
         briefText: "Old brief",
-        timelineText: "Old timeline",
         expectationsText: "Old expectations",
         readinessNotesText: "Old readiness",
         createdAt: "2026-03-01T00:00:00.000Z",
@@ -168,7 +167,6 @@ describe("useEnterpriseModuleCreateFormState", () => {
       result.current.handleModuleNameChange(" Updated module ");
       result.current.setModuleCode(" new77 ");
       result.current.setBriefText("Brief line 1  \nBrief line 2   ");
-      result.current.setTimelineText("Timeline line   ");
       result.current.setExpectationsText("");
       result.current.setReadinessNotesText("Ready now   ");
       result.current.toggleTeachingAssistant(13, true);
@@ -184,7 +182,6 @@ describe("useEnterpriseModuleCreateFormState", () => {
       name: "Updated module",
       code: "NEW77",
       briefText: "Brief line 1\nBrief line 2",
-      timelineText: "Timeline line",
       expectationsText: undefined,
       readinessNotesText: "Ready now",
       leaderIds: [11],

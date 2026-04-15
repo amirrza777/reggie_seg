@@ -127,7 +127,7 @@ export function ModuleEditFieldsSection({ state }: { state: ModuleCreateFormStat
     return (
       <div className="enterprise-module-create__edit-preface">
         <p className="ui-note ui-note--muted">
-          Full module details, such as module brief, timelines, expectations, teaching assistants, and student access,
+          Full module details, such as module brief, expectations, teaching assistants, and student access,
           can be defined once the module has been created. This can be done by you, or any module leader you add above.
         </p>
       </div>
@@ -137,12 +137,10 @@ export function ModuleEditFieldsSection({ state }: { state: ModuleCreateFormStat
   return (
     <EnterpriseModuleEditFields
       briefText={state.briefText}
-      timelineText={state.timelineText}
       expectationsText={state.expectationsText}
       readinessNotesText={state.readinessNotesText}
       maxLength={MODULE_SECTION_MAX_LENGTH}
       onBriefTextChange={state.setBriefText}
-      onTimelineTextChange={state.setTimelineText}
       onExpectationsTextChange={state.setExpectationsText}
       onReadinessNotesTextChange={state.setReadinessNotesText}
     />

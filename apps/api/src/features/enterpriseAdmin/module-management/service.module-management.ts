@@ -60,7 +60,6 @@ export async function createModule(enterpriseUser: EnterpriseUser, payload: Pars
           joinCode,
           name: payload.name,
           briefText: payload.briefText,
-          timelineText: payload.timelineText,
           expectationsText: payload.expectationsText,
           readinessNotesText: payload.readinessNotesText,
         },
