@@ -8,7 +8,6 @@ dotenv.config();
 
 const BOOTSTRAP_ENTERPRISES = [
   { code: "DEFAULT", name: "Default Enterprise" },
-  ...(process.env.NODE_ENV === "production" ? [] : [{ code: "LOCALDEV", name: "Local Development Enterprise" }]),
 ] as const;
 
 export function resolveServerAddress() {

@@ -48,9 +48,6 @@ export async function resolveEnterpriseIdFromCode(input: string) {
 }
 
 export async function needsEnterpriseCodeEntry(userId: number): Promise<boolean> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true, enterprise: { select: { code: true } } },
-  });
-  return user?.role === "STUDENT" && user?.enterprise?.code === "DEFAULT";
+  void userId;
+  return false;
 }

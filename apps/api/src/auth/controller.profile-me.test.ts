@@ -253,7 +253,7 @@ describe("auth controller profile/me", () => {
     }));
   });
 
-  it("meHandler returns needsEnterpriseCode: true for STUDENT in DEFAULT enterprise", async () => {
+  it("meHandler does not require enterprise code for students in DEFAULT enterprise", async () => {
     const res = mockResponse();
     (prisma.user.findUnique as any).mockResolvedValueOnce({
       id: 30,
@@ -267,7 +267,7 @@ describe("auth controller profile/me", () => {
     await meHandler({ user: { sub: 30 } } as any, res as any);
 
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      needsEnterpriseCode: true,
+      needsEnterpriseCode: false,
       isUnassigned: false,
     }));
   });

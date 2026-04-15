@@ -98,7 +98,7 @@ it("verify callback creates user via provider and calls done with user", async (
   expect(done).toHaveBeenCalledWith(null, { id: 5, email: "user@example.com", needsEnterpriseCode: false });
 });
 
-it("verify callback passes needsEnterpriseCode: true for DEFAULT enterprise student", async () => {
+it("verify callback passes needsEnterpriseCode: true for first-time Google students", async () => {
   setGoogleEnv();
   userFindFirstMock.mockResolvedValueOnce(null);
   signUpWithProviderMock.mockResolvedValueOnce({ id: 9, email: "student@example.com" });

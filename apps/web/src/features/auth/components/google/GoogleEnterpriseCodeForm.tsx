@@ -9,7 +9,7 @@ import { clearPendingSignup, readPendingSignup } from "@/features/auth/pendingSi
 
 type EnterCodeStatus = "idle" | "loading" | "success" | "error";
 type EnterpriseCodeFormMode = "join" | "signup";
-const RESERVED_ENTERPRISE_CODES = new Set(["DEFAULT", "UNASSIGNED"]);
+const RESERVED_ENTERPRISE_CODES = new Set(["UNASSIGNED"]);
 
 function StatusMessage({ status, message }: { status: EnterCodeStatus; message: string | null }) {
   if (!message) {

@@ -104,18 +104,12 @@ describe("auth service", () => {
     expect(result).toEqual({ enterpriseId: "ent-3", enterpriseName: "University" });
   });
 
-  it("needsEnterpriseCodeEntry returns true only for STUDENT in DEFAULT enterprise", async () => {
+  it("needsEnterpriseCodeEntry is false without a separate holding enterprise state", async () => {
     const svc = await loadService();
 
     expect(await svc.needsEnterpriseCodeEntry(99)).toBe(false);
-
-    prismaMock.user.findUnique.mockResolvedValueOnce({ role: "STUDENT", enterprise: { code: "DEFAULT" } });
-    expect(await svc.needsEnterpriseCodeEntry(1)).toBe(true);
-
-    prismaMock.user.findUnique.mockResolvedValueOnce({ role: "STUDENT", enterprise: { code: "ACME" } });
+    expect(await svc.needsEnterpriseCodeEntry(1)).toBe(false);
     expect(await svc.needsEnterpriseCodeEntry(2)).toBe(false);
-
-    prismaMock.user.findUnique.mockResolvedValueOnce({ role: "ADMIN", enterprise: { code: "DEFAULT" } });
     expect(await svc.needsEnterpriseCodeEntry(3)).toBe(false);
   });
 

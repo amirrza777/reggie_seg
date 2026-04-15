@@ -50,10 +50,10 @@ beforeEach(() => {
 
 it("joins enterprise in join mode, uppercases code, and redirects", async () => {
   render(<GoogleEnterpriseCodeForm />);
-  enterCodeAndSubmit("uni2026");
+  enterCodeAndSubmit("default");
 
-  await waitFor(() => expect(joinEnterpriseByCodeMock).toHaveBeenCalledWith({ enterpriseCode: "UNI2026" }));
-  expect((screen.getByLabelText(/enterprise code/i) as HTMLInputElement).value).toBe("UNI2026");
+  await waitFor(() => expect(joinEnterpriseByCodeMock).toHaveBeenCalledWith({ enterpriseCode: "DEFAULT" }));
+  expect((screen.getByLabelText(/enterprise code/i) as HTMLInputElement).value).toBe("DEFAULT");
   expect(window.location.assign).toHaveBeenCalledWith("/app-home");
 });
 
@@ -103,7 +103,7 @@ it("falls back to generic ApiError message when empty", async () => {
 
 it("rejects reserved enterprise codes before API call", async () => {
   render(<GoogleEnterpriseCodeForm />);
-  enterCodeAndSubmit("default");
+  enterCodeAndSubmit("unassigned");
   await waitFor(() =>
     expect(screen.getByText("Please enter the enterprise code provided by your organisation.")).toBeInTheDocument(),
   );

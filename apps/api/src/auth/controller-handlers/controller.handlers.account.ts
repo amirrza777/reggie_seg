@@ -223,7 +223,7 @@ export async function meHandler(req: AuthRequest, res: Response) {
       ...profile,
       enterpriseName: user.enterprise.name,
       isUnassigned: isEnterpriseCodeUnassigned(user.enterprise.code),
-      needsEnterpriseCode: user.role === "STUDENT" && user.enterprise.code === "DEFAULT",
+      needsEnterpriseCode: false,
       ...roleFlags,
       role,
       active: user.active ?? true,
