@@ -15,7 +15,9 @@ export default async function AssessmentPage({ params, searchParams }: Assessmen
   const user = await getCurrentUser();
 
   const assessment = await getPeerAssessmentById(Number(assessmentId));
-  const questions = await getQuestionsByProject(String(projectId));
+  const projectQuestions = await getQuestionsByProject(String(projectId));
+  const questions =
+    assessment.templateQuestions.length > 0 ? assessment.templateQuestions : projectQuestions;
   let assessmentOpenAt: string | null = null;
   let assessmentDueAt: string | null = null;
 

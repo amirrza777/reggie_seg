@@ -54,6 +54,7 @@ export type PeerAssessment = {
   submittedAt: string;
   templateId: number;
   answers: Record<string, string | number | boolean | null>;
-  firstName: string; 
-  lastName: string; 
-}
+  templateQuestions: Question[];
+  firstName: string;
+  lastName: string;
+};

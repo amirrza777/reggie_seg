@@ -65,6 +65,7 @@ describe("AssessmentPage", () => {
       reviewerUserId: 3,
       revieweeUserId: 9,
       answers: { 1: "Answer" },
+      templateQuestions: [],
     } as Awaited<ReturnType<typeof getPeerAssessmentById>>);
     getQuestionsByProjectMock.mockResolvedValue([{ id: 1, text: "Question" }] as Awaited<ReturnType<typeof getQuestionsByProject>>);
   });
@@ -133,5 +134,33 @@ describe("AssessmentPage", () => {
 
     expect(screen.getByText("No questions found")).toBeInTheDocument();
     expect(screen.queryByTestId("assessment-form")).not.toBeInTheDocument();
+  });
+
+  it("uses assessment template questions when project returns none", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 3 } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getProjectDeadlineMock.mockResolvedValue({
+      assessmentOpenDate: null,
+      assessmentDueDate: null,
+    } as Awaited<ReturnType<typeof getProjectDeadline>>);
+    getQuestionsByProjectMock.mockResolvedValue([] as Awaited<ReturnType<typeof getQuestionsByProject>>);
+    getPeerAssessmentByIdMock.mockResolvedValue({
+      firstName: "Sam",
+      lastName: "Taylor",
+      teamId: 15,
+      templateId: 22,
+      reviewerUserId: 3,
+      revieweeUserId: 9,
+      answers: { 7: "From snapshot" },
+      templateQuestions: [{ id: 7, text: "Q7", type: "text", order: 0 }],
+    } as Awaited<ReturnType<typeof getPeerAssessmentById>>);
+
+    const page = await AssessmentPage({
+      params: Promise.resolve({ projectId: "11", assessmentId: "101" }),
+      searchParams: Promise.resolve({}),
+    });
+    render(page);
+
+    expect(screen.getByTestId("assessment-form")).toBeInTheDocument();
+    expect(getQuestionsByProjectMock).toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 import { buildAgreementPayload, buildFeedbackText } from "../completed-project/helpers";
 import { seedAssessmentStudentEmail } from "../data";
 import { prisma } from "../prismaClient";
+import { buildPeerAssessmentAnswersJsonForSeed } from "./assessments";
 import { COMPLETED_UNMARKED_PROJECT_INFORMATION_TEXT } from "../scenarioDescriptions";
 import type { SeedContext } from "../types";
 
@@ -191,12 +192,6 @@ function buildAssessmentAnswer(label: string, reviewerId: number, revieweeId: nu
   return "Steady engagement and helpful communication across planning, coding, and team check-ins.";
 }
 
-function buildAnswersJson(questionLabels: string[], reviewerId: number, revieweeId: number) {
-  return Object.fromEntries(
-    questionLabels.map((label) => [label, buildAssessmentAnswer(label, reviewerId, revieweeId)])
-  );
-}
-
 async function resetScenarioPeerData(projectId: number, teamId: number) {
   await prisma.peerFeedback.deleteMany({ where: { teamId } });
   await prisma.peerAssessment.deleteMany({ where: { projectId, teamId } });
@@ -216,6 +211,12 @@ async function seedCompletedAssessmentsAndFeedbacks(
     for (const revieweeUserId of memberIds) {
       if (reviewerUserId === revieweeUserId) continue;
 
+      const answersJson = await buildPeerAssessmentAnswersJsonForSeed(
+        templateId,
+        questionLabels,
+        ({ label }) => buildAssessmentAnswer(label, reviewerUserId, revieweeUserId),
+      );
+
       const assessment = await prisma.peerAssessment.upsert({
         where: {
           projectId_teamId_reviewerUserId_revieweeUserId: {
@@ -227,7 +228,7 @@ async function seedCompletedAssessmentsAndFeedbacks(
         },
         update: {
           templateId,
-          answersJson: buildAnswersJson(questionLabels, reviewerUserId, revieweeUserId),
+          answersJson,
           submittedLate: false,
           effectiveDueDate: null,
         },
@@ -237,7 +238,7 @@ async function seedCompletedAssessmentsAndFeedbacks(
           reviewerUserId,
           revieweeUserId,
           templateId,
-          answersJson: buildAnswersJson(questionLabels, reviewerUserId, revieweeUserId),
+          answersJson,
           submittedLate: false,
         },
         select: { id: true },

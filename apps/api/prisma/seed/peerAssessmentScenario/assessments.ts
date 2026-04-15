@@ -7,9 +7,29 @@ function buildAssessmentAnswer(label: string, reviewerId: number, revieweeId: nu
   return "Steady engagement and helpful communication across planning, coding, and team check-ins.";
 }
 
-function buildAnswersJson(questionLabels: string[], reviewerId: number, revieweeId: number) {
+export type PeerSeedAnswerContext = { label: string; questionIndex: number };
+
+export async function buildPeerAssessmentAnswersJsonForSeed(
+  templateId: number,
+  fallbackLabels: string[],
+  buildAnswer: (ctx: PeerSeedAnswerContext) => string | number | boolean | null,
+): Promise<Record<string, string | number | boolean | null>> {
+  const rows = await prisma.question.findMany({
+    where: { templateId },
+    orderBy: { order: "asc" },
+    select: { id: true, label: true },
+  });
+  if (rows.length > 0) {
+    return Object.fromEntries(
+      rows.map((row, questionIndex) => [
+        String(row.id),
+        buildAnswer({ label: row.label, questionIndex }),
+      ]),
+    );
+  }
+  const labels = fallbackLabels.length > 0 ? fallbackLabels : ["Overall contribution"];
   return Object.fromEntries(
-    questionLabels.map((label) => [label, buildAssessmentAnswer(label, reviewerId, revieweeId)]),
+    labels.map((label, questionIndex) => [label, buildAnswer({ label, questionIndex })]),
   );
 }
 
@@ -33,7 +53,7 @@ export function clearScenarioPeerData(projectId: number, teamId: number) {
   ]);
 }
 
-function upsertScenarioAssessment(
+async function upsertScenarioAssessment(
   projectId: number,
   teamId: number,
   templateId: number,
@@ -41,7 +61,11 @@ function upsertScenarioAssessment(
   revieweeUserId: number,
   questionLabels: string[],
 ) {
-  const answersJson = buildAnswersJson(questionLabels, reviewerUserId, revieweeUserId);
+  const answersJson = await buildPeerAssessmentAnswersJsonForSeed(
+    templateId,
+    questionLabels,
+    ({ label }) => buildAssessmentAnswer(label, reviewerUserId, revieweeUserId),
+  );
   return prisma.peerAssessment.upsert({
     where: {
       projectId_teamId_reviewerUserId_revieweeUserId: { projectId, teamId, reviewerUserId, revieweeUserId },

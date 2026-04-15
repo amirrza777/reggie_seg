@@ -1,4 +1,5 @@
 import { buildAgreementPayload, buildFeedbackText } from "../completed-project/helpers";
+import { buildPeerAssessmentAnswersJsonForSeed } from "../peerAssessmentScenario/assessments";
 import { prisma } from "../prismaClient";
 import type { AssessmentStudentProjectState } from "./constants";
 import type { AssessmentStudentScenarioProject } from "./setup";
@@ -53,12 +54,17 @@ function getFeedbackLimit(state: AssessmentStudentProjectState, memberCount: num
   return allPairs;
 }
 
-function createAssessment(
+async function createAssessment(
   project: AssessmentStudentScenarioProject,
   reviewerUserId: number,
   revieweeUserId: number,
   questionLabels: string[],
 ) {
+  const answersJson = await buildPeerAssessmentAnswersJsonForSeed(
+    project.templateId,
+    questionLabels,
+    ({ label }) => `Reviewer ${reviewerUserId} rated teammate ${revieweeUserId} for ${label}.`,
+  );
   return prisma.peerAssessment.create({
     data: {
       projectId: project.id,
@@ -66,7 +72,7 @@ function createAssessment(
       reviewerUserId,
       revieweeUserId,
       templateId: project.templateId,
-      answersJson: buildAnswersJson(questionLabels, reviewerUserId, revieweeUserId),
+      answersJson,
       submittedLate: false,
     },
     select: { id: true },
@@ -85,8 +91,4 @@ function createFeedback(teamId: number, assessmentId: number, reviewerUserId: nu
       submittedLate: false,
     },
   });
-}
-
-function buildAnswersJson(questionLabels: string[], reviewerId: number, revieweeId: number) {
-  return Object.fromEntries(questionLabels.map((label) => [label, `Reviewer ${reviewerId} rated teammate ${revieweeId} for ${label}.`]));
 }
