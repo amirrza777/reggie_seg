@@ -192,7 +192,8 @@ export async function joinEnterpriseByCode(params: { userId: number; enterpriseC
     throw { code: "ACCOUNT_SUSPENDED" };
   }
   const currentEnterpriseCode = (user.enterprise?.code ?? "").toUpperCase();
-  if (currentEnterpriseCode !== REMOVED_USERS_ENTERPRISE_CODE) {
+  const isEligibleToJoin = currentEnterpriseCode === REMOVED_USERS_ENTERPRISE_CODE || currentEnterpriseCode === "DEFAULT";
+  if (!isEligibleToJoin) {
     throw { code: "ENTERPRISE_JOIN_NOT_ALLOWED" };
   }
 

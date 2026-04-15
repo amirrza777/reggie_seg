@@ -3,16 +3,13 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { AuthField } from "./AuthField";
-import { signup } from "../api/client";
 import { API_BASE_URL } from "@/shared/api/env";
 import { Button } from "@/shared/ui/Button";
 import { GoogleAuthButton } from "./GoogleAuthButton";
-import { useUser } from "../useUser";
-import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
+import { savePendingSignup } from "../pendingSignup";
 
 type RegisterStatus = "idle" | "loading" | "error" | "success";
 type RegisterFormData = {
-  enterpriseCode: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -21,7 +18,6 @@ type RegisterFormData = {
 };
 
 const INITIAL_FORM_DATA: RegisterFormData = {
-  enterpriseCode: "",
   firstName: "",
   lastName: "",
   email: "",
@@ -32,7 +28,6 @@ type RegisterSubmitDeps = {
   formData: RegisterFormData;
   setStatus: (status: RegisterStatus) => void;
   setMessage: (message: string | null) => void;
-  refresh: () => Promise<unknown>;
   push: (path: string) => void;
 };
 
@@ -57,7 +52,6 @@ function RegisterFormFields({
 }) {
   return (
     <>
-      <AuthField name="enterpriseCode" label="Enterprise code" type="text" value={formData.enterpriseCode} required onChange={onFieldChange} />
       <AuthField name="firstName" label="First Name" type="text" value={formData.firstName} required onChange={onFieldChange} />
       <AuthField name="lastName" label="Last Name" type="text" value={formData.lastName} onChange={onFieldChange} />
       <AuthField name="email" label="Email address" type="email" value={formData.email} required onChange={onFieldChange} />
@@ -86,16 +80,6 @@ function RegisterActions({ status, onGoogleRegister }: { status: RegisterStatus;
   );
 }
 
-async function submitRegistration(formData: RegisterFormData) {
-  return signup({
-    enterpriseCode: formData.enterpriseCode.trim().toUpperCase(),
-    email: formData.email,
-    password: formData.password,
-    firstName: formData.firstName,
-    lastName: formData.lastName,
-  });
-}
-
 function useRegisterSubmit(deps: RegisterSubmitDeps) {
   return async (e: FormEvent) => {
     e.preventDefault();
@@ -107,14 +91,18 @@ function useRegisterSubmit(deps: RegisterSubmitDeps) {
       return;
     }
     try {
-      await submitRegistration(deps.formData);
-      const profile = await deps.refresh();
+      savePendingSignup({
+        email: deps.formData.email.trim(),
+        password: deps.formData.password,
+        firstName: deps.formData.firstName.trim(),
+        lastName: deps.formData.lastName.trim(),
+      });
       deps.setStatus("success");
-      deps.setMessage("Account created. Redirecting...");
-      deps.push(profile ? getDefaultSpaceOverviewPath(profile) : "/app-home");
+      deps.setMessage("Continue with your enterprise code...");
+      deps.push("/google/enterprise-code?mode=signup");
     } catch (err) {
       deps.setStatus("error");
-      deps.setMessage(err instanceof Error ? err.message : "Signup failed");
+      deps.setMessage(err instanceof Error ? err.message : "Could not continue to enterprise code");
     }
   };
 }
@@ -124,8 +112,7 @@ export function RegisterForm() {
   const [status, setStatus] = useState<RegisterStatus>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
-  const { refresh } = useUser();
-  const handleSubmit = useRegisterSubmit({ formData, setStatus, setMessage, refresh, push: router.push });
+  const handleSubmit = useRegisterSubmit({ formData, setStatus, setMessage, push: router.push });
   const handleFieldChange = (name: keyof RegisterFormData, value: string) => setFormData((current) => ({ ...current, [name]: value }));
   const handleGoogleRegister = () => {
     window.location.href = `${API_BASE_URL}/auth/google`;

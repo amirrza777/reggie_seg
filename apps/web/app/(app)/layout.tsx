@@ -44,6 +44,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (user.suspended === true || user.active === false) return renderSuspendedAccountView();
+  if (user.needsEnterpriseCode === true) redirect("/google/enterprise-code");
   if (user.isUnassigned === true) return renderUnassignedAccountView(children);
 
   const navChildren = await loadNavChildrenData(user.id);

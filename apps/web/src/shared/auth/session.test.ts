@@ -58,6 +58,7 @@ describe("shared/auth/session", () => {
     expect(getApiBaseForRequestMock).toHaveBeenCalledWith("workspace.local", "https");
     expect(apiFetchMock).toHaveBeenCalledWith("/auth/me", {
       baseUrl: "https://api.request.local",
+      cache: "no-store",
       headers: {
         Authorization: "Bearer cookie-token",
         Cookie: "tf_access_token=cookie-token; theme=dark",
@@ -101,6 +102,7 @@ describe("shared/auth/session", () => {
     expect(getApiBaseForRequestMock).toHaveBeenCalledWith("localhost:3001", "http");
     expect(apiFetchMock).toHaveBeenCalledWith("/auth/me", {
       baseUrl: "https://api.default.test",
+      cache: "no-store",
       headers: {},
     });
     expect(user).toMatchObject({
@@ -109,6 +111,30 @@ describe("shared/auth/session", () => {
       active: true,
       isUnassigned: false,
     });
+  });
+
+  it("propagates needsEnterpriseCode from API response and defaults to false", async () => {
+    apiFetchMock.mockResolvedValue({
+      id: 20,
+      email: "student@example.com",
+      firstName: "New",
+      lastName: "Student",
+      role: "STUDENT",
+      needsEnterpriseCode: true,
+    });
+    const session = await loadSessionModule();
+    const user = await session.getCurrentUser();
+    expect(user).toMatchObject({ needsEnterpriseCode: true });
+
+    apiFetchMock.mockResolvedValue({
+      id: 21,
+      email: "other@example.com",
+      firstName: "Other",
+      lastName: "Student",
+      role: "STUDENT",
+    });
+    const user2 = await session.getCurrentUser();
+    expect(user2).toMatchObject({ needsEnterpriseCode: false });
   });
 
   it("preserves explicit role and flags from API response", async () => {

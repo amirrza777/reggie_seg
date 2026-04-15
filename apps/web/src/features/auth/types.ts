@@ -35,6 +35,7 @@ export type UserProfile = {
   isAdmin?: boolean;
   isEnterpriseAdmin?: boolean;
   isUnassigned?: boolean;
+  needsEnterpriseCode?: boolean;
   active?: boolean;
   suspended?: boolean;
   avatarBase64?: string | null;

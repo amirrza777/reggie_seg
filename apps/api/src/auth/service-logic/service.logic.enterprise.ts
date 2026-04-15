@@ -46,3 +46,8 @@ export async function resolveEnterpriseIdFromCode(input: string) {
   }
   return enterprise.id;
 }
+
+export async function needsEnterpriseCodeEntry(userId: number): Promise<boolean> {
+  void userId;
+  return false;
+}

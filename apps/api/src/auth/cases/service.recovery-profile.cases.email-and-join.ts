@@ -61,7 +61,7 @@ describe("auth service", () => {
     expect(prismaMock.$transaction).toHaveBeenCalled();
   });
 
-  it("joinEnterpriseByCode rejects missing code and non-unassigned users", async () => {
+  it("joinEnterpriseByCode rejects blank code and users already in a real enterprise", async () => {
     const svc = await loadService();
 
     await expect(svc.joinEnterpriseByCode({ userId: 1, enterpriseCode: "   " })).rejects.toMatchObject({
@@ -73,11 +73,44 @@ describe("auth service", () => {
       email: "user@example.com",
       role: "STUDENT",
       active: true,
-      enterprise: { code: "DEFAULT" },
+      enterprise: { code: "MYUNI" },
     });
     await expect(svc.joinEnterpriseByCode({ userId: 1, enterpriseCode: "ENT2" })).rejects.toMatchObject({
       code: "ENTERPRISE_JOIN_NOT_ALLOWED",
     });
+  });
+
+  it("joinEnterpriseByCode allows DEFAULT enterprise students to join for the first time", async () => {
+    const svc = await loadService();
+
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce({
+        id: 9,
+        email: "student@google.com",
+        role: "STUDENT",
+        active: true,
+        blockedEnterpriseId: null,
+        enterprise: { code: "DEFAULT" },
+      })
+      .mockResolvedValueOnce(null);
+    prismaMock.enterprise.findUnique.mockResolvedValueOnce({ id: "ent-3", name: "University" });
+
+    const result = await svc.joinEnterpriseByCode({ userId: 9, enterpriseCode: "UNIV" });
+
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 9 },
+      data: { enterpriseId: "ent-3", blockedEnterpriseId: null, role: "STUDENT", active: true },
+    });
+    expect(result).toEqual({ enterpriseId: "ent-3", enterpriseName: "University" });
+  });
+
+  it("needsEnterpriseCodeEntry is false without a separate holding enterprise state", async () => {
+    const svc = await loadService();
+
+    expect(await svc.needsEnterpriseCodeEntry(99)).toBe(false);
+    expect(await svc.needsEnterpriseCodeEntry(1)).toBe(false);
+    expect(await svc.needsEnterpriseCodeEntry(2)).toBe(false);
+    expect(await svc.needsEnterpriseCodeEntry(3)).toBe(false);
   });
 
   it("joinEnterpriseByCode returns blocked when the enterprise has a suspended account for the email", async () => {

@@ -38,6 +38,11 @@ export default function LoginPage() {
     if (loading || !user) {
       return;
     }
+    // Google-auth users who haven't entered an enterprise code yet stay on
+    // the login page so they can click "Continue with Google" again.
+    if (user.needsEnterpriseCode) {
+      return;
+    }
     router.replace(getDefaultSpaceOverviewPath(user));
   }, [loading, router, user]);
 
