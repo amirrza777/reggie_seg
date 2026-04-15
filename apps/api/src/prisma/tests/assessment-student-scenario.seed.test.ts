@@ -44,14 +44,15 @@ function buildUser(id: number, role: SeedUser["role"], email: string): SeedUser 
 
 function buildContext(): SeedContext {
   const assessmentStudent = buildUser(10, "STUDENT", "student.assessment@example.com");
+  const assessmentStaff = buildUser(11, "STAFF", "staff.assessment@example.com");
   const staff = buildUser(20, "STAFF", "staff1@example.com");
   const students = [1, 2, 3, 4].map((id) => buildUser(id, "STUDENT", `student${id}@example.com`));
   return {
     enterprise: { id: "ent-1", code: "ENT", name: "Enterprise" },
     passwordHash: "hash",
-    users: [assessmentStudent, staff, ...students],
+    users: [assessmentStudent, assessmentStaff, staff, ...students],
     standardUsers: [staff, ...students],
-    assessmentAccounts: [assessmentStudent],
+    assessmentAccounts: [assessmentStudent, assessmentStaff],
     usersByRole: { adminOrStaff: [staff], students },
     modules: [],
     templates: [{ id: 30, questionLabels: ["Contribution", "Communication"] }],
@@ -124,11 +125,13 @@ describe("seedAssessmentStudentScenario", () => {
       data: [
         { enterpriseId: "ent-1", moduleId: 100, userId: 10 },
         { enterpriseId: "ent-1", moduleId: 101, userId: 10 },
+        { enterpriseId: "ent-1", moduleId: 100, userId: 11 },
+        { enterpriseId: "ent-1", moduleId: 101, userId: 11 },
       ],
       skipDuplicates: true,
     });
     expect(prismaMock.moduleLead.createMany).toHaveBeenCalledWith({
-      data: [{ moduleId: 100, userId: 20 }, { moduleId: 101, userId: 20 }],
+      data: [{ moduleId: 100, userId: 11 }, { moduleId: 101, userId: 11 }],
       skipDuplicates: true,
     });
     expect(prismaMock.project.create).toHaveBeenCalledTimes(6);
@@ -160,6 +163,26 @@ describe("seedAssessmentStudentScenario", () => {
 
     expect(result).toBeUndefined();
     expect(prismaMock.module.create).not.toHaveBeenCalled();
+  });
+
+  it("falls back to student-only module membership when assessment staff account is missing", async () => {
+    const context = buildContext();
+    context.assessmentAccounts = context.assessmentAccounts.filter((user) => user.email !== "staff.assessment@example.com");
+    context.users = context.users.filter((user) => user.email !== "staff.assessment@example.com");
+
+    await seedAssessmentStudentScenario(context);
+
+    expect(prismaMock.userModule.createMany).toHaveBeenCalledWith({
+      data: [
+        { enterpriseId: "ent-1", moduleId: 100, userId: 10 },
+        { enterpriseId: "ent-1", moduleId: 101, userId: 10 },
+      ],
+      skipDuplicates: true,
+    });
+    expect(prismaMock.moduleLead.createMany).toHaveBeenCalledWith({
+      data: [{ moduleId: 100, userId: 20 }, { moduleId: 101, userId: 20 }],
+      skipDuplicates: true,
+    });
   });
 
   it("covers actor guard when fewer than two teammates remain", () => {

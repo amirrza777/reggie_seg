@@ -90,6 +90,7 @@ export const seedMarkerUserData = seedAssessmentAccountData;
 export const userData: SeedUserDefinition[] = [...seedAssessmentAccountData, ...seedStandardUserData];
 export const seedAssessmentAccountEmailSet = new Set(seedAssessmentAccountData.map((user) => user.email));
 export const seedAssessmentStudentEmail = "student.assessment@example.com";
+export const seedAssessmentStaffEmail = "staff.assessment@example.com";
 
 const baseModuleNames = [
   "Software Engineering Group Project",
