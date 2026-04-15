@@ -173,4 +173,71 @@ describe("StaffMeetingMinutesPage", () => {
 
     expect(screen.getByText("No minutes have been recorded for this meeting.")).toBeInTheDocument();
   });
+
+  it("shows signed-in message when there is no authenticated user", async () => {
+    getCurrentUserMock.mockResolvedValue(null);
+
+    const page = await StaffMeetingMinutesPage({
+      params: Promise.resolve({ projectId: "30", teamId: "40", meetingId: "5" }),
+    });
+    render(page);
+
+    expect(screen.getByText("You must be signed in to view meeting minutes.")).toBeInTheDocument();
+  });
+
+  it("shows invalid ID message when params are not numeric", async () => {
+    const page = await StaffMeetingMinutesPage({
+      params: Promise.resolve({ projectId: "abc", teamId: "40", meetingId: "5" }),
+    });
+    render(page);
+
+    expect(screen.getByText("Invalid project, team, or meeting ID.")).toBeInTheDocument();
+  });
+
+  it("shows team not found when the team is not in the project", async () => {
+    getStaffProjectTeamsMock.mockResolvedValue({
+      project: { id: 30, name: "P", moduleId: 1 },
+      teams: [],
+    } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
+
+    const page = await StaffMeetingMinutesPage({
+      params: Promise.resolve({ projectId: "30", teamId: "40", meetingId: "5" }),
+    });
+    render(page);
+
+    expect(screen.getByText("Team not found in this project.")).toBeInTheDocument();
+  });
+
+  it("shows error message when project team fetch throws an Error instance", async () => {
+    getStaffProjectTeamsMock.mockRejectedValue(new Error("service unavailable"));
+
+    const page = await StaffMeetingMinutesPage({
+      params: Promise.resolve({ projectId: "30", teamId: "40", meetingId: "5" }),
+    });
+    render(page);
+
+    expect(screen.getByText("service unavailable")).toBeInTheDocument();
+  });
+
+  it("shows error message when project team fetch throws a non-Error value", async () => {
+    getStaffProjectTeamsMock.mockRejectedValue("unexpected failure");
+
+    const page = await StaffMeetingMinutesPage({
+      params: Promise.resolve({ projectId: "30", teamId: "40", meetingId: "5" }),
+    });
+    render(page);
+
+    expect(screen.getByText("Failed to load project team data.")).toBeInTheDocument();
+  });
+
+  it("shows meeting not found when getMeeting throws", async () => {
+    getMeetingMock.mockRejectedValue(new Error("network error"));
+
+    const page = await StaffMeetingMinutesPage({
+      params: Promise.resolve({ projectId: "30", teamId: "40", meetingId: "5" }),
+    });
+    render(page);
+
+    expect(screen.getByText("Meeting not found for this team.")).toBeInTheDocument();
+  });
 });
