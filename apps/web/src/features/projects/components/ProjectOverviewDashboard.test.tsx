@@ -215,4 +215,32 @@ describe("ProjectOverviewDashboard", () => {
     expect(screen.queryByText(/Updated by .* on .*Unknown time/)).not.toBeInTheDocument();
     expect(screen.getByText("No individual formative feedback yet.")).toBeInTheDocument();
   });
+
+  it("displays allocation questionnaire window when a template and dates are configured", () => {
+    renderDashboard({
+      project: baseProject({ teamAllocationQuestionnaireTemplateId: 9 }),
+      deadline: baseDeadline({
+        teamAllocationQuestionnaireOpenDate: "2026-01-05T00:00:00.000Z",
+        teamAllocationQuestionnaireDueDate: "2026-01-12T00:00:00.000Z",
+      }),
+      teamFormationMode: "custom",
+    });
+
+    expect(screen.getByText("Team questionnaire opens")).toBeInTheDocument();
+    expect(screen.getByText("Team questionnaire deadline")).toBeInTheDocument();
+    expect(screen.getAllByText("Team formation")).toHaveLength(2);
+  });
+
+  it("does not display questionnaire schedule rows without an allocation template", () => {
+    renderDashboard({
+      deadline: baseDeadline({
+        teamAllocationQuestionnaireOpenDate: "2026-01-05T00:00:00.000Z",
+        teamAllocationQuestionnaireDueDate: "2026-01-12T00:00:00.000Z",
+      }),
+    });
+
+    expect(screen.queryByText("Team questionnaire opens")).not.toBeInTheDocument();
+    expect(screen.queryByText("Team questionnaire deadline")).not.toBeInTheDocument();
+  });
 });
+

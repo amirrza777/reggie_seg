@@ -1,9 +1,10 @@
 :root {
+  color-scheme: light dark;
   font-family: var(--font-sf), "SF Pro Display", system-ui, -apple-system, sans-serif;
   line-height: var(--lh-body, 1.6);
   font-weight: 400;
-  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   --lh-body: 1.6;
   --lh-heading: 1.2;
   --lh-display: 1.08;
@@ -362,4 +363,6 @@
   --showcase-bg-end: #f7f7fb;
   --skeleton-base: color-mix(in srgb, var(--ink) 10%, var(--surface) 90%);
   --skeleton-highlight: color-mix(in srgb, var(--surface) 72%, transparent 28%);
+  color: var(--ink);
+  background-color: var(--bg);
 }

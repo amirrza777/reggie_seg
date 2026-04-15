@@ -68,7 +68,7 @@ export function StaffProjectManageSetupProvider({ projectId, initial, children }
 
   const isArchived = Boolean(archivedAt);
   const moduleArchived = Boolean(moduleArchivedAt);
-  const detailsDisabled = isArchived || moduleArchived;
+  const detailsDisabled = isArchived || moduleArchived || initial.canMutateProjectSettings === false;
   const nameTrimmed = name.trim();
   const nameOverLimit = nameTrimmed.length > PROJECT_NAME_MAX_LENGTH;
   const nameError =
@@ -88,7 +88,7 @@ export function StaffProjectManageSetupProvider({ projectId, initial, children }
     setSavedName(initial.name);
     setArchivedAt(initial.archivedAt);
     setModuleArchivedAt(initial.moduleArchivedAt);
-  }, [initial.name, initial.archivedAt, initial.moduleArchivedAt]);
+  }, [initial.name, initial.archivedAt, initial.moduleArchivedAt, initial.canMutateProjectSettings]);
 
   const applySummary = useCallback((s: StaffProjectManageSummary) => {
     setName(s.name);

@@ -68,18 +68,20 @@ describe("StaffTeamWarningReviewPanel", () => {
         projectId={22}
         teamId={58}
         initialWarnings={[
-          warning(1, { active: true, severity: "HIGH" }),
+          warning(1, { active: true, severity: "HIGH", createdAt: "invalid-date" }),
           warning(2, { active: false, resolvedAt: "invalid-date", updatedAt: "invalid-date" }),
+          warning(3, { active: false, resolvedAt: null, updatedAt: "2026-04-08T10:30:00.000Z" }),
         ]}
       />,
     );
 
     expect(screen.getByText("1 active warning. Click to review.")).toBeInTheDocument();
     expect(screen.getByText("Warning 1")).toBeInTheDocument();
-    expect(screen.getByText("Triggered on 02/04/2026, 10:00:00 UTC")).toBeInTheDocument();
+    expect(screen.getByText("Triggered on Unknown time")).toBeInTheDocument();
     expect(screen.getByText("Resolved history")).toBeInTheDocument();
     expect(screen.getByText("Warning 2")).toBeInTheDocument();
     expect(screen.getByText("Resolved on Unknown time")).toBeInTheDocument();
+    expect(screen.getByText("Resolved on 08/04/2026, 10:30:00 UTC")).toBeInTheDocument();
   });
 
   it("resolves an active warning and moves it to resolved history", async () => {
@@ -91,18 +93,19 @@ describe("StaffTeamWarningReviewPanel", () => {
         userId={9}
         projectId={22}
         teamId={58}
-        initialWarnings={[warning(1, { active: true })]}
+        initialWarnings={[warning(1, { active: true }), warning(2, { active: true })]}
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Resolve" }));
+    await user.click(screen.getAllByRole("button", { name: "Resolve" })[0]);
 
     await waitFor(() => {
-      expect(resolveStaffTeamWarningMock).toHaveBeenCalledWith(9, 22, 58, 1);
+      expect(resolveStaffTeamWarningMock).toHaveBeenCalledWith(9, 22, 58, 2);
     });
     expect(refreshMock).toHaveBeenCalled();
     expect(screen.getByText("Warning resolved.")).toBeInTheDocument();
-    expect(screen.getByText("0 active warnings. Click to review.")).toBeInTheDocument();
+    expect(screen.getByText("1 active warning. Click to review.")).toBeInTheDocument();
+    expect(screen.getByText("Warning 2")).toBeInTheDocument();
     expect(screen.getByText(/Resolved on /)).toBeInTheDocument();
   });
 
@@ -168,8 +171,12 @@ describe("StaffTeamWarningReviewPanel", () => {
 
     const nextButtons = screen.getAllByRole("button", { name: "Next" });
     await user.click(nextButtons[0]);
-    expect(screen.getByText("Page 2 / 2")).toBeInTheDocument();
+    expect(screen.getAllByText("Page 2 / 2")).toHaveLength(1);
     expect(screen.getByText("Active 1")).toBeInTheDocument();
+    const activePreviousButtons = screen.getAllByRole("button", { name: "Previous" });
+    await user.click(activePreviousButtons[0]);
+    expect(screen.getAllByText("Page 1 / 2").length).toBeGreaterThan(0);
+    expect(screen.getByText("Active 6")).toBeInTheDocument();
 
     const resolvedHistoryTitle = screen.getByText("Resolved history");
     const resolvedSection = resolvedHistoryTitle.parentElement;
@@ -180,5 +187,36 @@ describe("StaffTeamWarningReviewPanel", () => {
     await user.click(resolvedNextButton);
     expect(within(resolvedSection).getByText("Page 2 / 2")).toBeInTheDocument();
     expect(screen.getByText("Resolved 1")).toBeInTheDocument();
+    const resolvedPrevButton = within(resolvedSection).getAllByRole("button", { name: "Previous" })[0];
+    await user.click(resolvedPrevButton);
+    expect(within(resolvedSection).getByText("Page 1 / 2")).toBeInTheDocument();
+    expect(screen.getByText("Resolved 6")).toBeInTheDocument();
+  });
+
+  it("clamps active and resolved pages when item counts shrink", async () => {
+    const user = userEvent.setup();
+    resolveStaffTeamWarningMock.mockResolvedValue(warning(1, { active: false }));
+    const activeWarnings = Array.from({ length: 6 }, (_, index) => warning(index + 1, { title: `Active ${index + 1}` }));
+    render(
+      <StaffTeamWarningReviewPanel
+        userId={9}
+        projectId={22}
+        teamId={58}
+        initialWarnings={activeWarnings}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Page 2 / 2")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Resolve" })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "Resolve" }));
+
+    await waitFor(() => {
+      expect(screen.queryAllByText("Page 2 / 2")).toHaveLength(0);
+    });
+    expect(screen.getByText("5 active warnings. Click to review.")).toBeInTheDocument();
   });
 });

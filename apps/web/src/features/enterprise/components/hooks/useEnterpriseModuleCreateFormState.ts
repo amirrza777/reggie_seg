@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import type { ModuleGuidanceDefaults } from "@/features/modules/components/moduleSetup/moduleGuidanceDefaults";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { archiveItem, unarchiveItem } from "@/features/archive/api/client";
 import {
   createEnterpriseModule,
@@ -44,7 +45,6 @@ export function useEnterpriseModuleCreateFormState({
   const [moduleNameError, setModuleNameError] = useState<string | null>(null);
   const [moduleCode, setModuleCode] = useState("");
   const [briefText, setBriefText] = useState("");
-  const [timelineText, setTimelineText] = useState("");
   const [expectationsText, setExpectationsText] = useState("");
   const [readinessNotesText, setReadinessNotesText] = useState("");
 
@@ -67,6 +67,13 @@ export function useEnterpriseModuleCreateFormState({
   const [accessSearchPinStudentIds, setAccessSearchPinStudentIds] = useState<number[]>([]);
   const [moduleArchived, setModuleArchived] = useState(false);
   const [archiveActionNotice, setArchiveActionNotice] = useState<string | null>(null);
+
+  const applyGuidanceDefaults = useCallback((defaults: ModuleGuidanceDefaults) => {
+    setModuleName(defaults.moduleName);
+    setBriefText(defaults.briefText);
+    setExpectationsText(defaults.expectationsText);
+    setReadinessNotesText(defaults.readinessNotesText);
+  }, []);
 
   const accessBuckets = useEnterpriseModuleAccessBuckets({
     mode,
@@ -120,7 +127,6 @@ export function useEnterpriseModuleCreateFormState({
           setModuleName,
           setModuleCode,
           setBriefText,
-          setTimelineText,
           setExpectationsText,
           setReadinessNotesText,
           setLeaderIds,
@@ -173,10 +179,6 @@ export function useEnterpriseModuleCreateFormState({
       setModuleNameError(validation.moduleNameError);
       return;
     }
-    if (validation.formError) {
-      setErrorMessage(validation.formError);
-      return;
-    }
 
     setModuleNameError(null);
     setIsSubmitting(true);
@@ -189,7 +191,6 @@ export function useEnterpriseModuleCreateFormState({
         name,
         code: moduleCode,
         briefText,
-        timelineText,
         expectationsText,
         readinessNotesText,
         leaderIds,
@@ -343,7 +344,6 @@ export function useEnterpriseModuleCreateFormState({
     moduleNameError,
     moduleCode,
     briefText,
-    timelineText,
     expectationsText,
     readinessNotesText,
     leaderIds,
@@ -363,7 +363,6 @@ export function useEnterpriseModuleCreateFormState({
     studentSet,
     setBriefText,
     setModuleCode,
-    setTimelineText,
     setExpectationsText,
     setReadinessNotesText,
     setConfirmDeleteModule,
@@ -379,6 +378,7 @@ export function useEnterpriseModuleCreateFormState({
     toggleTeachingAssistant,
     toggleStudent,
     navigateHome,
+    applyGuidanceDefaults,
     ...accessBuckets,
   };
 }

@@ -11,6 +11,7 @@ vi.mock("./repo.js", () => ({
   getStaffProjectManageSummary: vi.fn(),
   patchStaffProjectManage: vi.fn(),
   deleteStaffProjectManage: vi.fn(),
+  canStaffMutateProjectManageSettings: vi.fn(),
 }));
 
 function mockResponse() {
@@ -27,6 +28,7 @@ const manageRow = {
   moduleId: 5,
   informationText: null,
   questionnaireTemplateId: 10,
+  teamAllocationQuestionnaireTemplateId: null as number | null,
   questionnaireTemplate: { id: 10, templateName: "Peer form" },
   projectStudents: [] as { userId: number }[],
   module: {
@@ -59,12 +61,14 @@ describe("project-manage controller", () => {
 
   it("getStaffProjectManageHandler returns summary", async () => {
     (repo.getStaffProjectManageSummary as any).mockResolvedValueOnce(manageRow);
+    (repo.canStaffMutateProjectManageSettings as any).mockResolvedValueOnce(true);
     const res = mockResponse();
     await getStaffProjectManageHandler(
       { user: { sub: 7 }, params: { projectId: "2" }, query: {} } as any,
       res,
     );
     expect(repo.getStaffProjectManageSummary).toHaveBeenCalledWith(7, 2);
+    expect(repo.canStaffMutateProjectManageSettings).toHaveBeenCalledWith(7, 5);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 2,
@@ -85,6 +89,7 @@ describe("project-manage controller", () => {
           moduleMemberDirectory: [],
           projectStudentIds: [],
         },
+        canMutateProjectSettings: true,
       }),
     );
   });

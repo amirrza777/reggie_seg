@@ -20,10 +20,12 @@ const MANAGE_PROJECT_DESCRIPTION_EDITABLE =
 const MANAGE_PROJECT_DESCRIPTION_READ_ONLY =
   "Settings are read-only while this project is archived. You can unarchive it, or its module, to restore editing.";
 
+const MANAGE_PROJECT_DESCRIPTION_READ_ONLY_NON_LEAD =
+  "You can review project settings here. Only module leads and administrators can make changes.";
+
 export type StaffProjectManageSetupSectionsProps = {
   projectId: number;
   initial: StaffProjectManageSummary;
-  globalFeatureFlags: Record<string, boolean>;
   warningsOk: boolean;
   warningsConfig: ProjectWarningsConfig | null;
   overviewHref: string;
@@ -34,7 +36,6 @@ export type StaffProjectManageSetupSectionsProps = {
 export function StaffProjectManageSetupSections({
   projectId,
   initial,
-  globalFeatureFlags,
   warningsOk,
   warningsConfig,
   overviewHref,
@@ -42,7 +43,17 @@ export function StaffProjectManageSetupSections({
   warningsTabHref,
 }: StaffProjectManageSetupSectionsProps) {
   const projectSettingsReadOnly =
-    Boolean(initial.archivedAt) || Boolean(initial.moduleArchivedAt);
+    Boolean(initial.archivedAt) || Boolean(initial.moduleArchivedAt) || initial.canMutateProjectSettings === false;
+
+  const readOnlyDescription = (() => {
+    if (Boolean(initial.archivedAt) || Boolean(initial.moduleArchivedAt)) {
+      return MANAGE_PROJECT_DESCRIPTION_READ_ONLY;
+    }
+    if (initial.canMutateProjectSettings === false) {
+      return MANAGE_PROJECT_DESCRIPTION_READ_ONLY_NON_LEAD;
+    }
+    return MANAGE_PROJECT_DESCRIPTION_READ_ONLY;
+  })();
 
   return (
     <div className="ui-page enterprise-module-create-page enterprise-module-create-page--embedded">
@@ -55,7 +66,7 @@ export function StaffProjectManageSetupSections({
         </div>
         {projectSettingsReadOnly ? (
           <p className="ui-note ui-note--muted" role="status">
-            {MANAGE_PROJECT_DESCRIPTION_READ_ONLY}
+            {readOnlyDescription}
           </p>
         ) : (
           <p className="ui-page__description">{MANAGE_PROJECT_DESCRIPTION_EDITABLE}</p>
@@ -71,7 +82,7 @@ export function StaffProjectManageSetupSections({
             <StaffProjectManageProjectAccessSection />
             <StaffProjectManagePeerTemplateSection />
             <StaffProjectManageForumSection discussionHref={discussionHref} />
-            <StaffProjectManageFeatureFlagsSection globalFeatureFlags={globalFeatureFlags} />
+            <StaffProjectManageFeatureFlagsSection />
             <StaffProjectManageWarningsSection
               warningsOk={warningsOk}
               warningsConfig={warningsConfig}

@@ -58,7 +58,6 @@ describe("prisma seed script smoke", () => {
             code: "MOD-1",
             joinCode: expect.any(String),
             briefText: expect.stringContaining("Software Engineering Group Project"),
-            timelineText: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T.* \| .* \| .+/),
             expectationsText: expect.stringMatching(/^.+ \| .+ \| .+/),
             readinessNotesText: expect.stringContaining("Software Engineering Group Project"),
           }),

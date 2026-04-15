@@ -127,12 +127,12 @@ export function TeamFormationPanel({
   }, [team, projectId, teamFormationMode]);
 
   useEffect(() => {
-    if (!team || projectCompleted) {
+    if (!team || projectCompleted || teamFormationMode !== "self") {
       setInviteEligibleStudents([]);
       return;
     }
     void refreshInviteEligibleStudents(team.id);
-  }, [team, projectCompleted, refreshInviteEligibleStudents]);
+  }, [team, projectCompleted, teamFormationMode, refreshInviteEligibleStudents]);
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -374,7 +374,7 @@ export function TeamFormationPanel({
         </div>
       ) : null}
 
-      {!projectCompleted && canEditTeamWorkspace ? (
+      {!projectCompleted && canEditTeamWorkspace && teamFormationMode === "self" ? (
         <>
           {/* Invite by email */}
           <div className="team-formation__section">

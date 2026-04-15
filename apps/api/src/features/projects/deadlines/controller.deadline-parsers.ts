@@ -100,7 +100,6 @@ export function parseProjectDeadline(
     "deadline.teamAllocationQuestionnaireDueDate",
   );
   if (!teamAllocationQuestionnaireDueDate.ok) return teamAllocationQuestionnaireDueDate;
-
   if (taskOpenDate.value >= taskDueDate.value) {
     return { ok: false, error: "deadline.taskOpenDate must be before deadline.taskDueDate" };
   }
@@ -145,7 +144,6 @@ export function parseProjectDeadline(
       error: "deadline.teamAllocationQuestionnaireDueDate must be before deadline.taskOpenDate",
     };
   }
-
   return {
     ok: true,
     value: {

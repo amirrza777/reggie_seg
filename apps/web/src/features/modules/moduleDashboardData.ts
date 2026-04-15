@@ -28,7 +28,6 @@ export function buildModuleDashboardData(
   const moduleCode = toModuleCode(module);
   const teamCount = module.teamCount ?? 0;
   const projectCount = module.projectCount ?? 0;
-  const timelineRows = parseTimelineRows(module.timelineText) ?? [];
   const expectationRows = parseExpectationRows(module.expectationsText) ?? [];
   const briefParagraphs = parseParagraphs(module.briefText);
   const readinessParagraphs = parseParagraphs(module.readinessNotesText);
@@ -39,7 +38,7 @@ export function buildModuleDashboardData(
     projectCount,
     hasLinkedProjects: projectCount > 0,
     marksRows,
-    timelineRows,
+    timelineRows: [],
     expectationRows,
     briefParagraphs,
     readinessParagraphs,
@@ -85,70 +84,4 @@ function parseExpectationRows(value: string | undefined): Array<[string, string,
     .filter(([expectation]) => expectation.length > 0);
 
   return rows.length > 0 ? rows : null;
-}
-
-function parseTimelineRows(value: string | undefined): ModuleTimelineItem[] | null {
-  if (!value) return null;
-
-  const now = new Date();
-  const rows = value
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [whenRaw = "", projectName = "", activity = ""] = line.split("|").map((entry) => entry.trim());
-      const parsedTime = Date.parse(whenRaw);
-      const hasValidTime = Number.isFinite(parsedTime);
-      const occursAt = hasValidTime ? new Date(parsedTime) : now;
-
-      return {
-        whenLabel: hasValidTime ? formatRelativeLabel(occursAt, now) : "Scheduled",
-        whenTone: hasValidTime ? getTimelineTone(occursAt, now) : "upcoming",
-        dateLabel: hasValidTime ? formatTimelineDate(occursAt) : whenRaw,
-        projectName,
-        activity,
-        occursAt,
-      } satisfies ModuleTimelineItem;
-    })
-    .filter((item) => item.dateLabel.length > 0 || item.projectName.length > 0 || item.activity.length > 0);
-
-  return rows.length > 0 ? rows : null;
-}
-
-function formatTimelineDate(value: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "UTC",
-  }).format(value);
-}
-
-function formatRelativeLabel(target: Date, now: Date): string {
-  const dayMs = 24 * 60 * 60 * 1000;
-  const diffMs = target.getTime() - now.getTime();
-  const inPast = diffMs < 0;
-  const dayCount = Math.max(1, Math.round(Math.abs(diffMs) / dayMs));
-
-  if (dayCount < 45) {
-    return `${dayCount} day${dayCount === 1 ? "" : "s"} ${inPast ? "ago" : "from now"}`;
-  }
-
-  if (dayCount < 320) {
-    const months = Math.max(1, Math.round(dayCount / 30));
-    return `about ${months} month${months === 1 ? "" : "s"} ${inPast ? "ago" : "from now"}`;
-  }
-
-  const years = Math.max(1, Math.round(dayCount / 365));
-  return `about ${years} year${years === 1 ? "" : "s"} ${inPast ? "ago" : "from now"}`;
-}
-
-function getTimelineTone(target: Date, now: Date): "past" | "soon" | "upcoming" {
-  const diffMs = target.getTime() - now.getTime();
-  if (diffMs < 0) return "past";
-  if (diffMs <= 14 * 24 * 60 * 60 * 1000) return "soon";
-  return "upcoming";
 }

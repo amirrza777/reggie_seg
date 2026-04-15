@@ -85,7 +85,7 @@ describe("EnterpriseModuleManager", () => {
     await waitFor(() =>
       expect(searchEnterpriseModulesMock).toHaveBeenCalledWith({ q: undefined, page: 1, pageSize: 10 }),
     );
-    expect(screen.getByText("Module 1")).toBeInTheDocument();
+    await screen.findByText("Module 1");
     expect(screen.queryByText("Module 11")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
@@ -119,7 +119,7 @@ describe("EnterpriseModuleManager", () => {
     await waitFor(() =>
       expect(searchEnterpriseModulesMock).toHaveBeenLastCalledWith({ q: "missing", page: 1, pageSize: 10 }),
     );
-    expect(screen.getByText('No modules match "missing".')).toBeInTheDocument();
+    expect(await screen.findByText('No modules match "missing".')).toBeInTheDocument();
   });
 
   it("shows error alerts when loading modules fails", async () => {
@@ -147,7 +147,7 @@ describe("EnterpriseModuleManager", () => {
       expect(searchEnterpriseModulesMock).toHaveBeenCalledWith({ q: undefined, page: 1, pageSize: 10 }),
     );
 
-    expect(screen.getByText("Leader only")).toBeInTheDocument();
+    expect(await screen.findByText("Leader only")).toBeInTheDocument();
     expect(screen.getByText("-")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Edit module" })).not.toBeInTheDocument();
   });

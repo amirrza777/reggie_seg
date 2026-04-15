@@ -4,6 +4,7 @@ import { StaffModuleWorkspaceArchivedBanner } from "@/features/modules/component
 import { StaffModuleWorkspaceBreadcrumbs } from "@/features/modules/components/workspace/StaffModuleWorkspaceBreadcrumbs";
 import { StaffModuleWorkspaceHero } from "@/features/modules/components/workspace/StaffModuleWorkspaceHero";
 import {
+  canOpenStaffModuleManagePage,
   loadStaffModuleWorkspaceContext,
   resolveStaffModuleWorkspaceAccess,
 } from "@/features/modules/staffModuleWorkspaceLayoutData";
@@ -29,7 +30,7 @@ export default async function StaffModuleWorkspaceLayout({ params, children }: L
     <div className="staff-projects staff-projects__panel-shell module-workspace module-workspace--staff">
       <div className="stack module-workspace__content">
         <StaffModuleWorkspaceBreadcrumbs moduleId={moduleId} moduleTitle={ctx.module.title} />
-        <ModuleWorkspaceNav moduleId={moduleId} basePath="/staff/modules" />
+        <ModuleWorkspaceNav moduleId={moduleId} basePath="/staff/modules" showSettingsLink={canOpenStaffModuleManagePage(ctx)} />
         <StaffModuleWorkspaceHero ctx={ctx} className="module-workspace__hero" isArchived={access.isArchived} />
         {access.isArchived ? <StaffModuleWorkspaceArchivedBanner /> : null}
         {children}

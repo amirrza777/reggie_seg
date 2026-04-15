@@ -33,7 +33,7 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
 
   const teamRecord = await prisma.team.findUnique({
     where: { id: params.teamId },
-    select: { archivedAt: true, allocationLifecycle: true },
+    select: { archivedAt: true, allocationLifecycle: true, projectId: true },
   });
   if (!teamRecord) throw { code: "TEAM_NOT_FOUND" };
   if (teamRecord.archivedAt) throw { code: "TEAM_ARCHIVED" };

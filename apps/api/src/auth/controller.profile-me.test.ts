@@ -195,6 +195,7 @@ describe("auth controller profile/me", () => {
       lastName: "B",
       enterpriseName: "KCL University",
       isUnassigned: false,
+      needsEnterpriseCode: false,
       isStaff: true,
       isAdmin: false,
       isEnterpriseAdmin: true,
@@ -223,6 +224,7 @@ describe("auth controller profile/me", () => {
       lastName: "Student",
       enterpriseName: "KCL University",
       isUnassigned: false,
+      needsEnterpriseCode: false,
       isStaff: true,
       isAdmin: false,
       isEnterpriseAdmin: false,
@@ -248,6 +250,25 @@ describe("auth controller profile/me", () => {
       id: 15,
       enterpriseName: "Unassigned",
       isUnassigned: true,
+    }));
+  });
+
+  it("meHandler does not require enterprise code for students in DEFAULT enterprise", async () => {
+    const res = mockResponse();
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 30,
+      role: "STUDENT",
+      active: true,
+      enterprise: { name: "Default", code: "DEFAULT" },
+      _count: { moduleLeads: 0, moduleTeachingAssistants: 0 },
+    });
+    (service.getProfile as any).mockResolvedValueOnce({ id: 30, email: "new@google.com", firstName: "New", lastName: "User" });
+
+    await meHandler({ user: { sub: 30 } } as any, res as any);
+
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      needsEnterpriseCode: false,
+      isUnassigned: false,
     }));
   });
 

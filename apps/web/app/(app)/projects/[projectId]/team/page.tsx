@@ -47,6 +47,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
 
   let projectCompleted = false;
   let project: Awaited<ReturnType<typeof getProject>> | null = null;
+  let projectDeadline: Awaited<ReturnType<typeof getProjectDeadline>> | null = null;
   if (user && !Number.isNaN(numericProjectId)) {
     try {
       const [projectRecord, deadline, marking] = await Promise.all([
@@ -58,6 +59,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
         }),
       ]);
       project = projectRecord;
+      projectDeadline = deadline;
       const workflowState = resolveProjectWorkflowState({
         project: projectRecord,
         deadline,

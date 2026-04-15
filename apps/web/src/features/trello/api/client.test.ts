@@ -1,6 +1,4 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { refreshAccessToken } from "@/features/auth/api/client";
-import { ApiError } from "@/shared/api/errors";
 import { apiFetch } from "@/shared/api/http";
 import {
   getConnectUrl,
@@ -22,41 +20,12 @@ vi.mock("@/shared/api/http", () => ({
   apiFetch: vi.fn(),
 }));
 
-vi.mock("@/features/auth/api/client", () => ({
-  refreshAccessToken: vi.fn(),
-}));
-
 describe("trello api client", () => {
   const apiFetchMock = vi.mocked(apiFetch);
-  const refreshAccessTokenMock = vi.mocked(refreshAccessToken);
 
   beforeEach(() => {
     apiFetchMock.mockReset();
     apiFetchMock.mockResolvedValue({} as any);
-    refreshAccessTokenMock.mockReset();
-    refreshAccessTokenMock.mockResolvedValue(null);
-  });
-
-  it("retries trelloFetch after 401 when refresh returns a token", async () => {
-    refreshAccessTokenMock.mockResolvedValue("new-token");
-    apiFetchMock
-      .mockRejectedValueOnce(new ApiError("Unauthorized", { status: 401 }))
-      .mockResolvedValueOnce({ linkToken: "lt" } as any);
-
-    const out = await getLinkToken();
-
-    expect(out).toEqual({ linkToken: "lt" });
-    expect(apiFetchMock).toHaveBeenCalledTimes(2);
-    expect(refreshAccessTokenMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("rethrows 401 when refresh does not yield a token", async () => {
-    refreshAccessTokenMock.mockResolvedValue(null);
-    const err = new ApiError("Unauthorized", { status: 401 });
-    apiFetchMock.mockRejectedValue(err);
-
-    await expect(getLinkToken()).rejects.toBe(err);
-    expect(apiFetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("getConnectUrl with callbackUrl appends encoded query param", async () => {

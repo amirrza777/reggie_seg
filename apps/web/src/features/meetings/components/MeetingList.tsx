@@ -10,6 +10,7 @@ import { useUser } from "@/features/auth/context";
 import { getMeetingPermissions } from "../lib/meetingPermissions";
 import { useMeetingSort } from "../hooks/useMeetingSort";
 import "../styles/meeting-list.css";
+import "../styles/meeting-text-link.css";
 import type { Meeting, MeetingPermissions } from "../types";
 
 type MeetingListProps = {
@@ -141,7 +142,13 @@ export function MeetingList({
     );
 
     return [
-      meeting.title,
+      <AnchorLink
+        key={`title-${meeting.id}`}
+        href={`/projects/${projectId}/meetings/${meeting.id}`}
+        className="meeting-text-link"
+      >
+        {meeting.title}
+      </AnchorLink>,
       formatDate(meeting.date),
       `${meeting.organiser.firstName} ${meeting.organiser.lastName}`,
       showMinutesWriter ? (

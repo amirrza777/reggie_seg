@@ -205,7 +205,9 @@ describe("DiscussionForumClient", () => {
     fireEvent.click(screen.getByRole("button", { name: "Report post" }));
 
     await waitFor(() => expect(createStudentForumReportMock).toHaveBeenCalledWith(1, 9, 900));
-    expect(screen.getByText("Reported")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Reported")).toBeInTheDocument();
+    });
 
     useUserMock.mockReturnValue({
       user: {
@@ -230,7 +232,9 @@ describe("DiscussionForumClient", () => {
     fireEvent.click(screen.getByRole("button", { name: "Report post" }));
 
     await waitFor(() => expect(reportDiscussionPostMock).toHaveBeenCalledWith(3, 9, 900));
-    expect(screen.queryByText("Report target")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("Report target")).not.toBeInTheDocument();
+    });
   });
 
   it("closes an open post menu when clicking outside", async () => {

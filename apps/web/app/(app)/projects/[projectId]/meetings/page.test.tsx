@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { getProject, getProjectDeadline, getProjectMarking, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
+import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
 import ProjectMeetingsPage from "./page";
 
 vi.mock("@/shared/auth/session", () => ({
@@ -13,6 +14,10 @@ vi.mock("@/features/projects/api/client", () => ({
   getProjectDeadline: vi.fn(),
   getProjectMarking: vi.fn(),
   getTeamByUserAndProject: vi.fn(),
+}));
+
+vi.mock("@/shared/auth/redirectOnUnauthorized", () => ({
+  redirectOnUnauthorized: vi.fn(),
 }));
 
 vi.mock("@/features/meetings/components/MeetingsPageContent", () => ({
@@ -37,11 +42,20 @@ vi.mock("@/features/meetings/components/MeetingsPageContent", () => ({
   ),
 }));
 
+vi.mock("@/features/projects/components/CustomAllocationWaitingBoard", () => ({
+  CustomAllocationWaitingBoard: ({ projectId }: { projectId: string }) => (
+    <div data-testid="custom-allocation-waiting-board" data-project-id={projectId}>
+      waiting
+    </div>
+  ),
+}));
+
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getProjectMock = vi.mocked(getProject);
 const getProjectDeadlineMock = vi.mocked(getProjectDeadline);
 const getProjectMarkingMock = vi.mocked(getProjectMarking);
 const getTeamByUserAndProjectMock = vi.mocked(getTeamByUserAndProject);
+const redirectOnUnauthorizedMock = vi.mocked(redirectOnUnauthorized);
 
 describe("ProjectMeetingsPage", () => {
   beforeEach(() => {
@@ -133,5 +147,43 @@ describe("ProjectMeetingsPage", () => {
     render(page);
 
     expect(screen.getByText("You are not in a team for this project.")).toBeInTheDocument();
+    expect(redirectOnUnauthorizedMock).toHaveBeenCalled();
+  });
+
+  it("renders custom-allocation waiting board when team is missing but custom allocation is enabled", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 9 } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getTeamByUserAndProjectMock.mockResolvedValue(null as Awaited<ReturnType<typeof getTeamByUserAndProject>>);
+    getProjectMock.mockResolvedValue({
+      id: "15",
+      name: "Project",
+      questionnaireTemplateId: 1,
+      teamAllocationQuestionnaireTemplateId: 123,
+    } as Awaited<ReturnType<typeof getProject>>);
+
+    const page = await ProjectMeetingsPage({
+      params: Promise.resolve({ projectId: "15" }),
+      searchParams: Promise.resolve({}),
+    });
+
+    render(page);
+    const waiting = screen.getByTestId("custom-allocation-waiting-board");
+    expect(waiting).toHaveAttribute("data-project-id", "15");
+  });
+
+  it("defaults initial tab to upcoming and handles marking unauthorized failures", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 12 } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getTeamByUserAndProjectMock.mockResolvedValue({ id: 44 } as Awaited<ReturnType<typeof getTeamByUserAndProject>>);
+    getProjectMarkingMock.mockRejectedValueOnce(new Error("unauthorized"));
+
+    const page = await ProjectMeetingsPage({
+      params: Promise.resolve({ projectId: "15" }),
+      searchParams: Promise.resolve({ tab: "invalid-tab" }),
+    });
+
+    render(page);
+
+    const content = screen.getByTestId("meetings-page-content");
+    expect(content).toHaveAttribute("data-initial-tab", "upcoming");
+    expect(redirectOnUnauthorizedMock).toHaveBeenCalled();
   });
 });

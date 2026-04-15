@@ -84,16 +84,27 @@ describe("EnterpriseLayout", () => {
     expect(redirectMock).toHaveBeenCalledWith("/dashboard");
   });
 
-  it("renders enterprise-admin navigation and includes workspace + admin spaces when user is admin", async () => {
+  it("redirects global admins to the admin workspace", async () => {
     getCurrentUserMock.mockResolvedValue({ role: "ADMIN", isStaff: false } as Awaited<ReturnType<typeof getCurrentUser>>);
     isEnterpriseAdminMock.mockReturnValue(false);
     isAdminMock.mockReturnValue(true);
+
+    await expect(EnterpriseLayout({ children: <div data-testid="child">child</div> })).rejects.toMatchObject({
+      path: "/admin",
+    });
+    expect(redirectMock).toHaveBeenCalledWith("/admin");
+  });
+
+  it("renders enterprise-admin navigation and workspace spaces for enterprise admins", async () => {
+    getCurrentUserMock.mockResolvedValue({ role: "STAFF", isStaff: true } as Awaited<ReturnType<typeof getCurrentUser>>);
+    isEnterpriseAdminMock.mockReturnValue(true);
+    isAdminMock.mockReturnValue(false);
 
     const page = await EnterpriseLayout({ children: <div data-testid="child">child</div> });
     render(page);
 
     expect(screen.getByTestId("topbar")).toHaveAttribute("data-title-href", "/enterprise");
-    expect(screen.getByTestId("space-switcher")).toHaveTextContent("Workspace,Staff,Enterprise,Admin");
+    expect(screen.getByTestId("space-switcher")).toHaveTextContent("Workspace,Staff,Enterprise");
     expect(screen.getByTestId("child")).toBeInTheDocument();
 
     const desktopSidebar = sidebarCalls.find((entry) => entry.mode === "desktop");

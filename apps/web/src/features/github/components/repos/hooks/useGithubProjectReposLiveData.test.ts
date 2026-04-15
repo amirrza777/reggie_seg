@@ -274,4 +274,124 @@ describe("useGithubProjectReposLiveData", () => {
 
     expect(mockedListMyCommits).toHaveBeenCalledWith(303, 1, 10, { includeTotals: false });
   });
+
+  it("applies branch query on forced refresh and handles branch/commit load failures", async () => {
+    const link = makeLink(404);
+    mockedListBranches.mockRejectedValue("branch-load-failed");
+    mockedListBranchCommits.mockRejectedValue("commit-load-failed");
+
+    const { result } = renderHook(() =>
+      useGithubProjectReposLiveData({
+        activeTab: "branches",
+        loading: false,
+        links: [link],
+        connection: makeConnection(true),
+        latestSnapshotByLinkId: makeLatestSnapshotMap(404),
+      }),
+    );
+
+    await act(async () => {
+      result.current.setBranchSearchQuery(404, " feature ");
+      await result.current.handleRefreshLiveBranches();
+    });
+
+    await waitFor(() => {
+      expect(mockedListBranches).toHaveBeenCalledWith(404, { query: "feature" });
+    });
+    await waitFor(() => {
+      expect(result.current.liveBranchesErrorByLinkId[404]).toBe("Failed to load live branches.");
+    });
+
+    await act(async () => {
+      await result.current.fetchBranchCommits(404, "main");
+    });
+    expect(result.current.branchCommitsErrorByLinkId[404]).toBe("Failed to load branch commits.");
+
+    await act(async () => {
+      await result.current.fetchBranchCommits(404, "");
+    });
+    expect(mockedListBranchCommits).toHaveBeenCalledTimes(1);
+  });
+
+  it("chooses main/default/first branch for initial selection", async () => {
+    const link = makeLink(505);
+    mockedListBranches.mockResolvedValue({
+      linkId: 505,
+      repository: {
+        id: 10,
+        fullName: "team/repo",
+        defaultBranch: "develop",
+        htmlUrl: "https://github.com/team/repo",
+      },
+      branches: [
+        {
+          name: "develop",
+          isDefault: true,
+          isProtected: true,
+          headSha: "abc",
+          aheadBy: 0,
+          behindBy: 0,
+          compareStatus: "identical",
+        },
+      ],
+    });
+    mockedListBranchCommits.mockResolvedValue({
+      linkId: 505,
+      repository: {
+        id: 10,
+        fullName: "team/repo",
+        defaultBranch: "develop",
+        htmlUrl: "https://github.com/team/repo",
+      },
+      branch: "develop",
+      commits: [],
+    });
+
+    const { result } = renderHook(() =>
+      useGithubProjectReposLiveData({
+        activeTab: "branches",
+        loading: false,
+        links: [link],
+        connection: makeConnection(true),
+        latestSnapshotByLinkId: {},
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedBranchByLinkId[505]).toBe("develop");
+    });
+  });
+
+  it("loads my-commits tab with includeTotals when totals are missing", async () => {
+    const link = makeLink(606);
+    mockedListMyCommits.mockResolvedValue({
+      linkId: 606,
+      repository: {
+        id: 10,
+        fullName: "team/repo",
+        defaultBranch: "main",
+        htmlUrl: "https://github.com/team/repo",
+      },
+      githubLogin: "alice",
+      page: 1,
+      perPage: 10,
+      hasNextPage: false,
+      totals: null,
+      commits: [],
+    });
+
+    renderHook(() =>
+      useGithubProjectReposLiveData({
+        activeTab: "my-commits",
+        loading: false,
+        links: [link],
+        connection: makeConnection(true),
+        latestSnapshotByLinkId: {},
+      }),
+    );
+
+    await waitFor(() => {
+      expect(mockedListMyCommits).toHaveBeenCalledWith(606, 1, 10, { includeTotals: true });
+    });
+  });
 });

@@ -56,7 +56,6 @@ async function updateModuleDetails(
       code: payload.code,
       name: payload.name,
       briefText: payload.briefText,
-      timelineText: payload.timelineText,
       expectationsText: payload.expectationsText,
       readinessNotesText: payload.readinessNotesText,
     },

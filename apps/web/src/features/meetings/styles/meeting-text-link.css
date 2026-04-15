@@ -1,0 +1,18 @@
+.meeting-text-link {
+  display: inline;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: inherit;
+  font-weight: var(--fw-medium);
+}
+
+.meeting-text-link:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+}
+
+.meeting-text-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  outline-offset: 2px;
+}

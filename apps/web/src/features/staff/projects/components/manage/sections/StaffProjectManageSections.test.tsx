@@ -71,6 +71,7 @@ const baseInitial: StaffProjectManageSummary = {
     moduleMemberDirectory: [],
     projectStudentIds: [],
   },
+  canMutateProjectSettings: true,
 };
 
 function withProvider(ui: React.ReactElement, initial: StaffProjectManageSummary = baseInitial) {
@@ -107,7 +108,7 @@ describe("StaffProjectManageForumSection", () => {
 
 describe("StaffProjectManageFeatureFlagsSection", () => {
   it("renders nav flags panel", () => {
-    render(withProvider(<StaffProjectManageFeatureFlagsSection globalFeatureFlags={{ a: true }} />));
+    render(withProvider(<StaffProjectManageFeatureFlagsSection />));
     expect(screen.getByTestId("nav-flags")).toBeInTheDocument();
   });
 });

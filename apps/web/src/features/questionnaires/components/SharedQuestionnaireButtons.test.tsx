@@ -1,3 +1,4 @@
+import userEvent from "@testing-library/user-event";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/shared/api/errors";
@@ -31,9 +32,18 @@ describe("SharedQuestionnaireButtons", () => {
     errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
-  it("toggles visibility buttons", () => {
+  it("toggles visibility buttons", async () => {
+    const user = userEvent.setup();
     const onChange = vi.fn();
     render(<QuestionnaireVisibilityButtons isPublic={false} onChange={onChange} />);
+
+    await user.click(screen.getByRole("button", { name: /About private and public questionnaire visibility/i }));
+    const dialog = screen.getByRole("dialog", { name: /Questionnaire visibility/i });
+    expect(dialog).toBeInTheDocument();
+    expect(
+      screen.getByText(/Private templates are only visible to your account/i),
+    ).toBeInTheDocument();
+    fireEvent.click(dialog);
 
     fireEvent.click(screen.getByRole("button", { name: "Public" }));
     fireEvent.click(screen.getByRole("button", { name: "Private" }));

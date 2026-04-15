@@ -16,7 +16,6 @@ import { Table } from "@/shared/ui/Table";
 
 type StaffProjectNavFlagsPanelProps = {
   projectId: number;
-  globalFeatureFlags?: Record<string, boolean>;
   readOnly?: boolean;
 };
 
@@ -96,11 +95,7 @@ function createStatusChip(enabled: boolean) {
   );
 }
 
-export function StaffProjectNavFlagsPanel({
-  projectId,
-  globalFeatureFlags,
-  readOnly = false,
-}: StaffProjectNavFlagsPanelProps) {
+export function StaffProjectNavFlagsPanel({ projectId, readOnly = false }: StaffProjectNavFlagsPanelProps) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
@@ -274,13 +269,6 @@ export function StaffProjectNavFlagsPanel({
     });
   }, [busy, payload, readOnly]);
 
-  const globallyDisabledTabs = useMemo(() => {
-    if (!globalFeatureFlags) return [];
-    return TAB_LABELS.filter(({ key }) =>
-      Object.prototype.hasOwnProperty.call(globalFeatureFlags, key) && globalFeatureFlags[key] === false,
-    ).map((tab) => tab.label);
-  }, [globalFeatureFlags]);
-
   const table = (
     <Table
       headers={["Tab", "Active project", "Completed project"]}
@@ -306,17 +294,6 @@ export function StaffProjectNavFlagsPanel({
       ) : null}
 
       {table}
-      {globallyDisabledTabs.length > 0 ? (
-        <div className="status-alert status-alert--error staff-projects__enterprise-override-alert">
-          <p>
-            Enterprise feature flags are currently overriding this project configuration.
-          </p>
-          <p>
-            Disabled at enterprise level: <strong>{globallyDisabledTabs.join(", ")}</strong>.
-          </p>
-          <p>These tabs stay hidden for students until re-enabled in Enterprise feature flags.</p>
-        </div>
-      ) : null}
     </div>
   );
 }

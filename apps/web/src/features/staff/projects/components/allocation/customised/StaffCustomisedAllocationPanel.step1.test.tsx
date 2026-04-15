@@ -88,6 +88,18 @@ describe("StaffCustomisedAllocationPanelStep1", () => {
     expect(screen.getByText("80% coverage")).toBeInTheDocument();
   });
 
+  it("renders singular student label when exactly one student is available", () => {
+    const coverage = {
+      totalAvailableStudents: 1,
+      respondingStudents: 1,
+      nonRespondingStudents: 0,
+      responseRate: 100,
+      responseThreshold: 80,
+    };
+    renderStep1({ coverage });
+    expect(screen.getByText("1 available student")).toBeInTheDocument();
+  });
+
   it("shows low-coverage warning when coverage is below threshold", () => {
     const coverage = {
       totalAvailableStudents: 5,
@@ -117,5 +129,17 @@ describe("StaffCustomisedAllocationPanelStep1", () => {
     const props = renderStep1();
     fireEvent.change(screen.getByLabelText("Select questionnaire"), { target: { value: "101" } });
     expect(props.onSelectTemplate).toHaveBeenCalledWith("101");
+  });
+
+  it("calls onQuestionnaireSearchChange on input change", () => {
+    const props = renderStep1();
+    fireEvent.change(screen.getByLabelText("Search questionnaires"), { target: { value: "team" } });
+    expect(props.onQuestionnaireSearchChange).toHaveBeenCalledWith("team");
+  });
+
+  it("calls onNonRespondentStrategyChange for distribute_randomly", () => {
+    const props = renderStep1({ nonRespondentStrategy: "exclude" });
+    fireEvent.click(screen.getByRole("radio", { name: /Distribute randomly/i }));
+    expect(props.onNonRespondentStrategyChange).toHaveBeenCalledWith("distribute_randomly");
   });
 });

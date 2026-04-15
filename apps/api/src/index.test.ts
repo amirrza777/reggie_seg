@@ -120,7 +120,7 @@ describe("index.ts", () => {
 
     await bootstrap();
 
-    expect(upsertMock).toHaveBeenCalledWith({
+    expect(upsertMock).toHaveBeenNthCalledWith(1, {
       where: { code: "DEFAULT" },
       update: {},
       create: { code: "DEFAULT", name: "Default Enterprise" },
@@ -200,5 +200,22 @@ describe("index.ts", () => {
     expect(consoleErrorSpy).toHaveBeenCalledWith("Bootstrap failed:", expect.any(Error));
     expect(processExitSpy).toHaveBeenCalledWith(1);
     expect(listenMock).not.toHaveBeenCalled();
+  });
+
+  it("bootstrap creates the default enterprise in production", async () => {
+    process.env.NODE_ENV = "production";
+    delete process.env.ADMIN_BOOTSTRAP_EMAIL;
+    delete process.env.ADMIN_BOOTSTRAP_PASSWORD;
+    vi.resetModules();
+    const { bootstrap } = await import("./index.ts");
+
+    await bootstrap();
+
+    expect(upsertMock).toHaveBeenCalled();
+    expect(upsertMock).toHaveBeenCalledWith({
+      where: { code: "DEFAULT" },
+      update: {},
+      create: { code: "DEFAULT", name: "Default Enterprise" },
+    });
   });
 });

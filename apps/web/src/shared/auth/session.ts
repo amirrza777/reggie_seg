@@ -14,6 +14,7 @@ export type SessionUser = {
   isAdmin?: boolean;
   isEnterpriseAdmin?: boolean;
   isUnassigned?: boolean;
+  needsEnterpriseCode?: boolean;
   role?: UserRole;
   active?: boolean;
   suspended?: boolean;
@@ -27,6 +28,7 @@ const normalizeUser = (user: SessionUser): SessionUser => {
     role,
     active: user.active ?? true,
     isUnassigned: user.isUnassigned ?? false,
+    needsEnterpriseCode: user.needsEnterpriseCode ?? false,
   };
 };
 
@@ -62,6 +64,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
 
     const user = await apiFetch<SessionUser>("/auth/me", {
       baseUrl: resolvedBase,
+      cache: "no-store",
       headers: {
         ...(cookieHeader ? { Cookie: cookieHeader } : {}),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),

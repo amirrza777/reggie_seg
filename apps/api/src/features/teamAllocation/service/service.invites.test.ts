@@ -51,7 +51,7 @@ import {
 describe("service.invites", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.prisma.team.findUnique.mockResolvedValue({ archivedAt: null, allocationLifecycle: "ACTIVE" });
+    mocks.prisma.team.findUnique.mockResolvedValue({ archivedAt: null, allocationLifecycle: "ACTIVE", projectId: 9 });
     mocks.prisma.teamAllocation.findUnique.mockResolvedValue({ teamId: 2 });
     mocks.prisma.user.findFirst.mockResolvedValue({ id: 77 });
     mocks.prisma.user.findUnique.mockResolvedValue({ email: "invitee@example.com" });

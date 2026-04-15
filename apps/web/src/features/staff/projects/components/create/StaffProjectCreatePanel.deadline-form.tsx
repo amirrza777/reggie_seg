@@ -218,6 +218,15 @@ export function StaffProjectCreatePanelDeadlineForm({
               : "-"}
           </p>
           <div className="staff-projects__deadline-preview-grid">
+            {hasSelectedAllocationTemplate && deadlinePreview.teamAllocationQuestionnaireOpenDate ? (
+              <div>
+                <p className="staff-projects__field-label">Team questionnaire phase</p>
+                <p className="staff-projects__card-sub">
+                  {formatDateTime(deadlinePreview.teamAllocationQuestionnaireOpenDate)} <ArrowRightIcon />{" "}
+                  {formatDateTime(deadlinePreview.teamAllocationQuestionnaireDueDate)}
+                </p>
+              </div>
+            ) : null}
             <div>
               <p className="staff-projects__field-label">Task phase</p>
               <p className="staff-projects__card-sub">

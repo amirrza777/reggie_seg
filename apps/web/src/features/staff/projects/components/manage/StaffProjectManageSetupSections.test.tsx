@@ -75,6 +75,7 @@ const baseInitial: StaffProjectManageSummary = {
     moduleMemberDirectory: [],
     projectStudentIds: [],
   },
+  canMutateProjectSettings: true,
 };
 
 describe("StaffProjectManageSetupSections", () => {
@@ -83,7 +84,6 @@ describe("StaffProjectManageSetupSections", () => {
       <StaffProjectManageSetupSections
         projectId={1}
         initial={baseInitial}
-        globalFeatureFlags={{}}
         warningsOk
         warningsConfig={{} as never}
         overviewHref="/staff/projects/1"
@@ -109,7 +109,6 @@ describe("StaffProjectManageSetupSections", () => {
       <StaffProjectManageSetupSections
         projectId={1}
         initial={{ ...baseInitial, archivedAt: "2026-01-01T00:00:00.000Z" }}
-        globalFeatureFlags={{}}
         warningsOk={false}
         warningsConfig={null}
         overviewHref="/o"

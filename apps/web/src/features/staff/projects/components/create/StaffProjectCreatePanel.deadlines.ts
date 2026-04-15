@@ -8,6 +8,8 @@ export type DeadlineState = {
   feedbackOpenDate: string;
   feedbackDueDate: string;
   feedbackDueDateMcf: string;
+  teamAllocationQuestionnaireOpenDate: string;
+  teamAllocationQuestionnaireDueDate: string;
 };
 
 export type ParsedDeadlineState = {
@@ -20,6 +22,8 @@ export type ParsedDeadlineState = {
   feedbackOpenDate: Date;
   feedbackDueDate: Date;
   feedbackDueDateMcf: Date;
+  teamAllocationQuestionnaireOpenDate: Date | null;
+  teamAllocationQuestionnaireDueDate: Date | null;
 };
 
 export type DeadlinePreview = {
@@ -32,6 +36,8 @@ export type DeadlinePreview = {
   feedbackOpenDate: Date | null;
   feedbackDueDate: Date | null;
   feedbackDueDateMcf: Date | null;
+  teamAllocationQuestionnaireOpenDate: Date | null;
+  teamAllocationQuestionnaireDueDate: Date | null;
   totalDays: number | null;
 };
 
@@ -76,6 +82,8 @@ export function buildDefaultDeadlineState(): DeadlineState {
     feedbackOpenDate: toLocalDateTimeInputValue(feedbackOpen),
     feedbackDueDate: toLocalDateTimeInputValue(feedbackDue),
     feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
+    teamAllocationQuestionnaireOpenDate: "",
+    teamAllocationQuestionnaireDueDate: "",
   };
 }
 
@@ -100,6 +108,8 @@ export function buildPresetDeadlineState(totalWeeks: number): DeadlineState {
     feedbackOpenDate: toLocalDateTimeInputValue(feedbackOpen),
     feedbackDueDate: toLocalDateTimeInputValue(feedbackDue),
     feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
+    teamAllocationQuestionnaireOpenDate: "",
+    teamAllocationQuestionnaireDueDate: "",
   };
 }
 
@@ -137,7 +147,8 @@ export function buildDeadlinePreview(deadline: DeadlineState): DeadlinePreview {
   const feedbackOpenDate = parseLocalDateTime(deadline.feedbackOpenDate);
   const feedbackDueDate = parseLocalDateTime(deadline.feedbackDueDate);
   const feedbackDueDateMcf = parseLocalDateTime(deadline.feedbackDueDateMcf);
-
+  const teamAllocationQuestionnaireOpenDate = parseLocalDateTime(deadline.teamAllocationQuestionnaireOpenDate);
+  const teamAllocationQuestionnaireDueDate = parseLocalDateTime(deadline.teamAllocationQuestionnaireDueDate);
   const rangeStart = taskOpenDate;
   const rangeEnd = feedbackDueDate;
   const totalDays =
@@ -155,6 +166,8 @@ export function buildDeadlinePreview(deadline: DeadlineState): DeadlinePreview {
     feedbackOpenDate,
     feedbackDueDate,
     feedbackDueDateMcf,
+    teamAllocationQuestionnaireOpenDate,
+    teamAllocationQuestionnaireDueDate,
     totalDays,
   };
 }

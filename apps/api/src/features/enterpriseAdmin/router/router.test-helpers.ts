@@ -109,7 +109,6 @@ export function setupEnterpriseAdminRouterTestDefaults() {
     code: "MOD-7",
     name: "Module 7",
     briefText: null,
-    timelineText: null,
     expectationsText: null,
     readinessNotesText: null,
     createdAt: new Date("2026-03-01"),

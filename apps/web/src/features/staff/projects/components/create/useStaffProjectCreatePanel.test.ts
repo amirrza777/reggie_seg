@@ -66,10 +66,20 @@ describe("useStaffProjectCreatePanel", () => {
       ],
     } as any);
 
-    getMyQuestionnairesMock.mockResolvedValue([
-      { id: 11, templateName: "Peer", purpose: "PEER_ASSESSMENT" },
-      { id: 22, templateName: "Allocation", purpose: "CUSTOMISED_ALLOCATION" },
-    ] as any);
+    getMyQuestionnairesMock.mockImplementation(async (options?: { purpose?: string }) => {
+      const list = [
+        { id: 11, templateName: "Peer", purpose: "PEER_ASSESSMENT" },
+        { id: 22, templateName: "Allocation", purpose: "CUSTOMISED_ALLOCATION" },
+        { id: 33, templateName: "General", purpose: "GENERAL_PURPOSE" },
+      ];
+      if (options?.purpose === "PEER_ASSESSMENT") {
+        return list.filter((t) => t.purpose === "PEER_ASSESSMENT") as any;
+      }
+      if (options?.purpose === "CUSTOMISED_ALLOCATION") {
+        return list.filter((t) => t.purpose === "CUSTOMISED_ALLOCATION") as any;
+      }
+      return list as any;
+    });
 
     loadProjectPeerTemplatesMock.mockImplementation(async (args: any) => {
       args.setTemplates([{ id: 11, templateName: "Peer", purpose: "PEER_ASSESSMENT" }]);
@@ -137,7 +147,7 @@ describe("useStaffProjectCreatePanel", () => {
       result.current.applySchedulePreset(6);
     });
     expect(result.current.deadlinePresetStatus).toBe(
-      "Applied 6-week schedule and shifted for custom allocation.",
+      "Applied 6-week schedule and shifted for team allocation.",
     );
 
     act(() => {
@@ -147,7 +157,7 @@ describe("useStaffProjectCreatePanel", () => {
 
     await waitFor(() =>
       expect(result.current.deadlinePresetStatus).toBe(
-        "Reset to default schedule and shifted for custom allocation.",
+        "Reset to default schedule and shifted for team allocation.",
       ),
     );
     expect(typeof result.current.canSubmit).toBe("boolean");

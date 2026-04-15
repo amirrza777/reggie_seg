@@ -1,27 +1,14 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { RegisterForm } from "./RegisterForm";
-import type { MockedFunction } from "vitest";
+import { PENDING_SIGNUP_STORAGE_KEY } from "../pendingSignup";
 
 const push = vi.fn();
-const refresh = vi.fn();
 const originalLocation = window.location;
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
 }));
-
-vi.mock("../api/client", () => ({
-  signup: vi.fn(),
-}));
-
-vi.mock("../useUser", () => ({
-  useUser: () => ({ refresh }),
-}));
-
-// Import after mocks so we get the mocked instances
-import { signup } from "../api/client";
-const signupMock = signup as MockedFunction<typeof signup>;
 
 beforeAll(() => {
   const mockLocation: Pick<Location, "href" | "assign"> = {
@@ -43,22 +30,16 @@ afterAll(() => {
   });
 });
 
-describe("RegisterForm", () => {
-  beforeEach(() => {
-    push.mockReset();
-    refresh.mockReset();
-    refresh.mockResolvedValue(undefined);
-    signupMock.mockReset();
-    signupMock.mockResolvedValue(undefined);
-    // jsdom allows reassignment
-    window.location.href = "http://localhost:3000/";
-  });
+beforeEach(() => {
+  push.mockReset();
+  // jsdom allows reassignment
+  window.location.href = "http://localhost:3000/";
+  window.sessionStorage.clear();
+});
 
-  it("submits form and redirects", async () => {
-    refresh.mockResolvedValue({ role: "STUDENT" });
-    render(<RegisterForm />);
+it("stores signup payload and redirects to enterprise code bridge", async () => {
+  render(<RegisterForm />);
 
-    fireEvent.change(screen.getByLabelText(/enterprise code/i), { target: { value: "DEFAULT" } });
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: "Lovelace" } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
@@ -67,37 +48,33 @@ describe("RegisterForm", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
-    await waitFor(() =>
-      expect(signupMock).toHaveBeenCalledWith({
-        enterpriseCode: "DEFAULT",
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/google/enterprise-code?mode=signup"));
+    expect(screen.getByText(/continue with your enterprise code/i)).toBeInTheDocument();
+    expect(window.sessionStorage.getItem(PENDING_SIGNUP_STORAGE_KEY)).toBe(
+      JSON.stringify({
         email: "ada@example.com",
         password: "supersecure",
         firstName: "Ada",
         lastName: "Lovelace",
-      })
+      }),
     );
+});
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
-    expect(refresh).toHaveBeenCalledTimes(1);
-    expect(screen.getByText(/account created/i)).toBeInTheDocument();
-  });
+it("does not render the developer role picker", () => {
+  render(<RegisterForm />);
+  expect(screen.queryByText(/developer shortcut/i)).not.toBeInTheDocument();
+  expect(screen.queryByRole("radiogroup", { name: /select role/i })).not.toBeInTheDocument();
+});
 
-  it("does not render the developer role picker", () => {
-    render(<RegisterForm />);
-    expect(screen.queryByText(/developer shortcut/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("radiogroup", { name: /select role/i })).not.toBeInTheDocument();
-  });
+it("starts Google OAuth flow", () => {
+  render(<RegisterForm />);
+  fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+  expect(window.location.href).toContain("/auth/google");
+});
 
-  it("starts Google OAuth flow", () => {
-    render(<RegisterForm />);
-    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
-    expect(window.location.href).toContain("/auth/google");
-  });
+it("shows validation error and does not call signup when passwords do not match", async () => {
+  render(<RegisterForm />);
 
-  it("shows validation error and does not call signup when passwords do not match", async () => {
-    render(<RegisterForm />);
-
-    fireEvent.change(screen.getByLabelText(/enterprise code/i), { target: { value: "DEFAULT" } });
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
     fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "supersecure" } });
@@ -105,39 +82,38 @@ describe("RegisterForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
     await waitFor(() => {
-      expect(signupMock).not.toHaveBeenCalled();
+      expect(window.sessionStorage.getItem(PENDING_SIGNUP_STORAGE_KEY)).toBeNull();
       expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
     });
+});
+
+it("shows fallback error when pending signup cannot be saved", async () => {
+  vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
+    throw "no-storage";
   });
+  render(<RegisterForm />);
 
-  it("redirects to app-home when refresh returns no profile", async () => {
-    refresh.mockResolvedValue(null);
-    render(<RegisterForm />);
-
-    fireEvent.change(screen.getByLabelText(/enterprise code/i), { target: { value: "DEFAULT" } });
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
     fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "supersecure" } });
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "supersecure" } });
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/app-home"));
+  await waitFor(() => expect(screen.getByText("Could not continue to enterprise code")).toBeInTheDocument());
+  expect(push).not.toHaveBeenCalled();
+});
+
+it("shows thrown Error message when pending signup save fails", async () => {
+  vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
+    throw new Error("Storage blocked");
   });
+  render(<RegisterForm />);
 
-  it("shows default signup error message for non-Error throws", async () => {
-    signupMock.mockRejectedValue("nope");
-    render(<RegisterForm />);
-
-    fireEvent.change(screen.getByLabelText(/enterprise code/i), { target: { value: "DEFAULT" } });
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
     fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "supersecure" } });
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "supersecure" } });
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText("Signup failed")).toBeInTheDocument();
-      expect(push).not.toHaveBeenCalled();
-    });
-  });
+  await waitFor(() => expect(screen.getByText("Storage blocked")).toBeInTheDocument());
 });

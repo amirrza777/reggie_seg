@@ -177,4 +177,47 @@ describe("ModulePage", () => {
       [["Project A", "Not available", "In progress"]],
     );
   });
+
+  it("handles non-numeric project ids and empty module title fallback", async () => {
+    listModulesMock.mockResolvedValue([{ ...moduleRow, title: "   " }] as Awaited<ReturnType<typeof listModules>>);
+    getUserProjectsMock.mockResolvedValue([{ id: "not-a-number", name: "Legacy", moduleId: 17, archivedAt: null }] as any);
+
+    const page = await ModulePage({
+      params: Promise.resolve({ moduleId: "17" }),
+    });
+    render(page);
+
+    expect(buildModuleDashboardDataMock).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "   " }),
+      [["Legacy", "Not available", "In progress"]],
+    );
+    expect(screen.getByTestId("projects-panel")).toHaveTextContent("Module");
+  });
+
+  it("shows no-projects copy when project loading fails", async () => {
+    getUserProjectsMock.mockRejectedValueOnce(new Error("project fetch failed"));
+
+    const page = await ModulePage({
+      params: Promise.resolve({ moduleId: "17" }),
+    });
+    render(page);
+
+    expect(screen.getByText(/You do not have any projects assigned in this module yet/i)).toBeInTheDocument();
+    expect(buildModuleDashboardDataMock).toHaveBeenCalledWith(moduleRow, []);
+  });
+
+  it("marks archived project as completed when marking exists but deadline fetch fails", async () => {
+    getUserProjectsMock.mockResolvedValue([{ id: 100, name: "Project A", moduleId: 17, archivedAt: "2026-01-01T00:00:00.000Z" }] as any);
+    getProjectMarkingMock.mockResolvedValueOnce({ studentMarking: null, teamMarking: { mark: 70 } } as any);
+    getProjectDeadlineMock.mockRejectedValueOnce(new Error("deadline unavailable"));
+
+    await ModulePage({
+      params: Promise.resolve({ moduleId: "17" }),
+    });
+
+    expect(buildModuleDashboardDataMock).toHaveBeenCalledWith(
+      moduleRow,
+      [["Project A", "70", "Published"]],
+    );
+  });
 });

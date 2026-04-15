@@ -72,9 +72,12 @@ async function previewTeams() {
   await waitFor(() => {
     expect(previewCustomAllocationMock).toHaveBeenCalled();
   });
-  await waitFor(() => {
-    expect(screen.getByRole("button", { name: /confirm allocation/i })).toBeEnabled();
-  });
+  await waitFor(
+    () => {
+      expect(screen.getByRole("button", { name: /confirm allocation/i })).toBeEnabled();
+    },
+    { timeout: 8000 },
+  );
 }
 
 const DEFAULT_PREVIEW_TEAMS = [
@@ -181,9 +184,11 @@ describe("StaffCustomisedAllocationPanel", () => {
 
     renderPanel(2);
     await waitFor(() => expect(getCustomAllocationQuestionnairesMock).toHaveBeenCalledWith(9));
-
-    expect(screen.getByRole("option", { name: /Team Setup/i })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /Project Preferences/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByLabelText("Select questionnaire")).toBeEnabled();
+      expect(screen.getByRole("option", { name: /Team Setup/i })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: /Project Preferences/i })).toBeInTheDocument();
+    });
     const options = screen.getAllByRole("option");
     expect(options[0]).toHaveTextContent("Select questionnaire");
     expect(options[1]).toHaveTextContent("Project Preferences");

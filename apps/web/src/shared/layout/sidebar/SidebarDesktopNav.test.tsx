@@ -85,4 +85,31 @@ describe("SidebarDesktopNav", () => {
     const child = screen.getByRole("link", { name: "Alpha", hidden: true });
     expect(child).toHaveAttribute("tabindex", "-1");
   });
+
+  it("renders inactive links/groups without active aria markers", () => {
+    render(
+      <SidebarDesktopNav
+        links={[
+          { href: "/staff/home", label: "Home" },
+          {
+            href: "/staff/group",
+            label: "Group",
+            children: [{ href: "/staff/group/a", label: "A" }],
+          },
+        ]}
+        activeVisibleHref={null}
+        pathname="/staff/elsewhere"
+        searchParams={new URLSearchParams()}
+        getGroupOpen={() => true}
+        toggleGroup={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "Group" }).className).not.toContain("is-active");
+    const child = screen.getByRole("link", { name: "A" });
+    expect(child).not.toHaveAttribute("aria-current");
+    expect(child).toHaveStyle({ "--dropdown-item-index": "0" });
+    expect(child).not.toHaveAttribute("tabindex");
+  });
 });

@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { GithubContributorCard } from "./GithubContributorCard";
 
@@ -12,7 +12,19 @@ vi.mock("recharts", () => {
     CartesianGrid: makeComponent("CartesianGrid"),
     XAxis: makeComponent("XAxis"),
     YAxis: makeComponent("YAxis"),
-    Tooltip: makeComponent("Tooltip"),
+    Tooltip: ({
+      formatter,
+      labelFormatter,
+    }: {
+      formatter?: (value: unknown, name: string) => [string, string];
+      labelFormatter?: (label: unknown) => string;
+    }) => (
+      <div data-testid="Tooltip">
+        {formatter ? formatter(12, "Commits")[0] : ""}
+        {"|"}
+        {labelFormatter ? labelFormatter("2026-03-04") : ""}
+      </div>
+    ),
     Bar: makeComponent("Bar"),
   };
 });
@@ -65,5 +77,23 @@ describe("GithubContributorCard", () => {
     expect(screen.getByText("No weekly breakdown available")).toBeInTheDocument();
     expect(screen.getByText("No daily breakdown available")).toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("falls back to initials after avatar load error and supports no-weekly-summary mode", () => {
+    render(
+      <GithubContributorCard
+        contributor={makeContributor({ name: "  ", commitsByDay: { "2026-03-01": 4 } })}
+      />,
+    );
+
+    const avatar = document.querySelector("img");
+    expect(avatar).not.toBeNull();
+    if (avatar) {
+      fireEvent.error(avatar);
+    }
+
+    expect(screen.getByText("?")).toBeInTheDocument();
+    expect(screen.queryByText("Active coding weeks")).not.toBeInTheDocument();
+    expect(screen.getByTestId("Tooltip").textContent).toContain("|");
   });
 });

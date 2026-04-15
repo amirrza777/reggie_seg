@@ -49,6 +49,10 @@ vi.mock("@/shared/ui/progress/ProgressCardGrid", () => ({
   ),
 }));
 
+vi.mock("@/shared/auth/session", () => ({
+  getCurrentUser: vi.fn(),
+}));
+
 vi.mock("@/features/projects/api/client", () => ({
   getStaffProjectPeerAssessmentOverview: vi.fn(),
   getStaffTeamDeadline: vi.fn(),
@@ -75,7 +79,10 @@ const redirectMock = vi.mocked(redirect);
 describe("StaffProjectPeerAssessmentsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getCurrentUserMock.mockResolvedValue({ id: 11 } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getCurrentUserMock.mockResolvedValue({ id: 99, isStaff: true, role: "STAFF" } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getStaffTeamDeadlineMock.mockResolvedValue({
+      effectiveDeadline: null,
+    } as Awaited<ReturnType<typeof getStaffTeamDeadline>>);
     getOverviewMock.mockResolvedValue({
       project: { id: 22, name: "Project 22" },
       questionnaireTemplate: null,
@@ -132,7 +139,7 @@ describe("StaffProjectPeerAssessmentsPage", () => {
     expect(screen.getByRole("button", { name: "Change template" })).toBeDisabled();
     expect(screen.getByText("Locked after peer assessments have been submitted.")).toBeInTheDocument();
     expect(screen.getByTestId("progress-grid")).toHaveAttribute("data-first-href", "/staff/projects/22/teams/58/peer-assessment");
-    expect(getStaffTeamDeadlineMock).toHaveBeenCalledWith(11, 22, 58);
+    expect(getStaffTeamDeadlineMock).toHaveBeenCalledWith(99, 22, 58);
     expect(buildDeadlineDisplayMock).toHaveBeenCalled();
   });
 
@@ -164,7 +171,7 @@ describe("StaffProjectPeerAssessmentsPage", () => {
     );
     expect(screen.getByTestId("progress-grid")).toHaveAttribute("data-first-href", "");
     expect(screen.getByTestId("progress-grid")).toHaveAttribute("data-count", "2");
-    expect(getStaffTeamDeadlineMock).toHaveBeenNthCalledWith(1, 11, 22, null);
-    expect(getStaffTeamDeadlineMock).toHaveBeenNthCalledWith(2, 11, 22, 40);
+    expect(getStaffTeamDeadlineMock).toHaveBeenNthCalledWith(1, 99, 22, null);
+    expect(getStaffTeamDeadlineMock).toHaveBeenNthCalledWith(2, 99, 22, 40);
   });
 });
