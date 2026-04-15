@@ -30,16 +30,15 @@ afterAll(() => {
   });
 });
 
-describe("RegisterForm", () => {
-  beforeEach(() => {
-    push.mockReset();
-    // jsdom allows reassignment
-    window.location.href = "http://localhost:3000/";
-    window.sessionStorage.clear();
-  });
+beforeEach(() => {
+  push.mockReset();
+  // jsdom allows reassignment
+  window.location.href = "http://localhost:3000/";
+  window.sessionStorage.clear();
+});
 
-  it("stores signup payload and redirects to enterprise code bridge", async () => {
-    render(<RegisterForm />);
+it("stores signup payload and redirects to enterprise code bridge", async () => {
+  render(<RegisterForm />);
 
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: "Lovelace" } });
@@ -59,22 +58,22 @@ describe("RegisterForm", () => {
         lastName: "Lovelace",
       }),
     );
-  });
+});
 
-  it("does not render the developer role picker", () => {
-    render(<RegisterForm />);
-    expect(screen.queryByText(/developer shortcut/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("radiogroup", { name: /select role/i })).not.toBeInTheDocument();
-  });
+it("does not render the developer role picker", () => {
+  render(<RegisterForm />);
+  expect(screen.queryByText(/developer shortcut/i)).not.toBeInTheDocument();
+  expect(screen.queryByRole("radiogroup", { name: /select role/i })).not.toBeInTheDocument();
+});
 
-  it("starts Google OAuth flow", () => {
-    render(<RegisterForm />);
-    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
-    expect(window.location.href).toContain("/auth/google");
-  });
+it("starts Google OAuth flow", () => {
+  render(<RegisterForm />);
+  fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+  expect(window.location.href).toContain("/auth/google");
+});
 
-  it("shows validation error and does not call signup when passwords do not match", async () => {
-    render(<RegisterForm />);
+it("shows validation error and does not call signup when passwords do not match", async () => {
+  render(<RegisterForm />);
 
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
@@ -86,5 +85,35 @@ describe("RegisterForm", () => {
       expect(window.sessionStorage.getItem(PENDING_SIGNUP_STORAGE_KEY)).toBeNull();
       expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
     });
+});
+
+it("shows fallback error when pending signup cannot be saved", async () => {
+  vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
+    throw "no-storage";
   });
+  render(<RegisterForm />);
+
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "supersecure" } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "supersecure" } });
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+  await waitFor(() => expect(screen.getByText("Could not continue to enterprise code")).toBeInTheDocument());
+  expect(push).not.toHaveBeenCalled();
+});
+
+it("shows thrown Error message when pending signup save fails", async () => {
+  vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
+    throw new Error("Storage blocked");
+  });
+  render(<RegisterForm />);
+
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "supersecure" } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "supersecure" } });
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+  await waitFor(() => expect(screen.getByText("Storage blocked")).toBeInTheDocument());
 });

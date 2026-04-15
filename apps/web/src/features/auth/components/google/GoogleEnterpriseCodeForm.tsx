@@ -61,10 +61,8 @@ export function GoogleEnterpriseCodeForm({ mode = "join" }: { mode?: EnterpriseC
       }
       setStatus("success");
       setMessage("Enterprise joined. Redirecting...");
-      if (typeof window !== "undefined") {
-        // Use a full navigation so server session checks run against the latest enterprise membership.
-        window.location.assign("/app-home");
-      }
+      // Use a full navigation so server session checks run against the latest enterprise membership.
+      window.location.assign("/app-home");
     } catch (err) {
       setStatus("error");
       setMessage(resolveErrorMessage(err));
