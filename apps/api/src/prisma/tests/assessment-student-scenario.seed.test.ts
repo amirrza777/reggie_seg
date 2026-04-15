@@ -204,6 +204,20 @@ describe("seedAssessmentStudentScenario", () => {
     expect(seeded.mentions).toBe(0);
   });
 
+  it("normalizes legacy [SEED] meeting titles for assessment student teams", async () => {
+    prismaMock.meeting.findMany
+      .mockResolvedValueOnce([{ id: 501, title: "[SEED] Assessment Student T Previous Meeting" }])
+      .mockResolvedValueOnce([{ id: 500, date: new Date(Date.now() - 86_400_000) }]);
+    await seedAssessmentStudentMeetings(
+      [{ id: 1, moduleId: 1, templateId: 1, teamId: 99, teamName: "T", state: "assessment-open" }],
+      [1, 2],
+    );
+    expect(prismaMock.meeting.update).toHaveBeenCalledWith({
+      where: { id: 501 },
+      data: { title: "Assessment Student T Previous Meeting" },
+    });
+  });
+
   it("covers marks skip branch for falsy student ids", async () => {
     const seeded = await seedAssessmentStudentMarks(
       [{ id: 1, moduleId: 1, templateId: 1, teamId: 77, teamName: "T", state: "completed-marked" }],

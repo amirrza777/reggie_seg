@@ -16,6 +16,7 @@ export async function seedAssessmentStudentMeetings(projects: AssessmentStudentS
 }
 
 async function seedProjectMeetings(project: AssessmentStudentScenarioProject, memberIds: number[]) {
+  await normalizeLegacySeedMeetingTitles(project.teamId);
   const seeded = await seedScenarioPastAndUpcomingMeetings({
     teamId: project.teamId,
     organiserId: memberIds[0]!,
@@ -26,6 +27,22 @@ async function seedProjectMeetings(project: AssessmentStudentScenarioProject, me
   });
   const commentSeed = await seedProjectMeetingComments(project.teamId, memberIds);
   return { meetings: seeded.total, comments: commentSeed.comments, mentions: commentSeed.mentions };
+}
+
+async function normalizeLegacySeedMeetingTitles(teamId: number) {
+  const legacyMeetings = await prisma.meeting.findMany({
+    where: { teamId, title: { contains: "[SEED]" } },
+    select: { id: true, title: true },
+  });
+  for (const meeting of legacyMeetings) {
+    if (typeof meeting.title !== "string") continue;
+    const normalizedTitle = meeting.title.replace(/\[SEED\]\s*/g, "").trim();
+    if (!normalizedTitle || normalizedTitle === meeting.title) continue;
+    await prisma.meeting.update({
+      where: { id: meeting.id },
+      data: { title: normalizedTitle },
+    });
+  }
 }
 
 async function seedProjectMeetingComments(teamId: number, memberIds: number[]) {
