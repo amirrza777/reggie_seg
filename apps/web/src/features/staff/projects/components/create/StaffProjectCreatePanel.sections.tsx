@@ -306,12 +306,6 @@ export function StaffProjectCreateDeadlinesSection({
                 </p>
               </div>
             ) : null}
-            {deadlinePreview.teamAllocationInviteDueDate ? (
-              <div>
-                <p className="staff-projects__field-label">Team invite deadline</p>
-                <p className="staff-projects__card-sub">{formatDateTime(deadlinePreview.teamAllocationInviteDueDate)}</p>
-              </div>
-            ) : null}
             <div>
               <p className="staff-projects__field-label">Task phase</p>
               <p className="staff-projects__card-sub">

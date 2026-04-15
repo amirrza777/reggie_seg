@@ -255,7 +255,10 @@ describe("EnterpriseModuleCreateForm", () => {
   });
 
   it("unarchives only after confirmation when module is archived", async () => {
-    getEnterpriseModuleAccessSelectionMock.mockResolvedValueOnce({
+    // Use mockResolvedValue (not Once): loadInitialSelection can run more than once (e.g. Strict Mode).
+    // A second call that fell through to the unarchived beforeEach default would flip moduleArchived off
+    // and clear confirmUnarchiveModule, leaving the unarchive action disabled.
+    getEnterpriseModuleAccessSelectionMock.mockResolvedValue({
       module: {
         id: 77,
         code: "4CCS2DBS",
@@ -274,7 +277,9 @@ describe("EnterpriseModuleCreateForm", () => {
     render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} />);
 
     const unarchiveButton = await screen.findByRole("button", { name: /^unarchive module$/i });
-    const confirmation = screen.getByLabelText(/allow people with permission to edit the module again/i);
+    const confirmation = screen.getByRole("checkbox", {
+      name: /I understand this will allow people with permission to edit the module again/i,
+    });
 
     expect(unarchiveButton).toBeDisabled();
     fireEvent.click(confirmation);

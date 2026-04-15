@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   sendEmail: vi.fn(),
   addNotification: vi.fn(),
-  getUserProjectDeadline: vi.fn(),
   prisma: {
     team: { findUnique: vi.fn() },
     teamAllocation: { findUnique: vi.fn() },
@@ -24,7 +23,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../../../shared/email.js", () => ({ sendEmail: mocks.sendEmail }));
 vi.mock("../../notifications/service.js", () => ({ addNotification: mocks.addNotification }));
-vi.mock("../../projects/deadlines/repo.project-deadline.js", () => ({ getUserProjectDeadline: mocks.getUserProjectDeadline }));
 vi.mock("../../../shared/db.js", () => ({ prisma: mocks.prisma }));
 vi.mock("../repo/repo.js", () => ({
   createTeamInviteRecord: mocks.repo.createTeamInviteRecord,
@@ -71,9 +69,6 @@ describe("service.invites", () => {
     mocks.repo.addUserToTeam.mockResolvedValue({ id: 2, userId: 77 });
     mocks.sendEmail.mockResolvedValue(undefined);
     mocks.addNotification.mockResolvedValue(undefined);
-    mocks.getUserProjectDeadline.mockResolvedValue({
-      teamAllocationInviteDueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days in future
-    });
   });
 
   it("createTeamInvite throws TEAM_NOT_FOUND when team is missing", async () => {
@@ -116,33 +111,6 @@ describe("service.invites", () => {
     await expect(createTeamInvite({ teamId: 2, inviterId: 4, inviteeEmail: "x@y.com", baseUrl: "" })).rejects.toEqual({
       code: "INVITE_ALREADY_PENDING",
     });
-  });
-
-  it("createTeamInvite throws TEAM_INVITE_DEADLINE_PASSED when deadline has passed", async () => {
-    const pastDate = new Date(Date.now() - 1000); // 1 second in past
-    mocks.getUserProjectDeadline.mockResolvedValue({
-      teamAllocationInviteDueDate: pastDate,
-    });
-    await expect(createTeamInvite({ teamId: 2, inviterId: 4, inviteeEmail: "x@y.com", baseUrl: "" })).rejects.toEqual({
-      code: "TEAM_INVITE_DEADLINE_PASSED",
-    });
-  });
-
-  it("createTeamInvite succeeds when deadline has not passed", async () => {
-    const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days in future
-    mocks.getUserProjectDeadline.mockResolvedValue({
-      teamAllocationInviteDueDate: futureDate,
-    });
-    const result = await createTeamInvite({ teamId: 2, inviterId: 4, inviteeEmail: "x@y.com", baseUrl: "" });
-    expect(result.invite).toEqual({ id: "inv-1", teamId: 2 });
-  });
-
-  it("createTeamInvite succeeds when deadline is null", async () => {
-    mocks.getUserProjectDeadline.mockResolvedValue({
-      teamAllocationInviteDueDate: null,
-    });
-    const result = await createTeamInvite({ teamId: 2, inviterId: 4, inviteeEmail: "x@y.com", baseUrl: "" });
-    expect(result.invite).toEqual({ id: "inv-1", teamId: 2 });
   });
 
   it("createTeamInvite returns invite and normalized token payload", async () => {

@@ -13,7 +13,6 @@ export type ParsedProjectDeadline = {
   feedbackDueDateMcf: Date;
   teamAllocationQuestionnaireOpenDate?: Date | null;
   teamAllocationQuestionnaireDueDate?: Date | null;
-  teamAllocationInviteDueDate?: Date | null;
 };
 
 export type ParsedStudentDeadlineOverride = {
@@ -101,12 +100,6 @@ export function parseProjectDeadline(
     "deadline.teamAllocationQuestionnaireDueDate",
   );
   if (!teamAllocationQuestionnaireDueDate.ok) return teamAllocationQuestionnaireDueDate;
-  const teamAllocationInviteDueDate = parseOptionalIsoDate(
-    (value as any).teamAllocationInviteDueDate,
-    "deadline.teamAllocationInviteDueDate",
-  );
-  if (!teamAllocationInviteDueDate.ok) return teamAllocationInviteDueDate;
-
   if (taskOpenDate.value >= taskDueDate.value) {
     return { ok: false, error: "deadline.taskOpenDate must be before deadline.taskDueDate" };
   }
@@ -151,16 +144,6 @@ export function parseProjectDeadline(
       error: "deadline.teamAllocationQuestionnaireDueDate must be before deadline.taskOpenDate",
     };
   }
-  if (
-    teamAllocationInviteDueDate.value &&
-    teamAllocationInviteDueDate.value >= taskOpenDate.value
-  ) {
-    return {
-      ok: false,
-      error: "deadline.teamAllocationInviteDueDate must be before deadline.taskOpenDate",
-    };
-  }
-
   return {
     ok: true,
     value: {
@@ -178,9 +161,6 @@ export function parseProjectDeadline(
         : {}),
       ...(teamAllocationQuestionnaireDueDate.value !== undefined
         ? { teamAllocationQuestionnaireDueDate: teamAllocationQuestionnaireDueDate.value }
-        : {}),
-      ...(teamAllocationInviteDueDate.value !== undefined
-        ? { teamAllocationInviteDueDate: teamAllocationInviteDueDate.value }
         : {}),
     },
   };

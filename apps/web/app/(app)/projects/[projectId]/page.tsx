@@ -50,7 +50,6 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     feedbackDueDate: null,
     teamAllocationQuestionnaireOpenDate: null,
     teamAllocationQuestionnaireDueDate: null,
-    teamAllocationInviteDueDate: null,
     isOverridden: false,
   };
   const [project, deadline] = await Promise.all([

@@ -35,7 +35,6 @@ function manageDeadlineToProjectDeadline(snapshot: StaffProjectManageDeadlineSna
     feedbackDueDateMcf: snapshot.feedbackDueDateMcf,
     teamAllocationQuestionnaireOpenDate: snapshot.teamAllocationQuestionnaireOpenDate,
     teamAllocationQuestionnaireDueDate: snapshot.teamAllocationQuestionnaireDueDate,
-    teamAllocationInviteDueDate: snapshot.teamAllocationInviteDueDate,
     isOverridden: false,
   };
 }

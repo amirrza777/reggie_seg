@@ -265,37 +265,5 @@ describe("TeamFormationPanel", () => {
       expect(screen.getByTestId("team-list")).toBeInTheDocument();
       expect(screen.queryByText("Invite a teammate")).not.toBeInTheDocument();
     });
-
-    it("disables invites when teamAllocationInviteDueDate has passed", () => {
-      const pastDate = new Date(Date.now() - 3600000).toISOString();
-      getTeamInviteEligibleStudentsMock.mockResolvedValue([]);
-      render(
-        <TeamFormationPanel
-          team={baseTeam as any}
-          projectId={2}
-          initialInvites={[]}
-          teamAllocationInviteDueDate={pastDate}
-        />
-      );
-      expect(screen.getByTestId("team-list")).toBeInTheDocument();
-      expect(screen.queryByText("Invite a teammate")).not.toBeInTheDocument();
-    });
-
-    it("enables invites when teamAllocationInviteDueDate is in the future", async () => {
-      const futureDate = new Date(Date.now() + 3600000).toISOString();
-      getTeamInviteEligibleStudentsMock.mockResolvedValue([
-        { id: 5, firstName: "Aya", lastName: "Tanaka", email: "aya@example.com" },
-      ]);
-      render(
-        <TeamFormationPanel
-          team={baseTeam as any}
-          projectId={2}
-          initialInvites={[]}
-          teamAllocationInviteDueDate={futureDate}
-        />
-      );
-      await waitFor(() => expect(getTeamInviteEligibleStudentsMock).toHaveBeenCalled());
-      expect(screen.getByText("Invite a teammate")).toBeInTheDocument();
-    });
   });
 });

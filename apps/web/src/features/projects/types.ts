@@ -63,7 +63,6 @@ export type ProjectDeadline = {
   feedbackDueDateMcf?: string | null;
   teamAllocationQuestionnaireOpenDate?: string | null;
   teamAllocationQuestionnaireDueDate?: string | null;
-  teamAllocationInviteDueDate?: string | null;
   isOverridden: boolean;
   overrideScope?: "NONE" | "TEAM" | "STUDENT";
   deadlineProfile?: "STANDARD" | "MCF";
@@ -223,7 +222,6 @@ export type StaffProjectManageDeadlineSnapshot = {
   feedbackDueDateMcf: string | null;
   teamAllocationQuestionnaireOpenDate: string | null;
   teamAllocationQuestionnaireDueDate: string | null;
-  teamAllocationInviteDueDate: string | null;
 };
 
 export type StaffProjectManageAccessPerson = {
@@ -248,6 +246,7 @@ export type StaffProjectManageSummary = {
   moduleArchivedAt: string | null;
   informationText: string | null;
   questionnaireTemplateId: number;
+  teamAllocationQuestionnaireTemplateId?: number | null;
   questionnaireTemplate: { id: number; templateName: string } | null;
   projectDeadline: StaffProjectManageDeadlineSnapshot | null;
   hasSubmittedPeerAssessments: boolean;
@@ -268,7 +267,6 @@ export type StaffProjectManageDeadlinePatchPayload = {
   feedbackDueDateMcf: string;
   teamAllocationQuestionnaireOpenDate?: string | null;
   teamAllocationQuestionnaireDueDate?: string | null;
-  teamAllocationInviteDueDate?: string | null;
 };
 
 export type StaffProjectPeerAssessmentOverview = {

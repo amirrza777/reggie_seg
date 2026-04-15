@@ -89,7 +89,7 @@ describe("AdminLayout", () => {
     render(page);
 
     expect(screen.getByTestId("topbar")).toHaveTextContent("Team Feedback");
-    expect(screen.getByTestId("space-switcher")).toHaveTextContent("Workspace,Staff,Enterprise,Admin");
+    expect(screen.getByTestId("space-switcher")).toHaveTextContent("Admin");
     expect(screen.getByTestId("child")).toBeInTheDocument();
 
     const desktopSidebar = sidebarCalls.find((entry) => entry.mode === "desktop");

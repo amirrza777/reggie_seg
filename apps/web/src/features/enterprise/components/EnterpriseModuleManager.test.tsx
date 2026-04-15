@@ -119,7 +119,7 @@ describe("EnterpriseModuleManager", () => {
     await waitFor(() =>
       expect(searchEnterpriseModulesMock).toHaveBeenLastCalledWith({ q: "missing", page: 1, pageSize: 10 }),
     );
-    expect(screen.getByText('No modules match "missing".')).toBeInTheDocument();
+    expect(await screen.findByText('No modules match "missing".')).toBeInTheDocument();
   });
 
   it("shows error alerts when loading modules fails", async () => {

@@ -160,6 +160,7 @@ export function buildInitial(overrides: Partial<StaffProjectManageSummary> = {})
       ],
       projectStudentIds: [10],
     },
+    canMutateProjectSettings: true,
     ...overrides,
   };
 }

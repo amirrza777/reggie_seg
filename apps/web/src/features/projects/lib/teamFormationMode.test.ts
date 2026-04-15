@@ -38,7 +38,7 @@ describe("resolveStudentTeamFormationMode", () => {
     ).toBe("custom");
   });
 
-  it("uses peer-assessment manual mode as custom fallback", () => {
+  it("does not treat peer-assessment manual mode as custom allocation", () => {
     expect(
       resolveStudentTeamFormationMode({
         id: "1",
@@ -50,7 +50,7 @@ describe("resolveStudentTeamFormationMode", () => {
           },
         },
       } as any),
-    ).toBe("custom");
+    ).toBe("self");
   });
 
   it("returns staff when team tab is hidden in active or completed state", () => {

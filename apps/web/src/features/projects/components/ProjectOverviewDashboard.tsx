@@ -61,15 +61,6 @@ function buildDeadlineItems(project: Project, deadline: ProjectDeadline): Deadli
         group: "Team formation",
       });
     }
-  } else {
-    // Self-organization path: show invite deadline
-    if (deadline.teamAllocationInviteDueDate) {
-      items.push({
-        label: "Team invite deadline",
-        value: deadline.teamAllocationInviteDueDate,
-        group: "Team formation",
-      });
-    }
   }
 
   // Then add project deadlines

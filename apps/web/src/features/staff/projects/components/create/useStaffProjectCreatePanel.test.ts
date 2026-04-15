@@ -147,7 +147,7 @@ describe("useStaffProjectCreatePanel", () => {
       result.current.applySchedulePreset(6);
     });
     expect(result.current.deadlinePresetStatus).toBe(
-      "Applied 6-week schedule and shifted for custom allocation.",
+      "Applied 6-week schedule and shifted for team allocation.",
     );
 
     act(() => {
@@ -157,7 +157,7 @@ describe("useStaffProjectCreatePanel", () => {
 
     await waitFor(() =>
       expect(result.current.deadlinePresetStatus).toBe(
-        "Reset to default schedule and shifted for custom allocation.",
+        "Reset to default schedule and shifted for team allocation.",
       ),
     );
     expect(typeof result.current.canSubmit).toBe("boolean");
