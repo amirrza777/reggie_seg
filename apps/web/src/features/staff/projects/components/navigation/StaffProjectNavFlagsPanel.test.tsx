@@ -165,24 +165,56 @@ describe("StaffProjectNavFlagsPanel", () => {
     });
   });
 
-  it("respects readOnly mode and shows enterprise override alert", async () => {
+  it("switches peer feedback to manual mode independently of peer assessment", async () => {
+    const payload = buildPayload({
+      deadlineWindow: {
+        assessmentOpenDate: "2999-01-01T00:00:00.000Z",
+        feedbackOpenDate: "2999-01-01T00:00:00.000Z",
+      },
+    });
+    const manualPayload = buildPayload({
+      projectNavFlags: {
+        ...payload.projectNavFlags,
+        peerModes: {
+          ...payload.projectNavFlags.peerModes,
+          peer_feedback: "MANUAL",
+        },
+      },
+      deadlineWindow: payload.deadlineWindow,
+    });
+    getStaffProjectNavFlagsConfigMock.mockResolvedValue(payload);
+    updateStaffProjectNavFlagsConfigMock.mockResolvedValue(manualPayload);
+
+    render(<StaffProjectNavFlagsPanel projectId={42} />);
+
+    const feedbackRow = await screen.findByTestId("row-3");
+    expect(within(feedbackRow).getByRole("button", { name: "Auto" })).toBeDisabled();
+
+    fireEvent.click(within(feedbackRow).getByRole("checkbox"));
+
+    await waitFor(() => {
+      expect(updateStaffProjectNavFlagsConfigMock).toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          peerModes: expect.objectContaining({
+            peer_feedback: "MANUAL",
+            peer_assessment: "NATURAL",
+          }),
+        }),
+      );
+    });
+  });
+
+  it("respects readOnly mode and disables controls", async () => {
     getStaffProjectNavFlagsConfigMock.mockResolvedValue(buildPayload());
 
-    render(
-      <StaffProjectNavFlagsPanel
-        projectId={42}
-        readOnly
-        globalFeatureFlags={{ team: false, trello: false }}
-      />,
-    );
+    render(<StaffProjectNavFlagsPanel projectId={42} readOnly />);
 
     const teamRow = await screen.findByTestId("row-0");
     const assessmentRow = await screen.findByTestId("row-2");
 
     expect(within(teamRow).getByRole("button", { name: "Disable" })).toBeDisabled();
     expect(within(assessmentRow).getByRole("checkbox")).toBeDisabled();
-    expect(screen.getByText(/Enterprise feature flags are currently overriding/)).toBeInTheDocument();
-    expect(screen.getByText(/Team, Trello/)).toBeInTheDocument();
     expect(updateStaffProjectNavFlagsConfigMock).not.toHaveBeenCalled();
   });
 

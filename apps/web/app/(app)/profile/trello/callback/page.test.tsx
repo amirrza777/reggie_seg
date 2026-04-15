@@ -64,9 +64,11 @@ describe("ProfileTrelloCallbackPage", () => {
     await waitFor(() =>
       expect(completeTrelloLinkWithTokenMock).toHaveBeenCalledWith("link-token", "trello-token"),
     );
-    expect(screen.getByText("Trello connected. Redirecting...")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Trello connected. Redirecting...")).toBeInTheDocument();
+    });
 
-    await waitFor(() => expect(window.location.href).toBe("/dashboard"), { timeout: 1500 });
+    await waitFor(() => expect(window.location.href).toBe("/dashboard"), { timeout: 2000 });
   });
 
   it("shows fallback error when token completion fails with a non-Error value", async () => {
@@ -80,23 +82,22 @@ describe("ProfileTrelloCallbackPage", () => {
   });
 
   it("falls back to /profile when reading return path throws", async () => {
-    vi.useFakeTimers();
     window.location.hash = "#token=trello-token";
     sessionStorage.setItem("trello.linkToken", "link-token");
     completeTrelloLinkWithTokenMock.mockResolvedValue(undefined as never);
-    vi.spyOn(Storage.prototype, "getItem").mockImplementationOnce(() => "link-token");
-    vi.spyOn(Storage.prototype, "getItem").mockImplementationOnce(() => {
-      throw new Error("blocked");
+    const getItemSpy = vi.spyOn(Storage.prototype, "getItem").mockImplementation((key: string) => {
+      if (key === "trello.linkToken") return "link-token";
+      if (key === "trello.returnTo") throw new Error("blocked");
+      return null;
     });
 
     render(<ProfileTrelloCallbackPage />);
 
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(completeTrelloLinkWithTokenMock).toHaveBeenCalledWith("link-token", "trello-token");
+    await waitFor(() =>
+      expect(completeTrelloLinkWithTokenMock).toHaveBeenCalledWith("link-token", "trello-token"),
+    );
 
-    vi.runAllTimers();
-    expect(window.location.href).toBe("/profile");
-    vi.useRealTimers();
+    await waitFor(() => expect(window.location.href).toBe("/profile"), { timeout: 2000 });
+    getItemSpy.mockRestore();
   });
 });

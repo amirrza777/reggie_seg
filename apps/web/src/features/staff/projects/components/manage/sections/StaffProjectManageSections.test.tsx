@@ -108,7 +108,7 @@ describe("StaffProjectManageForumSection", () => {
 
 describe("StaffProjectManageFeatureFlagsSection", () => {
   it("renders nav flags panel", () => {
-    render(withProvider(<StaffProjectManageFeatureFlagsSection globalFeatureFlags={{ a: true }} />));
+    render(withProvider(<StaffProjectManageFeatureFlagsSection />));
     expect(screen.getByTestId("nav-flags")).toBeInTheDocument();
   });
 });

@@ -26,7 +26,6 @@ const MANAGE_PROJECT_DESCRIPTION_READ_ONLY_NON_LEAD =
 export type StaffProjectManageSetupSectionsProps = {
   projectId: number;
   initial: StaffProjectManageSummary;
-  globalFeatureFlags: Record<string, boolean>;
   warningsOk: boolean;
   warningsConfig: ProjectWarningsConfig | null;
   overviewHref: string;
@@ -37,7 +36,6 @@ export type StaffProjectManageSetupSectionsProps = {
 export function StaffProjectManageSetupSections({
   projectId,
   initial,
-  globalFeatureFlags,
   warningsOk,
   warningsConfig,
   overviewHref,
@@ -84,7 +82,7 @@ export function StaffProjectManageSetupSections({
             <StaffProjectManageProjectAccessSection />
             <StaffProjectManagePeerTemplateSection />
             <StaffProjectManageForumSection discussionHref={discussionHref} />
-            <StaffProjectManageFeatureFlagsSection globalFeatureFlags={globalFeatureFlags} />
+            <StaffProjectManageFeatureFlagsSection />
             <StaffProjectManageWarningsSection
               warningsOk={warningsOk}
               warningsConfig={warningsConfig}

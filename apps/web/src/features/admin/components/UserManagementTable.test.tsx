@@ -79,6 +79,9 @@ const installSearchMock = (dataset: Array<any>) => {
 const renderTable = async () => {
   render(<UserManagementTable />);
   await waitFor(() => expect(searchUsersMock).toHaveBeenCalled());
+  await waitFor(() => {
+    expect(screen.queryByText("Loading user accounts...")).not.toBeInTheDocument();
+  });
 };
 
 beforeEach(() => {
@@ -134,7 +137,9 @@ describe("UserManagementTable", () => {
     await renderTable();
     fireEvent.click(screen.getByRole("button", { name: "Staff" }));
     await waitFor(() => expect(updateUserRoleMock).toHaveBeenCalledWith(apiUser.id, "STAFF"));
-    expect(screen.getByText(/Updated role to staff/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Updated role to staff/i)).toBeInTheDocument();
+    });
   });
 
   it("toggles account status", async () => {

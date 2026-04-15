@@ -16,7 +16,6 @@ import { Table } from "@/shared/ui/Table";
 
 type StaffProjectNavFlagsPanelProps = {
   projectId: number;
-  globalFeatureFlags?: Record<string, boolean>;
   readOnly?: boolean;
 };
 
@@ -96,11 +95,7 @@ function createStatusChip(enabled: boolean) {
   );
 }
 
-export function StaffProjectNavFlagsPanel({
-  projectId,
-  globalFeatureFlags,
-  readOnly = false,
-}: StaffProjectNavFlagsPanelProps) {
+export function StaffProjectNavFlagsPanel({ projectId, readOnly = false }: StaffProjectNavFlagsPanelProps) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
@@ -273,13 +268,6 @@ export function StaffProjectNavFlagsPanel({
       ];
     });
   }, [busy, payload, readOnly]);
-
-  const globallyDisabledTabs = useMemo(() => {
-    if (!globalFeatureFlags) return [];
-    return TAB_LABELS.filter(({ key }) =>
-      Object.prototype.hasOwnProperty.call(globalFeatureFlags, key) && globalFeatureFlags[key] === false,
-    ).map((tab) => tab.label);
-  }, [globalFeatureFlags]);
 
   const table = (
     <Table

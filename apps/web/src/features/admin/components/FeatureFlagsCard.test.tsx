@@ -92,7 +92,9 @@ describe("FeatureFlagsCard", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Enable" }));
 
     await waitFor(() => expect(updateMock).toHaveBeenCalledWith("repos", true));
-    expect(screen.getAllByRole("button", { name: "Disable" })).toHaveLength(2);
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: "Disable" })).toHaveLength(2);
+    });
   });
 
   it("shows API error message when update fails with Error", async () => {
