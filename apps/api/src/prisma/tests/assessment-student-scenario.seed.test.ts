@@ -1,0 +1,157 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { prismaMock } = vi.hoisted(() => ({
+  prismaMock: {
+    module: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+    moduleLead: { createMany: vi.fn() },
+    project: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+    projectDeadline: { upsert: vi.fn() },
+    team: { upsert: vi.fn() },
+    teamAllocation: { deleteMany: vi.fn(), findMany: vi.fn(), createMany: vi.fn() },
+    userModule: { createMany: vi.fn() },
+    question: { findMany: vi.fn() },
+    meeting: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), findMany: vi.fn() },
+    meetingAttendance: { upsert: vi.fn() },
+    meetingMinutes: { upsert: vi.fn() },
+    meetingComment: { deleteMany: vi.fn(), create: vi.fn() },
+    mention: { upsert: vi.fn() },
+    peerFeedback: { deleteMany: vi.fn(), create: vi.fn() },
+    peerAssessment: { deleteMany: vi.fn(), create: vi.fn() },
+    staffStudentMarking: { deleteMany: vi.fn(), upsert: vi.fn() },
+    staffTeamMarking: { deleteMany: vi.fn(), upsert: vi.fn() },
+  },
+}));
+
+vi.mock("../../../prisma/seed/prismaClient", () => ({
+  prisma: prismaMock,
+}));
+
+import {
+  ASSESSMENT_STUDENT_MODULE_NAMES,
+  ASSESSMENT_STUDENT_PROJECTS,
+  seedAssessmentStudentScenario,
+} from "../../../prisma/seed/assessmentStudentScenario";
+import type { SeedContext, SeedUser } from "../../../prisma/seed/types";
+
+function buildUser(id: number, role: SeedUser["role"], email: string): SeedUser {
+  return { id, role, email, firstName: `User${id}`, lastName: "Seed" };
+}
+
+function buildContext(): SeedContext {
+  const assessmentStudent = buildUser(10, "STUDENT", "student.assessment@example.com");
+  const staff = buildUser(20, "STAFF", "staff1@example.com");
+  const students = [1, 2, 3, 4].map((id) => buildUser(id, "STUDENT", `student${id}@example.com`));
+  return {
+    enterprise: { id: "ent-1", code: "ENT", name: "Enterprise" },
+    passwordHash: "hash",
+    users: [assessmentStudent, staff, ...students],
+    standardUsers: [staff, ...students],
+    assessmentAccounts: [assessmentStudent],
+    usersByRole: { adminOrStaff: [staff], students },
+    modules: [],
+    templates: [{ id: 30, questionLabels: ["Contribution", "Communication"] }],
+    projects: [],
+    teams: [],
+  };
+}
+
+function setupPrismaMocks() {
+  let moduleId = 100;
+  let projectId = 200;
+  let teamId = 300;
+  let meetingId = 400;
+  let commentId = 500;
+  let assessmentId = 600;
+
+  prismaMock.module.findFirst.mockResolvedValue(null);
+  prismaMock.module.create.mockImplementation(async () => ({ id: moduleId++ }));
+  prismaMock.moduleLead.createMany.mockImplementation(async ({ data }) => ({ count: data.length }));
+  prismaMock.userModule.createMany.mockImplementation(async ({ data }) => ({ count: data.length }));
+  prismaMock.project.findFirst.mockResolvedValue(null);
+  prismaMock.project.create.mockImplementation(async () => ({ id: projectId++ }));
+  prismaMock.team.upsert.mockImplementation(async () => ({ id: teamId++ }));
+  prismaMock.teamAllocation.findMany.mockResolvedValue([]);
+  prismaMock.teamAllocation.createMany.mockImplementation(async ({ data }) => ({ count: data.length }));
+  prismaMock.question.findMany.mockResolvedValue([]);
+  prismaMock.meeting.findFirst.mockResolvedValue(null);
+  prismaMock.meeting.create.mockImplementation(async () => ({ id: meetingId++ }));
+  prismaMock.meeting.findMany.mockImplementation(async ({ where }) => [
+    { id: where.teamId * 10 + 1, date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+    { id: where.teamId * 10 + 2, date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
+  ]);
+  prismaMock.meetingComment.create.mockImplementation(async () => ({ id: commentId++ }));
+  prismaMock.peerAssessment.create.mockImplementation(async () => ({ id: assessmentId++ }));
+  prismaMock.projectDeadline.upsert.mockResolvedValue({});
+  prismaMock.meetingAttendance.upsert.mockResolvedValue({});
+  prismaMock.meetingMinutes.upsert.mockResolvedValue({});
+  prismaMock.mention.upsert.mockResolvedValue({});
+  prismaMock.peerFeedback.create.mockResolvedValue({});
+  prismaMock.staffStudentMarking.upsert.mockResolvedValue({});
+  prismaMock.staffTeamMarking.upsert.mockResolvedValue({});
+  prismaMock.teamAllocation.deleteMany.mockResolvedValue({ count: 0 });
+  prismaMock.meetingComment.deleteMany.mockResolvedValue({ count: 0 });
+  prismaMock.peerAssessment.deleteMany.mockResolvedValue({ count: 0 });
+  prismaMock.peerFeedback.deleteMany.mockResolvedValue({ count: 0 });
+  prismaMock.staffStudentMarking.deleteMany.mockResolvedValue({ count: 0 });
+  prismaMock.staffTeamMarking.deleteMany.mockResolvedValue({ count: 0 });
+}
+
+describe("seedAssessmentStudentScenario", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setupPrismaMocks();
+  });
+
+  it("defines two modules and three projects per module with scoped duplicate names", () => {
+    expect(ASSESSMENT_STUDENT_MODULE_NAMES).toHaveLength(2);
+    expect(ASSESSMENT_STUDENT_PROJECTS.filter((project) => project.moduleIndex === 0)).toHaveLength(3);
+    expect(ASSESSMENT_STUDENT_PROJECTS.filter((project) => project.moduleIndex === 1)).toHaveLength(3);
+    expect(ASSESSMENT_STUDENT_PROJECTS.filter((project) => project.name === "Demo Completed Project")).toHaveLength(2);
+  });
+
+  it("seeds scenario projects by moduleId and never allocates assessment admin accounts as students", async () => {
+    await seedAssessmentStudentScenario(buildContext());
+
+    expect(prismaMock.module.create).toHaveBeenCalledTimes(2);
+    expect(prismaMock.userModule.createMany).toHaveBeenCalledWith({
+      data: [
+        { enterpriseId: "ent-1", moduleId: 100, userId: 10 },
+        { enterpriseId: "ent-1", moduleId: 101, userId: 10 },
+      ],
+      skipDuplicates: true,
+    });
+    expect(prismaMock.moduleLead.createMany).toHaveBeenCalledWith({
+      data: [{ moduleId: 100, userId: 20 }, { moduleId: 101, userId: 20 }],
+      skipDuplicates: true,
+    });
+    expect(prismaMock.project.create).toHaveBeenCalledTimes(6);
+    expect(prismaMock.project.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ moduleId: expect.any(Number), name: "Demo Completed Project" }),
+    }));
+    expect(prismaMock.teamAllocation.createMany).toHaveBeenCalledTimes(6);
+    expect(prismaMock.teamAllocation.createMany).not.toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.arrayContaining([expect.objectContaining({ userId: 20 })]) }),
+    );
+  });
+
+  it("seeds meetings, comments, peer states, and marks according to project state", async () => {
+    await seedAssessmentStudentScenario(buildContext());
+
+    expect(prismaMock.projectDeadline.upsert).toHaveBeenCalledTimes(6);
+    expect(prismaMock.meeting.create).toHaveBeenCalledTimes(12);
+    expect(prismaMock.meetingComment.create).toHaveBeenCalled();
+    expect(prismaMock.mention.upsert).toHaveBeenCalled();
+    expect(prismaMock.peerAssessment.create).toHaveBeenCalled();
+    expect(prismaMock.peerFeedback.create).toHaveBeenCalled();
+    expect(prismaMock.staffTeamMarking.upsert).toHaveBeenCalledTimes(2);
+    expect(prismaMock.staffStudentMarking.upsert).toHaveBeenCalledTimes(10);
+  });
+
+  it("skips when the assessment student, marker, teammates, or template are missing", async () => {
+    const context = { ...buildContext(), assessmentAccounts: [], templates: [] };
+    const result = await seedAssessmentStudentScenario(context);
+
+    expect(result).toBeUndefined();
+    expect(prismaMock.module.create).not.toHaveBeenCalled();
+  });
+});

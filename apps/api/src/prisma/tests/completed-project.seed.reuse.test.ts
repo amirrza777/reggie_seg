@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     user: { findMany: vi.fn() },
-    project: { findFirst: vi.fn(), create: vi.fn() },
+    project: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
     team: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
     teamAllocation: { findMany: vi.fn(), createMany: vi.fn() },
     projectDeadline: { findUnique: vi.fn(), create: vi.fn() },
@@ -58,6 +58,7 @@ function arrangeCompletedProjectDefaults() {
   vi.clearAllMocks();
   prismaMock.user.findMany.mockResolvedValue([]);
   prismaMock.project.findFirst.mockResolvedValue(null);
+  prismaMock.project.update.mockResolvedValue({ id: 100, questionnaireTemplateId: 500 });
   prismaMock.project.create.mockResolvedValue({ id: 100, questionnaireTemplateId: 500 });
   prismaMock.team.findUnique.mockResolvedValue(null);
   prismaMock.team.update.mockResolvedValue({ id: 200 });
@@ -107,10 +108,10 @@ function arrangeExistingScenarioReuseCase() {
   prismaMock.user.findMany.mockResolvedValue([{ id: 302 }]);
   prismaMock.project.findFirst.mockResolvedValue({ id: 100, questionnaireTemplateId: 500 });
   prismaMock.team.findUnique.mockResolvedValue({ id: 200 });
-  prismaMock.teamAllocation.findMany.mockResolvedValue([{ userId: 101 }, { userId: 302 }]);
+  prismaMock.teamAllocation.findMany.mockResolvedValue([{ userId: 101 }]);
   prismaMock.projectDeadline.findUnique.mockResolvedValue({ id: 10 });
   prismaMock.question.findMany.mockResolvedValue(buildTypedQuestions());
-  prismaMock.peerAssessment.findMany.mockResolvedValue([{ id: 77, reviewerUserId: 302, revieweeUserId: 101 }]);
+  prismaMock.peerAssessment.findMany.mockResolvedValue([{ id: 77, reviewerUserId: 101, revieweeUserId: 102 }]);
   prismaMock.peerAssessment.findUnique.mockResolvedValue({ id: 77 });
   prismaMock.peerFeedback.findMany.mockResolvedValue([{ peerAssessmentId: 77 }]);
   prismaMock.staffTeamMarking.findUnique.mockResolvedValue({ id: 1 });
@@ -164,7 +165,7 @@ function arrangeFallbackEdgeCase() {
   prismaMock.teamAllocation.findMany.mockResolvedValue([]);
   prismaMock.projectDeadline.findUnique.mockResolvedValue({ id: 10 });
   prismaMock.question.findMany.mockResolvedValue([{ id: 1, label: "Q1", type: "text", order: 1, configs: null }]);
-  prismaMock.peerAssessment.findMany.mockResolvedValue([{ id: 55, reviewerUserId: 101, revieweeUserId: 102 }]);
+  prismaMock.peerAssessment.findMany.mockResolvedValue([{ id: 55, reviewerUserId: 101, revieweeUserId: 303 }]);
   prismaMock.peerAssessment.findUnique.mockResolvedValue(null);
   prismaMock.peerFeedback.findMany.mockResolvedValue([]);
   prismaMock.staffTeamMarking.findUnique.mockResolvedValue({ id: 1 });
@@ -178,6 +179,7 @@ function arrangeFallbackEdgeCase() {
 function makeFallbackEdgeCaseContext() {
   return makeCompletedProjectContext({
     templates: [{ id: 500, questionLabels: ["Q1"] }],
+    users: [{ id: 303, role: "STUDENT", email: "student.assessment@example.com" }],
     usersByRole: {
       adminOrStaff: [{ id: 900, role: "STAFF" }],
       students: [{ id: undefined, role: "STUDENT" }, { id: 0, role: "STUDENT" }, { id: 101, role: "STUDENT" }],
@@ -192,7 +194,7 @@ function expectFallbackEdgeCaseAssessmentBehavior() {
 }
 
 function expectFallbackEdgeCaseMeetingBehavior() {
-  expect(prismaMock.meeting.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ organiserId: 900 }) }));
+  expect(prismaMock.meeting.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ organiserId: 101 }) }));
   const attendancePayloads = prismaMock.meetingAttendance.create.mock.calls.map((call) => call[0]?.data);
   expect(attendancePayloads.every((payload: { userId: number }) => payload.userId > 0)).toBe(true);
 }

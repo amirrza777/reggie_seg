@@ -3,10 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     user: { findMany: vi.fn(), findUnique: vi.fn() },
+    questionnaireTemplate: { update: vi.fn() },
     question: { findMany: vi.fn() },
     project: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
     team: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
     teamAllocation: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
+    meeting: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
+    meetingAttendance: { upsert: vi.fn() },
+    meetingMinutes: { upsert: vi.fn() },
     projectDeadline: { upsert: vi.fn(), findUnique: vi.fn() },
     teamDeadlineOverride: { deleteMany: vi.fn() },
     studentDeadlineOverride: { deleteMany: vi.fn() },
@@ -28,6 +32,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
     vi.clearAllMocks();
     prismaMock.user.findMany.mockResolvedValue([]);
     prismaMock.user.findUnique.mockResolvedValue(null);
+    prismaMock.questionnaireTemplate.update.mockResolvedValue({ id: 500, purpose: "PEER_ASSESSMENT" });
     prismaMock.question.findMany.mockResolvedValue([]);
     prismaMock.project.findFirst.mockResolvedValue(null);
     let projectId = 100;
@@ -48,6 +53,11 @@ describe("seedPeerAssessmentProgressScenarios", () => {
     prismaMock.teamAllocation.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.projectDeadline.upsert.mockResolvedValue({});
     prismaMock.projectDeadline.findUnique.mockResolvedValue({ id: 1 });
+    prismaMock.meeting.findFirst.mockResolvedValue(null);
+    prismaMock.meeting.update.mockResolvedValue({ id: 1 });
+    prismaMock.meeting.create.mockResolvedValue({ id: 1 });
+    prismaMock.meetingAttendance.upsert.mockResolvedValue({ id: 1 });
+    prismaMock.meetingMinutes.upsert.mockResolvedValue({ id: 1 });
     prismaMock.teamDeadlineOverride.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.studentDeadlineOverride.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.peerFeedback.deleteMany.mockResolvedValue({ count: 0 });
@@ -76,7 +86,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       enterprise: { id: "ent-1" },
       modules: [{ id: 11 }],
       templates: [{ id: 500, questionLabels: ["Q1"] }],
-      users: [{ id: 99, role: "STAFF" }],
+      users: [{ id: 99, role: "STAFF" }, { id: 42, role: "STUDENT", email: "student.assessment@example.com" }],
       usersByRole: { students: [{ id: 21 }, { id: 22 }] },
     } as never);
 
@@ -84,6 +94,10 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       assessmentOpenProjectId: expect.any(Number),
       feedbackPendingProjectId: expect.any(Number),
       completedUnmarkedProjectId: expect.any(Number),
+    });
+    expect(prismaMock.questionnaireTemplate.update).toHaveBeenCalledWith({
+      where: { id: 500 },
+      data: { purpose: "PEER_ASSESSMENT" },
     });
     expect(prismaMock.project.create).toHaveBeenCalled();
   });
@@ -118,7 +132,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       enterprise: { id: "ent-1" },
       modules: [{ id: 11 }],
       templates: [{ id: 500, questionLabels: [] }],
-      users: [{ id: 7, role: "ADMIN" }],
+      users: [{ id: 7, role: "ADMIN" }, { id: 42, role: "STUDENT", email: "student.assessment@example.com" }],
       usersByRole: { students: [{ id: 21 }, { id: 22 }, { id: 23 }] },
     } as never);
 
@@ -132,6 +146,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
     expect(prismaMock.team.update).toHaveBeenCalledTimes(1);
     expect(prismaMock.team.create).toHaveBeenCalledTimes(2);
     expect(prismaMock.projectDeadline.upsert).toHaveBeenCalledTimes(3);
+    expect(prismaMock.meeting.create).toHaveBeenCalled();
     expect(prismaMock.peerFeedback.deleteMany).toHaveBeenCalledTimes(3);
     expect(prismaMock.peerAssessment.deleteMany).toHaveBeenCalledTimes(2);
     expect(prismaMock.peerAssessment.upsert).toHaveBeenCalled();
@@ -151,7 +166,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       enterprise: { id: "ent-1" },
       modules: [{ id: 11 }],
       templates: [{ id: 500, questionLabels: ["Fallback A", "Fallback B"] }],
-      users: [{ id: 7, role: "ADMIN" }],
+      users: [{ id: 7, role: "ADMIN" }, { id: 42, role: "STUDENT", email: "student.assessment@example.com" }],
       usersByRole: { students: [{ id: 0 }, { id: 22 }, { id: 23 }] },
     } as never);
 
@@ -167,7 +182,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       enterprise: { id: "ent-1" },
       modules: [{ id: 11 }],
       templates: [{ id: 500, questionLabels: ["Q1"] }],
-      users: [{ id: 7, role: "ADMIN" }],
+      users: [{ id: 7, role: "ADMIN" }, { id: 42, role: "STUDENT", email: "student.assessment@example.com" }],
       usersByRole: { students: [{ id: 21 }, { id: 22 }] },
     } as never);
 
@@ -185,7 +200,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       enterprise: { id: "ent-1" },
       modules: [{ id: 11 }],
       templates: [{ id: 500, questionLabels: ["Q1"] }],
-      users: [],
+      users: [{ id: 42, role: "STUDENT", email: "student.assessment@example.com" }],
       usersByRole: { students: [{ id: 21 }] },
     } as never);
 

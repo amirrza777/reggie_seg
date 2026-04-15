@@ -66,6 +66,7 @@ export function PeerListView({
       <ul className="peer-assessment-list">
         {peers.map((allocation) => {
           const isCompleted = completedRevieweeIdSet.has(allocation.user.id);
+          const isMissed = readOnly && !isCompleted;
           const cardClassName = `peer-assessment-card ${
             isCompleted
               ? "peer-assessment-card--completed"
@@ -91,7 +92,7 @@ export function PeerListView({
                         : "peer-assessment-card__status--pending"
                     }`}
                   >
-                    {isCompleted ? "Completed" : "Pending"}
+                    {isCompleted ? "Completed" : isMissed ? "Missed" : "Pending"}
                   </div>
                 </div>
                 <div className="peer-assessment-card__email">

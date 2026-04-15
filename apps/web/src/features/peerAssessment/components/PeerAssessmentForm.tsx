@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
+import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
 import type { Question } from "../types";
 import { createPeerAssessment, updatePeerAssessment } from "../api/client";
 import {
@@ -301,14 +302,14 @@ export function PeerAssessmentForm({
             {textConfig.helperText ? (
               <p className="muted" style={{ margin: 0 }}>{textConfig.helperText}</p>
             ) : null}
-            <input
-              type="text"
+            <AutoGrowTextarea
               value={typeof answer === "string" ? answer : String(answer ?? "")}
               placeholder={textConfig.placeholder}
               minLength={textConfig.minLength}
               maxLength={textConfig.maxLength}
               required={required}
               readOnly={isReadOnly}
+              rows={3}
               onChange={(event) =>
                 setAnswers((prev) => ({ ...prev, [key]: event.target.value }))
               }

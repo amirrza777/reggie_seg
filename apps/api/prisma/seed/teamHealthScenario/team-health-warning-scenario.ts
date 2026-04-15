@@ -1,4 +1,5 @@
 import { withSeedLogging } from "../logging";
+import { seedScenarioPastAndUpcomingMeetings } from "../scenarioMeetings";
 import type { SeedContext } from "../types";
 import { buildScenarioMemberIds, resolveScenarioActors, validateScenarioPrerequisites } from "./actors";
 import { clearPrimaryScenarioWarningsAndMeetings } from "./cleanup";
@@ -20,6 +21,12 @@ export async function seedTeamHealthWarningScenario(context: SeedContext) {
     await seedTeamHealthMessages(setup.project.id, setup.team.id, requesterId, actors.reviewerId);
     const existingSeSeed = await seedExistingSeTeamHealthMessages(context, requesterId, actors.reviewerId);
     const deletedMeetings = await clearPrimaryScenarioWarningsAndMeetings(setup.project.id, setup.team.id);
+    await seedScenarioPastAndUpcomingMeetings({
+      teamId: setup.team.id,
+      organiserId: requesterId,
+      memberIds,
+      titlePrefix: "Team Health Demo",
+    });
 
     return {
       value: {

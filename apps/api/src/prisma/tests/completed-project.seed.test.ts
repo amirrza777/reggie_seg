@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     user: { findMany: vi.fn() },
-    project: { findFirst: vi.fn(), create: vi.fn() },
+    project: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
     team: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
     teamAllocation: { findMany: vi.fn(), createMany: vi.fn() },
     projectDeadline: { findUnique: vi.fn(), create: vi.fn() },
@@ -32,6 +32,7 @@ function registerCompletedProjectTests() {
   });
   registerMissingDependencyTest();
   registerCreateScenarioTest();
+  registerAssessmentStudentMembershipTest();
   registerInsufficientMembersTest();
 }
 
@@ -67,6 +68,44 @@ function registerCreateScenarioTest() {
   });
 }
 
+function registerAssessmentStudentMembershipTest() {
+  it("includes assessment student account in completed demo project memberships", async () => {
+    await seedCompletedProjectScenario(
+      makeCompletedProjectContext({
+        users: [{ id: 301, role: "STUDENT", email: "student.assessment@example.com" }],
+      }) as never,
+    );
+
+    expect(prismaMock.teamAllocation.createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({ userId: 301 }),
+      ]),
+      skipDuplicates: true,
+    });
+  });
+
+  it("creates feedback and individual marking rows for assessment student account", async () => {
+    await seedCompletedProjectScenario(
+      makeCompletedProjectContext({
+        assessmentAccounts: [{ id: 301, role: "STUDENT", email: "student.assessment@example.com" }],
+        users: [{ id: 301, role: "STUDENT", email: "student.assessment@example.com" }],
+      }) as never,
+    );
+
+    expect(prismaMock.staffStudentMarking.createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({ studentUserId: 301, markerUserId: 900 }),
+      ]),
+      skipDuplicates: true,
+    });
+
+    const feedbackCreates = prismaMock.peerFeedback.create.mock.calls.map((call) => call[0]?.data);
+    expect(
+      feedbackCreates.some((data) => data?.reviewerUserId === 301 || data?.revieweeUserId === 301),
+    ).toBe(true);
+  });
+}
+
 function registerInsufficientMembersTest() {
   it("skips when there are not enough team members", async () => {
     prismaMock.user.findMany.mockResolvedValue([]);
@@ -90,6 +129,7 @@ function arrangeCompletedProjectDefaults() {
   vi.clearAllMocks();
   prismaMock.user.findMany.mockResolvedValue([]);
   prismaMock.project.findFirst.mockResolvedValue(null);
+  prismaMock.project.update.mockResolvedValue({ id: 100, questionnaireTemplateId: 500 });
   prismaMock.project.create.mockResolvedValue({ id: 100, questionnaireTemplateId: 500 });
   prismaMock.team.findUnique.mockResolvedValue(null);
   prismaMock.team.update.mockResolvedValue({ id: 200 });

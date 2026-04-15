@@ -1,4 +1,5 @@
 import { prisma } from "../prismaClient";
+import { TEAM_HEALTH_WARNING_PROJECT_INFORMATION_TEXT } from "../scenarioDescriptions";
 import { resetScenarioDeadlineOverrides } from "../scenarioUtils";
 import type { SeedContext } from "../types";
 import { seedPartialPeerAssessments } from "./assessments";
@@ -29,9 +30,7 @@ export async function upsertScenarioProject(context: SeedContext, moduleId: numb
   const payload = {
     moduleId,
     questionnaireTemplateId: templateId,
-    informationText:
-      "Temporary UI testing scenario for team health and warnings. This project is intentionally in a late delivery phase " +
-      "with feedback currently open so staff can validate warning banners, escalation cards, and team support workflows.",
+    informationText: TEAM_HEALTH_WARNING_PROJECT_INFORMATION_TEXT,
     warningsConfig: WARNING_CONFIG as unknown as object,
   };
   if (existing) {

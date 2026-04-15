@@ -51,6 +51,36 @@ describe("PeerListView", () => {
     expect(screen.getByText("No peers found in this team.")).toBeInTheDocument();
   });
 
+  it("renders intro when only title is provided", () => {
+    render(
+      <PeerListView
+        peers={peers}
+        projectId="42"
+        teamId={5}
+        currentUserId={7}
+        listTitle="Assess only"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Assess only" })).toBeInTheDocument();
+    expect(screen.queryByText("Choose a teammate below")).not.toBeInTheDocument();
+  });
+
+  it("renders intro when only description is provided", () => {
+    render(
+      <PeerListView
+        peers={peers}
+        projectId="42"
+        teamId={5}
+        currentUserId={7}
+        listDescription="Description only"
+      />,
+    );
+
+    expect(screen.queryByRole("heading", { name: "Assess only" })).not.toBeInTheDocument();
+    expect(screen.getByText("Description only")).toBeInTheDocument();
+  });
+
   it("routes to existing completed assessments", () => {
     render(
       <PeerListView
@@ -100,6 +130,8 @@ describe("PeerListView", () => {
     const pendingButton = screen.getByRole("button", { name: /Sam Roe/i });
     expect(pendingButton).toBeDisabled();
     expect(screen.getByText("Submission window closed")).toBeInTheDocument();
+    expect(screen.getByText("Missed")).toBeInTheDocument();
+    expect(screen.queryByText("Pending")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Alex Doe/i }));
     expect(pushMock).toHaveBeenLastCalledWith(

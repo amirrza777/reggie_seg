@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   seedStudentEnrollments: vi.fn(async () => undefined),
   seedAdminTeamAllocation: vi.fn(async () => undefined),
   seedTeamAllocations: vi.fn(async () => undefined),
-  seedAssessmentStudentModuleCoverage: vi.fn(async () => undefined),
+  seedAssessmentStudentScenario: vi.fn(async () => undefined),
   seedStaffStudentMarks: vi.fn(async () => undefined),
   seedTeamInvites: vi.fn(async () => undefined),
   seedGithubE2EUsers: vi.fn(async () => undefined),
@@ -28,8 +28,11 @@ vi.mock("../../../../prisma/seed/allocation", () => ({
   seedStudentEnrollments: mocks.seedStudentEnrollments,
   seedAdminTeamAllocation: mocks.seedAdminTeamAllocation,
   seedTeamAllocations: mocks.seedTeamAllocations,
-  seedAssessmentStudentModuleCoverage: mocks.seedAssessmentStudentModuleCoverage,
   seedGithubE2EUsers: mocks.seedGithubE2EUsers,
+}));
+
+vi.mock("../../../../prisma/seed/assessmentStudentScenario", () => ({
+  seedAssessmentStudentScenario: mocks.seedAssessmentStudentScenario,
 }));
 
 vi.mock("../../../../prisma/seed/completed-project", () => ({
@@ -128,7 +131,7 @@ describe("seed plan run callbacks", () => {
     expect(mocks.seedStudentEnrollments).toHaveBeenCalled();
     expect(mocks.seedAdminTeamAllocation).toHaveBeenCalled();
     expect(mocks.seedTeamAllocations).toHaveBeenCalled();
-    expect(mocks.seedAssessmentStudentModuleCoverage).toHaveBeenCalled();
+    expect(mocks.seedAssessmentStudentScenario).toHaveBeenCalled();
     expect(mocks.seedStaffStudentMarks).toHaveBeenCalled();
     expect(mocks.seedTeamInvites).toHaveBeenCalled();
     expect(mocks.seedGithubE2EUsers).toHaveBeenCalled();

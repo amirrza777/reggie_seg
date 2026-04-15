@@ -71,7 +71,7 @@ export default async function ProjectMeetingsPage({ params, searchParams }: Proj
           teamId={team.id}
           projectId={numericProjectId}
           projectCompleted={projectCompleted}
-          initialTab={tab === "previous" ? "previous" : "upcoming"}
+          initialTab={projectCompleted ? "previous" : tab === "previous" ? "previous" : "upcoming"}
         />
       </PageSection>
     );

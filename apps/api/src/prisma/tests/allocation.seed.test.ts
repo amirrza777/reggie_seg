@@ -210,7 +210,7 @@ describe("seedAssessmentStudentModuleCoverage", () => {
 
   it("creates missing allocations for uncovered modules", async () => {
     prismaMock.user.findUnique.mockResolvedValue({ id: 7 });
-    prismaMock.teamAllocation.findMany.mockResolvedValue([{ teamId: 100 }]);
+    prismaMock.teamAllocation.findMany.mockResolvedValue([]);
     prismaMock.teamAllocation.createMany.mockResolvedValue({ count: 1 });
 
     await seedAssessmentStudentModuleCoverage(
@@ -224,7 +224,7 @@ describe("seedAssessmentStudentModuleCoverage", () => {
     );
 
     expect(prismaMock.teamAllocation.createMany).toHaveBeenCalledWith({
-      data: [{ teamId: 200, userId: 7 }],
+      data: [{ teamId: 100, userId: 7 }],
       skipDuplicates: true,
     });
   });

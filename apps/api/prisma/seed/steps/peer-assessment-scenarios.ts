@@ -1,6 +1,8 @@
 import { withSeedLogging } from "../logging";
 import { seedCompletedUnmarkedStudentViewScenario } from "../peerAssessmentScenario/peer-assessment-completed-unmarked-scenario";
 import { prisma } from "../prismaClient";
+import { seedScenarioPastAndUpcomingMeetings } from "../scenarioMeetings";
+import { ASSESSMENT_OPEN_PROJECT_INFORMATION_TEXT, FEEDBACK_PENDING_PROJECT_INFORMATION_TEXT } from "../scenarioDescriptions";
 import type { SeedContext } from "../types";
 import {
   ASSESSMENT_OPEN_PROJECT_NAME,
@@ -25,16 +27,23 @@ async function seedAssessmentOpenScenario(
     templateId,
     projectName: ASSESSMENT_OPEN_PROJECT_NAME,
     teamName: ASSESSMENT_OPEN_TEAM_NAME,
-    informationText: "This scenario keeps the project in an active peer-assessment window so reviewers can submit assessments now.",
+    informationText: ASSESSMENT_OPEN_PROJECT_INFORMATION_TEXT,
     deadlineOffsetDays: { taskOpen: -12, taskDue: -2, assessmentOpen: -1, assessmentDue: 3, feedbackOpen: 4, feedbackDue: 8 },
     memberIds,
   });
   await clearScenarioPeerData(seeded.project.id, seeded.team.id);
+  const meetingSeed = await seedScenarioPastAndUpcomingMeetings({
+    teamId: seeded.team.id,
+    organiserId: memberIds[0]!,
+    memberIds,
+    titlePrefix: "Assessment Open Demo",
+  });
   return {
     projectId: seeded.project.id,
     teamId: seeded.team.id,
     questionLabels,
     createdAllocations: seeded.createdAllocations,
+    meetingsSeeded: meetingSeed.total,
   };
 }
 
@@ -51,18 +60,25 @@ async function seedFeedbackPendingScenario(
     templateId,
     projectName: FEEDBACK_OPEN_PROJECT_NAME,
     teamName: FEEDBACK_OPEN_TEAM_NAME,
-    informationText: "This scenario has peer assessments completed while peer feedback is currently open and pending submission.",
+    informationText: FEEDBACK_PENDING_PROJECT_INFORMATION_TEXT,
     deadlineOffsetDays: { taskOpen: -21, taskDue: -14, assessmentOpen: -13, assessmentDue: -3, feedbackOpen: -2, feedbackDue: 5 },
     memberIds,
   });
   await prisma.peerFeedback.deleteMany({ where: { teamId: seeded.team.id } });
   const assessmentCount = await upsertScenarioAssessments(seeded.project.id, seeded.team.id, templateId, memberIds, questionLabels);
+  const meetingSeed = await seedScenarioPastAndUpcomingMeetings({
+    teamId: seeded.team.id,
+    organiserId: memberIds[0]!,
+    memberIds,
+    titlePrefix: "Feedback Pending Demo",
+  });
 
   return {
     projectId: seeded.project.id,
     teamId: seeded.team.id,
     createdAllocations: seeded.createdAllocations,
     assessmentCount,
+    meetingsSeeded: meetingSeed.total,
   };
 }
 
@@ -101,8 +117,8 @@ export async function seedPeerAssessmentProgressScenarios(context: SeedContext) 
       },
       rows: completedUnmarked ? 3 : 2,
       details: completedUnmarked
-        ? `projects=3, teams=3, assessments=${feedbackPending.assessmentCount + completedUnmarked.assessmentCount}, feedbacks=${completedUnmarked.feedbackCount}, allocations=${assessmentOpen.createdAllocations + feedbackPending.createdAllocations + completedUnmarked.createdAllocations}, clearedMarkings=${completedUnmarked.clearedMarkings}`
-        : `projects=2, teams=2, assessments=${feedbackPending.assessmentCount}, allocations=${assessmentOpen.createdAllocations + feedbackPending.createdAllocations}`,
+        ? `projects=3, teams=3, assessments=${feedbackPending.assessmentCount + completedUnmarked.assessmentCount}, feedbacks=${completedUnmarked.feedbackCount}, allocations=${assessmentOpen.createdAllocations + feedbackPending.createdAllocations + completedUnmarked.createdAllocations}, meetings=${assessmentOpen.meetingsSeeded + feedbackPending.meetingsSeeded}, clearedMarkings=${completedUnmarked.clearedMarkings}`
+        : `projects=2, teams=2, assessments=${feedbackPending.assessmentCount}, allocations=${assessmentOpen.createdAllocations + feedbackPending.createdAllocations}, meetings=${assessmentOpen.meetingsSeeded + feedbackPending.meetingsSeeded}`,
     };
   });
 }

@@ -191,6 +191,7 @@ describe("MeetingDetail", () => {
     };
     render(<MeetingDetail meeting={withMinutes as any} projectId={5} permissions={defaultPermissions} />);
     expect(screen.getByText("Minutes")).toBeInTheDocument();
+    expect(screen.getByText("Minutes taken by: Reggie King")).toBeInTheDocument();
     expect(screen.getByTestId("rich-text-viewer")).toBeInTheDocument();
   });
 
