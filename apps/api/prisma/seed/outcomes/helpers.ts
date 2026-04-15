@@ -1,6 +1,7 @@
 import { randSentence } from "@ngneat/falso";
 import { Role } from "@prisma/client";
 import { SEED_STUDENT_MARK_COVERAGE, SEED_STUDENT_MARK_MAX, SEED_STUDENT_MARK_MIN } from "../config";
+import { buildPeerAssessmentAnswersJsonForSeed } from "../peerAssessmentScenario/assessments";
 import { prisma } from "../prismaClient";
 import type { SeedContext, SeedProject, SeedTeam, SeedTemplate } from "../types";
 import { SEED_FEATURE_FLAG_COUNT, SEED_PEER_REVIEWS_PER_MEMBER } from "../volumes";
@@ -232,7 +233,11 @@ async function upsertPeerAssessmentAndFeedback(
   template: SeedTemplate,
   state: Pick<PeerAssessmentState, "assessmentIdByPair" | "feedbackIds">
 ) {
-  const answersJson = buildAnswersJson(template.questionLabels, reviewerId, revieweeId);
+  const answersJson = await buildPeerAssessmentAnswersJsonForSeed(
+    template.id,
+    template.questionLabels,
+    ({ questionIndex }) => buildAssessmentAnswer(reviewerId, revieweeId, questionIndex),
+  );
   const pairKey = buildReviewPairKey(reviewerId, revieweeId);
   const existingAssessmentId = state.assessmentIdByPair.get(pairKey);
   const assessment = await writePeerAssessment(team, reviewerId, revieweeId, template.id, answersJson, existingAssessmentId);
@@ -249,18 +254,12 @@ async function upsertPeerAssessmentAndFeedback(
   return { createdAssessment, createdFeedback };
 }
 
-function buildAnswersJson(questionLabels: string[], reviewerId: number, revieweeId: number) {
-  return Object.fromEntries(
-    questionLabels.map((label, questionIndex) => [label, buildAssessmentAnswer(reviewerId, revieweeId, questionIndex)])
-  );
-}
-
 function writePeerAssessment(
   team: SeedTeam,
   reviewerUserId: number,
   revieweeUserId: number,
   templateId: number,
-  answersJson: Record<string, string>,
+  answersJson: Record<string, string | number | boolean | null>,
   existingId?: number
 ) {
   if (existingId) return prisma.peerAssessment.update({ where: { id: existingId }, data: { templateId, answersJson } });

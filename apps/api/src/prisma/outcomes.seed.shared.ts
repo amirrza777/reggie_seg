@@ -25,6 +25,9 @@ const hoisted = vi.hoisted(() => ({
     staffStudentMarking: {
       createMany: vi.fn(),
     },
+    question: {
+      findMany: vi.fn(),
+    },
     peerAssessment: {
       findMany: vi.fn(),
       update: vi.fn(),
@@ -67,8 +70,17 @@ vi.mock("../../prisma/seed/config", () => ({
   },
 }));
 
+function ensureQuestionMock() {
+  const m = prismaMock as typeof prismaMock & { question?: { findMany: ReturnType<typeof vi.fn> } };
+  if (!m.question?.findMany) {
+    m.question = { findMany: vi.fn() };
+  }
+}
+
 export function resetOutcomesSeedMocks() {
+  ensureQuestionMock();
   vi.clearAllMocks();
+  ensureQuestionMock();
   prismaMock.projectDeadline.findMany.mockResolvedValue([]);
   prismaMock.projectDeadline.upsert.mockResolvedValue({});
   prismaMock.featureFlag.findMany.mockResolvedValue([]);
@@ -78,6 +90,7 @@ export function resetOutcomesSeedMocks() {
   prismaMock.moduleTeachingAssistant.findMany.mockResolvedValue([]);
   prismaMock.user.findMany.mockResolvedValue([]);
   prismaMock.staffStudentMarking.createMany.mockResolvedValue({ count: 0 });
+  prismaMock.question.findMany.mockResolvedValue([]);
   prismaMock.peerAssessment.findMany.mockResolvedValue([]);
   prismaMock.peerAssessment.update.mockResolvedValue({ id: 1 });
   prismaMock.peerAssessment.create.mockResolvedValue({ id: 2 });

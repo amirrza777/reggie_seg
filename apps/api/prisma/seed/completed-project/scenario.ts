@@ -217,7 +217,12 @@ async function ensureSingleScenarioAssessment(
   questionIndex: number,
   assessmentIdByPair: Map<string, number>,
 ) {
-  const answersJson = Object.fromEntries(questions.map((question) => [question.label, buildScenarioAnswer(question, reviewerId, revieweeId, questionIndex)]));
+  const answersJson = Object.fromEntries(
+    questions.map((question) => [
+      String(question.id),
+      buildScenarioAnswer(question, reviewerId, revieweeId, questionIndex),
+    ]),
+  );
   const pairKey = buildReviewPairKey(reviewerId, revieweeId);
   const existingAssessmentId = assessmentIdByPair.get(pairKey);
   if (existingAssessmentId) {

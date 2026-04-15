@@ -105,6 +105,28 @@ describe("peerAssessment mapper", () => {
       "1": 4,
       "2": "Strong communicator",
     });
+    expect(mapped.templateQuestions).toEqual([]);
+  });
+
+  it("maps embedded questionnaireTemplate into templateQuestions", () => {
+    const mapped = mapApiAssessmentToPeerAssessment({
+      id: 10,
+      projectId: 1,
+      teamId: 2,
+      reviewerUserId: 3,
+      revieweeUserId: 4,
+      submittedAt: "2026-03-10T00:00:00.000Z",
+      templateId: 5,
+      answersJson: [{ question: "1", answer: "ok" }],
+      reviewee: { firstName: "A", lastName: "B" },
+      questionnaireTemplate: {
+        questions: [{ id: 1, label: "Comment", type: "text", order: 0 }],
+      },
+    });
+
+    expect(mapped.templateQuestions).toEqual([
+      expect.objectContaining({ id: 1, text: "Comment", type: "text", order: 0 }),
+    ]);
   });
 
   it("maps object answers and normalizes non-string answer values", () => {

@@ -358,7 +358,10 @@ describe("UserManagementTable", () => {
     await waitFor(() =>
       expect(searchUsersMock).toHaveBeenLastCalledWith({ q: "missing", page: 1, pageSize: 10 }),
     );
-    expect(screen.getByText('No user accounts match "missing".')).toBeInTheDocument();
+    await waitFor(() => {
+      const empty = document.querySelector(".user-management-card .ui-empty-state");
+      expect(empty?.textContent ?? "").toMatch(/No user accounts match.*missing/);
+    });
   });
 
   it("shows API load errors in an error alert", async () => {

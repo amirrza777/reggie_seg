@@ -91,6 +91,11 @@ export function mapApiAssessmentToPeerAssessment(raw: any): PeerAssessment {
     });
   }
 
+  const templateQuestions =
+    raw.questionnaireTemplate != null
+      ? mapApiQuestionsToQuestions(raw.questionnaireTemplate)
+      : [];
+
   return {
     id: String(raw.id),
     projectId: raw.projectId,
@@ -100,6 +105,7 @@ export function mapApiAssessmentToPeerAssessment(raw: any): PeerAssessment {
     submittedAt: raw.submittedAt,
     templateId: raw.templateId,
     answers,
+    templateQuestions,
     firstName: raw.reviewee?.firstName ?? "",
     lastName: raw.reviewee?.lastName ?? "",
   };
