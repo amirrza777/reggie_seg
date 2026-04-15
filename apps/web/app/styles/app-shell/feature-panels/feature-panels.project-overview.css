@@ -194,7 +194,7 @@
 
 .project-overview-schedule__row {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 7.5rem;
   gap: 10px;
   align-items: center;
   border: 1px solid var(--border);
@@ -204,7 +204,7 @@
 }
 
 .project-overview-schedule--expanded .project-overview-schedule__row {
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) 8rem;
   padding: 14px 16px;
 }
 
@@ -238,6 +238,8 @@
   font-size: var(--fs-fixed-12px);
   font-weight: 700;
   white-space: nowrap;
+  justify-self: end;
+  text-align: center;
 }
 
 .project-overview-schedule--expanded .project-overview-status {
