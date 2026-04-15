@@ -93,15 +93,21 @@
   gap: 8px;
   font-size: var(--fs-fixed-14px);
   color: var(--profile-ink, var(--ink));
+  max-width: 100%;
 }
 
-.profile-checkbox input {
+.profile-checkbox input[type="checkbox"] {
   margin-top: 3px;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
 }
 
 .profile-checkbox__label {
   color: var(--profile-ink, var(--ink));
   line-height: 1.45;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .otp-group {
