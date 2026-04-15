@@ -66,12 +66,7 @@ The repository provides seeded assessment/demo accounts.The default seeded accou
 
 - Email: `global_admin.assessment@example.com`
 - Password: `password123`
-
-### Additional GitHub Demo Accounts
-
-- Staff: `github.staff@example.com` / `password123`
-- Student: `github.student@example.com` / `password123`
-
+- 
 If the deployed database was seeded with different values, update this section to match the deployed environment.
 
 ## Running The Project
