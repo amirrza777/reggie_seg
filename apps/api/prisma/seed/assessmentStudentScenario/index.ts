@@ -15,10 +15,13 @@ export async function seedAssessmentStudentScenario(context: SeedContext) {
     if (!actors || !template) return { value: undefined, rows: 0, details: "skipped (missing assessment student, marker, teammates, or template)" };
 
     const modules = await ensureAssessmentStudentModules(context.enterprise);
+    const moduleMemberIds = actors.assessmentStaff
+      ? [actors.assessmentStudent.id, actors.assessmentStaff.id]
+      : [actors.assessmentStudent.id];
     const moduleRows = await syncAssessmentStudentModuleMembership(
       context.enterprise.id,
       modules,
-      actors.assessmentStudent.id,
+      moduleMemberIds,
       actors.marker.id,
     );
     const projects = await ensureAssessmentStudentProjects(context.enterprise.id, modules, template);

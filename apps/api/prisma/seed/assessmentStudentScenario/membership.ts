@@ -4,10 +4,13 @@ import type { AssessmentStudentScenarioProject } from "./setup";
 export async function syncAssessmentStudentModuleMembership(
   enterpriseId: string,
   modules: Array<{ id: number }>,
-  assessmentStudentId: number,
+  moduleMemberIds: number[],
   markerUserId: number,
 ) {
-  const userModules = modules.map((module) => ({ enterpriseId, moduleId: module.id, userId: assessmentStudentId }));
+  const uniqueMemberIds = Array.from(new Set(moduleMemberIds.filter((userId) => Number.isInteger(userId) && userId > 0)));
+  const userModules = uniqueMemberIds.flatMap((userId) =>
+    modules.map((module) => ({ enterpriseId, moduleId: module.id, userId })),
+  );
   const moduleLeads = modules.map((module) => ({ moduleId: module.id, userId: markerUserId }));
   const [enrollments, leads] = await Promise.all([
     prisma.userModule.createMany({ data: userModules, skipDuplicates: true }),
